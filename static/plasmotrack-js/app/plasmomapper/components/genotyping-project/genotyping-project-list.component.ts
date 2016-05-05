@@ -27,27 +27,33 @@ import { BinEstimatorProject } from '../../services/bin-estimator-project/bin-es
         <span class="label label-danger">{{deleteProjectError}}</span>
     </div>
     <div class="row main-container">
-        <div class="table-responsive list-panel col-sm-6">
-            <table class="table table-striped table-hover table-condensed">
-                <thead>
-                    <tr>
-                        <th (click)="sortingParam='title'; reversed=!reversed; sortProjects()">Title</th>
-                        <th>Creator</th>
-                        <th>Description</th>
-                        <th (click)="sortingParam='last_updated'; reversed=!reversed; sortProjects()">Last Updated</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr *ngFor="#project of genotypingProjects" (click)="gotoDetail(project.id)">
-                        <td>{{project.title}}</td>
-                        <td>{{project.creator}}</td>
-                        <td>{{project.description}}</td>
-                        <td>{{project.last_updated | date: "fullDate"}}</td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="col-sm-6">
+            <div class="panel panel-default">
+                <div class="panel-body">
+                    <div class="table-responsive list-panel">
+                        <table class="table table-striped table-hover table-condensed">
+                            <thead>
+                                <tr>
+                                    <th (click)="sortingParam='title'; reversed=!reversed; sortProjects()">Title</th>
+                                    <th>Creator</th>
+                                    <th>Description</th>
+                                    <th (click)="sortingParam='last_updated'; reversed=!reversed; sortProjects()">Last Updated</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="#project of genotypingProjects" (click)="gotoDetail(project.id)">
+                                    <td>{{project.title}}</td>
+                                    <td>{{project.creator}}</td>
+                                    <td>{{project.description}}</td>
+                                    <td>{{project.last_updated | date: "fullDate"}}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="col-sm-5">
+        <div class="col-sm-6">
             <div class="panel panel-default">
                 <div class="panel-heading">
                     <h3 class="panel-title">New Project</h3>

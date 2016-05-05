@@ -4,6 +4,10 @@ static/plasmotrack-js/node_modules/*
 static/plasmotrack-js/typings/*
 static/plasmotrack-js/bootstrap/*
 .env
+test.py
+*.js.map
+*.js
+
 
 
 ### JetBrains template
@@ -170,4 +174,5 @@ target/
 
 # Created by .ignore support plugin (hsz.mobi)
 
-test.py
+
+*.map

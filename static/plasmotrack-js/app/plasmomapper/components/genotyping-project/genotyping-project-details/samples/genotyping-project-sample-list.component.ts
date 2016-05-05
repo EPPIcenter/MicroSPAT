@@ -42,7 +42,7 @@ import { D3SampleAnnotationEditor } from '../../sample-annotation-editor.compone
                                     <tr>
                                         <th (click)="reverseSampleSorting = !reverseSampleSorting; sampleSortingParam = 'barcode'; sortSamples()">Barcode</th>
                                         <th (click)="reverseSampleSorting = !reverseSampleSorting; sampleSortingParam = 'designation'; sortSamples()">Designation</th>
-                                        <th (click)="reverseSampleSorting = !reverseSampleSorting; sampleSorgingParam = 'moi'; sortSamples()">MOI</th>
+                                        <th (click)="reverseSampleSorting = !reverseSampleSorting; sampleSortingParam = 'moi'; sortSamples()">MOI</th>
                                         <th>Last Updated</th>
                                     </tr>
                                 </thead>
@@ -252,9 +252,9 @@ export class GenotypingProjectSampleList implements OnInit {
     }
     
     private sortSamples() {
-        let inSample = false;
+        let inSample = false;        
         if(['barcode', 'designation'].indexOf(this.sampleSortingParam) >= 0) {
-            inSample = true; 
+            inSample = true;
         }
         this._sampleAnnotations.sort((a,b) => {            
             if(inSample) {

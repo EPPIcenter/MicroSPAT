@@ -18,51 +18,59 @@ import { PlateDetailComponent } from './d3-plate-detail.component';
     <div class="row main-container">
         <div class="col-sm-5">
             <div class="row">
-                <div class="panel panel-default">
-                    <div (click)="showNewPlate = !showNewPlate" class="panel-heading">
-                        <h3 class="panel-title">New Plate
-                        <span *ngIf="!showNewPlate" class="glyphicon glyphicon-menu-right pull-right"></span>
-                        <span *ngIf="showNewPlate" class="glyphicon glyphicon-menu-down pull-right"></span>
-                        </h3>
-                    </div>
-                    <div *ngIf="showNewPlate" class="panel-body">
-                        <form>
-                            <div class="form-group">
-                                <input type="file" (change)="fileChangeEvent($event)" placeholder="Upload file..." multiple />
-                            </div>
-                            <div class="form-group">
-                                <label>Ladder</label>
-                                <select required [(ngModel)]="ladder_id" class="form-control">
-                                    <option *ngFor="#ladder of ladders" value={{ladder.id}}>{{ladder.label}}</option>
-                                </select>
-                            </div>
-                            <button class="btn btn-primary" type="button" (click)="upload()">Upload</button>
-                        </form>
-                        <span *ngIf="uploading" class="label label-info">Uploading Files...</span>
-                        <span *ngIf="uploadComplete" class="label label-success">Upload Successful</span>
-                        <span class="label label-danger">{{newPlateError}}</span>
+                <div class="col-sm-12">
+                    <div class="panel panel-default">
+                        <div (click)="showNewPlate = !showNewPlate" class="panel-heading">
+                            <h3 class="panel-title">New Plate
+                            <span *ngIf="!showNewPlate" class="glyphicon glyphicon-menu-right pull-right"></span>
+                            <span *ngIf="showNewPlate" class="glyphicon glyphicon-menu-down pull-right"></span>
+                            </h3>
+                        </div>
+                        <div *ngIf="showNewPlate" class="panel-body">
+                            <form>
+                                <div class="form-group">
+                                    <input type="file" (change)="fileChangeEvent($event)" placeholder="Upload file..." multiple />
+                                </div>
+                                <div class="form-group">
+                                    <label>Ladder</label>
+                                    <select required [(ngModel)]="ladder_id" class="form-control">
+                                        <option *ngFor="#ladder of ladders" value={{ladder.id}}>{{ladder.label}}</option>
+                                    </select>
+                                </div>
+                                <button class="btn btn-primary" type="button" (click)="upload()">Upload</button>
+                            </form>
+                            <span *ngIf="uploading" class="label label-info">Uploading Files...</span>
+                            <span *ngIf="uploadComplete" class="label label-success">Upload Successful</span>
+                            <span class="label label-danger">{{newPlateError}}</span>
+                        </div>
                     </div>
                 </div>
             </div>
             <div class="row table-responsive list-panel">
-                <table class="table table-striped table-hover table-condensed">
-                    <thead>
-                        <tr>
-                            <th (click)="sortingParam='label'; reversed=!reversed; sortPlates()">Label</th>
-                            <th (click)="sortingParam='date_processed'; reversed=!reversed; sortPlates()">Date Processed</th>
-                            <th (click)="sortingParam='date_run'; reversed=!reversed; sortPlates()">Date Run</th>
-                            <th (click)="sortingParam='ce_machine'; reversed=!reversed; sortPlates()">CE Machine</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr [ngClass]="{success: plate.id==selectedPlate?.id}" *ngFor="#plate of plates" (click)="selectPlate(plate.id)">
-                            <td>{{plate.label}}</td>
-                            <td>{{plate.date_processed | date: "shortDate"}}</td>
-                            <td>{{plate.date_run | date: "shortDate"}}</td>
-                            <td>{{plate.ce_machine}}</td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div class="col-sm-12">
+                    <div class="panel panel-default">
+                        <div class="panel-body">
+                            <table class="table table-striped table-hover table-condensed">
+                                <thead>
+                                    <tr>
+                                        <th (click)="sortingParam='label'; reversed=!reversed; sortPlates()">Label</th>
+                                        <th (click)="sortingParam='date_processed'; reversed=!reversed; sortPlates()">Date Processed</th>
+                                        <th (click)="sortingParam='date_run'; reversed=!reversed; sortPlates()">Date Run</th>
+                                        <th (click)="sortingParam='ce_machine'; reversed=!reversed; sortPlates()">CE Machine</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr [ngClass]="{success: plate.id==selectedPlate?.id}" *ngFor="#plate of plates" (click)="selectPlate(plate.id)">
+                                        <td>{{plate.label}}</td>
+                                        <td>{{plate.date_processed | date: "shortDate"}}</td>
+                                        <td>{{plate.date_run | date: "shortDate"}}</td>
+                                        <td>{{plate.ce_machine}}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="col-sm-7">
