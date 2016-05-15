@@ -227,6 +227,14 @@ def clear_channel_annotations(plate_id):
     db.session.flush()
 
 
+@plasmomapper.route('/', defaults={'path': ''})
+@plasmomapper.route('/<path:path>')
+def catch_all(path):
+    res = jsonify(error='Not Found')
+    res.status_code = 404
+    return res
+
+
 @socketio.on('connect')
 def test_message(message=None):
     print "Connected Socket"

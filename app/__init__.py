@@ -62,6 +62,9 @@ def create_app(config_name):
     # from app.plasmomapper.fsa_extractor import fsa_extractor
     # app.register_blueprint(fsa_extractor)
 
+    from app.events import plasmotrack
+    app.register_blueprint(plasmotrack)
+
     from app.plasmomapper.events import plasmomapper
     app.register_blueprint(plasmomapper)
 
