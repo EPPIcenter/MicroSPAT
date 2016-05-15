@@ -6,6 +6,7 @@ export class GenotypingProject extends SampleBasedProject {
     bin_estimator_id: number;
     artifact_estimator_id: number;
     locus_parameters: Map<number, GenotypingLocusParameters>;
+    probability_threshold: number;
     
     fillFromJSON(obj) {
         super.fillFromJSON(obj);

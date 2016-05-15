@@ -27,34 +27,52 @@ import { D3SampleAnnotationEditor } from '../../sample-annotation-editor.compone
     },
     template: `
         <pm-section-header [header]="header" [navItems]="navItems"></pm-section-header>
-        <div class="row">
+        <div *ngIf="selectedProject" class="row">
             <div class="col-sm-6">
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                        <div class="h3 panel-title">
-                            <span>Samples</span>
+                <div class="row">
+                    <div class="col-sm-12">
+                        <div class="panel panel-default">
+                            <div class="panel-body">
+                                <form>
+                                    <div class="form-group">
+                                        <label>Lower Probability Limit</label>
+                                        <input type="number" class="form-control" required step="any" min="0" max="1" [(ngModel)]="selectedProject.probability_threshold">
+                                    </div>
+                                    <button class="btn btn-primary" (click)="calculateProbability()">Calculate</button>
+                                </form>
+                                <span *ngIf="calculatingProbability" class="label label-info">Calculating Probability...</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="panel-body">
-                        <div class="table-responsive" style="overflow: auto; height:80vh">
-                            <table class="table table-striped table-hover table-condensed">
-                                <thead>
-                                    <tr>
-                                        <th (click)="reverseSampleSorting = !reverseSampleSorting; sampleSortingParam = 'barcode'; sortSamples()">Barcode</th>
-                                        <th (click)="reverseSampleSorting = !reverseSampleSorting; sampleSortingParam = 'designation'; sortSamples()">Designation</th>
-                                        <th (click)="reverseSampleSorting = !reverseSampleSorting; sampleSortingParam = 'moi'; sortSamples()">MOI</th>
-                                        <th>Last Updated</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr *ngFor="#sample_annotation of _sampleAnnotations" (click)="selectSample(sample_annotation)" [ngClass]="{success:sample_annotation.sample.id==selectedSample?.id}">
-                                        <td>{{sample_annotation.sample.barcode}}</td>
-                                        <td>{{sample_annotation.sample.designation}}</td>
-                                        <td>{{sample_annotation.moi}}</td>
-                                        <td>{{sample_annotation.last_updtaed | date: "fullDate"}}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                    <div class="col-sm-12">
+                        <div class="panel panel-default">
+                            <div class="panel-heading">
+                                <div class="h3 panel-title">
+                                    <span>Samples</span>
+                                </div>
+                            </div>
+                            <div class="panel-body">
+                                <div class="table-responsive" style="overflow: auto; height:80vh">
+                                    <table class="table table-striped table-hover table-condensed">
+                                        <thead>
+                                            <tr>
+                                                <th (click)="reverseSampleSorting = !reverseSampleSorting; sampleSortingParam = 'barcode'; sortSamples()">Barcode</th>
+                                                <th (click)="reverseSampleSorting = !reverseSampleSorting; sampleSortingParam = 'designation'; sortSamples()">Designation</th>
+                                                <th (click)="reverseSampleSorting = !reverseSampleSorting; sampleSortingParam = 'moi'; sortSamples()">MOI</th>
+                                                <th>Last Updated</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr *ngFor="#sample_annotation of _sampleAnnotations" (click)="selectSample(sample_annotation)" [ngClass]="{success:sample_annotation.sample.id==selectedSample?.id}">
+                                                <td>{{sample_annotation.sample.barcode}}</td>
+                                                <td>{{sample_annotation.sample.designation}}</td>
+                                                <td>{{sample_annotation.moi}}</td>
+                                                <td>{{sample_annotation.last_updtaed | date: "fullDate"}}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -139,6 +157,7 @@ export class GenotypingProjectSampleList implements OnInit {
     private _sampleAnnotations: SampleAnnotation[] = [];
     private selectedLocusAnnotationIndex = 0;
     
+    private calculatingProbability = false;
     
     constructor(
         private _genotypingProjectService: GenotypingProjectService,
@@ -163,11 +182,18 @@ export class GenotypingProjectSampleList implements OnInit {
         };
     }
     
-    getProject(id) {
+    getProject() {
+        this.selectedProject = null
+        this.selectedSample = null
+        this.selectedSampleLocusAnnotations = null
+        this.selectedLocusAnnotation = null;
+        this.selectedBinEstimator = null;
+        this.selectedBins = null;
+        this.calculatingProbability = false;
+        this._sampleAnnotations = [];
         this._genotypingProjectService.getProject(+this._routeParams.get('project_id'))
                 .map((project) => {
                     this.selectedProject = project;
-                    this.selectedSample = null;
                     project.sample_annotations.forEach(sampleAnnotation => {
                         this._sampleAnnotations.push(sampleAnnotation);
                     });
@@ -207,6 +233,14 @@ export class GenotypingProjectSampleList implements OnInit {
             }
         }
         return count
+    }
+    
+    private calculateProbability() {
+        this.calculatingProbability = true;
+        this._genotypingProjectService.calculateProbability(this.selectedProject)
+            .subscribe(res => {
+                this.getProject();
+            })
     }
     
     private eventHandler(event: KeyboardEvent) {
@@ -285,6 +319,6 @@ export class GenotypingProjectSampleList implements OnInit {
     }
   
     ngOnInit() {
-        this.getProject(+this._routeParams.get('project_id'));
+        this.getProject();
     }
 }

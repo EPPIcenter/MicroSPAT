@@ -20,6 +20,7 @@ export class GenotypingProjectService extends SampleBasedProjectService {
     public updateProject: (project: GenotypingProject) => Observable<GenotypingProject>;
     public createProject: (project: GenotypingProject) => Observable<GenotypingProject>;
     public deleteProject: (id: number) => Observable<DatabaseItem>;
+    public calculateProbability: (project: GenotypingProject) => Observable<any>;
     public saveAnnotations: (annotations: SampleLocusAnnotation[]) => Observable<any>;
     public clearCache: (id: number) => void;
     
@@ -66,6 +67,10 @@ export class GenotypingProjectService extends SampleBasedProjectService {
         
         this.saveAnnotations = (annotations: SampleLocusAnnotation[]) => {
             return this._commonServerMethods.postJSON(annotations, this._annotationsUrl);
+        }
+        
+        this.calculateProbability = (project: GenotypingProject) => {
+            return this._commonServerMethods.postJSON(project, this._projectsUrl + "calculate-probability/")
         }
     }
 }

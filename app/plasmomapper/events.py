@@ -281,6 +281,17 @@ def get_or_post_projects():
             return handle_error(e)
 
 
+@plasmomapper.route('/genotyping-project/calculate-probability/', methods=['POST'])
+def calculate_probability():
+    project_json = request.json
+    project = GenotypingProject.query.get(project_json['id'])
+    assert isinstance(project, GenotypingProject)
+    project.probability_threshold = project_json['probability_threshold']
+    project.probabilistic_peak_annotation()
+    db.session.commit()
+    return jsonify(wrap_data(project.serialize_details()))
+
+
 @plasmomapper.route('/genotyping-project/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
 def get_or_update_project(id):
     if request.method == 'GET':
