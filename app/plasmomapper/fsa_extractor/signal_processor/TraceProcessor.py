@@ -169,6 +169,9 @@ class LadderProcessor(GenericChannelProcessor):
         if len(peak_indices) < len(self.ladder) - self.maximum_missing_peak_count:
             raise NoLadderException("Not enough ladder peaks identified to generate accurate spline.")
 
+        if len(peak_indices) > len(self.ladder) + self.outlier_limit:
+            raise NoLadderException("Too many peaks identified to generate accurate spline.")
+
         if len(peak_indices) > len(self.ladder):
             for peak_combination in itertools.combinations(peak_indices, len(self.ladder)):
                 spline = interpolate.UnivariateSpline(peak_combination, self.ladder, k=3)

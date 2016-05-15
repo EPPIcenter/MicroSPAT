@@ -4,6 +4,7 @@ from collections import defaultdict
 from datetime import datetime
 
 from sklearn.externals import joblib
+import scipy.stats as st
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import validates, deferred, reconstructor
 from sqlalchemy import event
@@ -1243,19 +1244,17 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
                         peaks_copy = locus_annotation.annotated_peaks[:]
                         all_peaks = [x for x in peaks_copy if x['probability'] > self.probability_threshold]
                         possible_artifact_peaks = [x for x in all_peaks if (
-                        x['peak_height'] - x['artifact_contribution'] - (x[
-                                                                             'artifact_error'] * locus_params.soft_artifact_sd_limit)) <= locus_params.absolute_peak_height_limit]
+                        x['peak_height'] - x['artifact_contribution'] - (x['artifact_error'] * locus_params.soft_artifact_sd_limit)) <= locus_params.absolute_peak_height_limit]
+                        # possible_artifact_peaks = [x for x in all_peaks]
                         new_probs = {}
                         for peak in possible_artifact_peaks:
                             other_peaks = [x for x in all_peaks if x['peak_index'] != peak['peak_index']]
-                            this_peak_freq = allele_frequencies[locus_annotation.locus_id][peak['bin_id']] * peak[
-                                'probability']
+                            this_peak_freq = allele_frequencies[locus_annotation.locus_id][peak['bin_id']] * peak['probability'] * st.norm.cdf((peak['peak_height'] - peak['artifact_contribution']) / (peak['artifact_error'] + .0000000001))
                             other_peak_freqs = [
-                                allele_frequencies[locus_annotation.locus_id][x['bin_id']] * x['probability'] for x in
+                                allele_frequencies[locus_annotation.locus_id][x['bin_id']] * x['probability'] * st.norm.cdf((x['peak_height'] - x['artifact_contribution']) / (x['artifact_error'] + .0000000001)) for x in
                                 other_peaks]
                             total_probability = (sum(other_peak_freqs) + this_peak_freq) ** sample_annotation.moi
-                            new_probs[peak['peak_index']] = (total_probability - (
-                            sum(other_peak_freqs) ** sample_annotation.moi)) / total_probability
+                            new_probs[peak['peak_index']] = (total_probability - (sum(other_peak_freqs) ** sample_annotation.moi)) / total_probability
 
                         for peak in possible_artifact_peaks:
                             print "Old Probability:" + str(peak['probability'])
@@ -1287,6 +1286,7 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
         res.update({
             'bin_estimator_id': self.bin_estimator_id,
             'artifact_estimator_id': self.artifact_estimator_id,
+            'probability_threshold': self.probability_threshold
         })
         return res
 
@@ -1295,6 +1295,7 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
         res.update({
             'bin_estimator_id': self.bin_estimator_id,
             'artifact_estimator_id': self.artifact_estimator_id,
+            'probability_threshold': self.probability_threshold,
             'sample_annotations': {x.id: x.serialize() for x in self.sample_annotations}
         })
         return res
