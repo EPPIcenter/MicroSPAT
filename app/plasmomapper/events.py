@@ -227,6 +227,14 @@ def clear_channel_annotations(plate_id):
     db.session.flush()
 
 
+@plasmomapper.route('/', defaults={'path': ''})
+@plasmomapper.route('/<path:path>')
+def catch_all(path):
+    res = jsonify(error='Not Found')
+    res.status_code = 404
+    return res
+
+
 @socketio.on('connect')
 def test_message(message=None):
     print "Connected Socket"
@@ -271,6 +279,17 @@ def get_or_post_projects():
             return jsonify(wrap_data(project.serialize_details()))
         except Exception as e:
             return handle_error(e)
+
+
+@plasmomapper.route('/genotyping-project/calculate-probability/', methods=['POST'])
+def calculate_probability():
+    project_json = request.json
+    project = GenotypingProject.query.get(project_json['id'])
+    assert isinstance(project, GenotypingProject)
+    project.probability_threshold = project_json['probability_threshold']
+    project.probabilistic_peak_annotation()
+    db.session.commit()
+    return jsonify(wrap_data(project.serialize_details()))
 
 
 @plasmomapper.route('/genotyping-project/<int:id>/', methods=['GET', 'PUT', 'DELETE'])

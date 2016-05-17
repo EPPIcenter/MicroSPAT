@@ -3,6 +3,9 @@ migrations/versions/*
 static/plasmotrack-js/node_modules/*
 static/plasmotrack-js/typings/*
 static/plasmotrack-js/bootstrap/*
+app/static/plasmotrack-js/node_modules/*
+app/static/plasmotrack-js/typings/*
+app/static/plasmotrack-js/bootstrap/*
 .env
 test.py
 *.js.map
@@ -176,3 +179,5 @@ target/
 
 
 *.map
+
+app/static/plasmotrack-js/node_modules/.bin/touch
