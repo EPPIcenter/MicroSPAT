@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnChanges, EventEmitter, Output } from 'angular2/core';
+import { Component, ElementRef, OnChanges, EventEmitter, Output } from '@angular/core';
 import { Observable } from 'rxjs/Observable';
 import { D3Canvas } from '../d3/canvas';
 import { CanvasConfig } from '../d3/canvas-config.model';

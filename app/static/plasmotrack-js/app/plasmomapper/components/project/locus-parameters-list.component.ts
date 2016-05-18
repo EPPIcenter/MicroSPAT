@@ -1,4 +1,4 @@
-import { Component, Output, EventEmitter } from 'angular2/core';
+import { Component, Output, EventEmitter } from '@angular/core';
 import { LocusParameters } from '../../services/project/locus-parameters/locus-parameters.model';
 import { LocusPipe } from '../../pipes/locus.pipe';
 

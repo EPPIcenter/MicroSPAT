@@ -1,4 +1,4 @@
-import { Component, Output, ElementRef, OnInit, EventEmitter, OnDestroy } from 'angular2/core';
+import { Component, Output, ElementRef, OnInit, EventEmitter, OnDestroy } from '@angular/core';
 
 import { Bin } from '../../../services/bin-estimator-project/locus-bin-set/bin/bin.model';
 import { Locus } from '../../../services/locus/locus.model';

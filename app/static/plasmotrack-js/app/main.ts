@@ -1,7 +1,8 @@
-import {enableProdMode} from 'angular2/core';
-import {bootstrap}      from 'angular2/platform/browser';
+import {bootstrap}      from '@angular/platform-browser-dynamic'
 import {PlasmoTrackComponent}   from './plasmotrack.component';
-import {HTTP_PROVIDERS} from 'angular2/http';
+
+import {HTTP_PROVIDERS} from '@angular/http';
+import {ROUTER_PROVIDERS} from '@angular/router-deprecated';
 
 // enableProdMode();
-bootstrap(PlasmoTrackComponent, [HTTP_PROVIDERS]);
+bootstrap(PlasmoTrackComponent, [HTTP_PROVIDERS, ROUTER_PROVIDERS]);
