@@ -11,6 +11,7 @@ if os.path.exists('.env'):
 
 from app import socketio, create_app, db
 import app.plasmomapper as PlasmoMapper
+import webbrowser
 from flask.ext.script import Manager, Shell
 from flask.ext.migrate import Migrate, MigrateCommand
 
@@ -46,7 +47,10 @@ def deploy():
 
 @manager.command
 def runsockets():
-    socketio.run(app, port=5000)
+    port = 5000
+    # webbrowser.open("http://localhost:{}/".format(port))
+    socketio.run(app, port=port)
+
 
 
 if __name__ == '__main__':

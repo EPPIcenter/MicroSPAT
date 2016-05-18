@@ -1,8 +1,11 @@
 from flask_socketio import emit
+
 from app import socketio
 from models import *
 from flask import Blueprint, render_template, jsonify, request, Response
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+import eventlet
+
 
 plasmomapper = Blueprint('plasmomapper', import_name=__name__, template_folder='templates',
                          url_prefix='/plasmomapper/api/v1')
@@ -179,6 +182,7 @@ def load_plate_map(plate_map_file, plate):
     new_channels = defaultdict(list)
     clear_channel_annotations(plate.id)
     for entry in r:
+        eventlet.sleep()
         well_label = entry['Well']
         for locus_label in locus_labels:
             sample_barcode = entry[locus_label]
@@ -196,12 +200,12 @@ def load_plate_map(plate_map_file, plate):
                 projects = [x[0] for x in projects]
                 well = plate.wells_dict[well_label]
                 channel = well.channels_dict[locus.color]
-                # clear_channel_annotations(channel.id)
                 channel.add_locus(locus.id, block_commit=True)
                 channel.add_sample(sample.id, block_commit=True)
                 for project_id in projects:
                     new_channels[project_id].append(channel.id)
     db.session.flush()
+    plate.check_contamination()
     for project_id in new_channels.keys():
         project = Project.query.get(project_id)
         print "Adding New Channels"
@@ -215,6 +219,7 @@ def clear_channel_annotations(plate_id):
     sample_locus_annotations = SampleLocusAnnotation.query.join(ProjectChannelAnnotations).join(Channel).join(Well).join(Plate).filter(Plate.id == plate_id).all()
     print str(len(sample_locus_annotations)) + " Reference Runs"
     for sample_locus_annotation in sample_locus_annotations:
+        eventlet.sleep()
         assert isinstance(sample_locus_annotation, SampleLocusAnnotation)
         sample_locus_annotation.reference_run = None
         sample_locus_annotation.flags = {}
@@ -227,6 +232,10 @@ def clear_channel_annotations(plate_id):
     db.session.flush()
 
 
+def send_message(msg):
+    socketio.emit('message', {'message': msg}, namespace='/')
+
+
 @plasmomapper.route('/', defaults={'path': ''})
 @plasmomapper.route('/<path:path>')
 def catch_all(path):
@@ -234,16 +243,16 @@ def catch_all(path):
     res.status_code = 404
     return res
 
-
 @socketio.on('connect')
 def test_message(message=None):
     print "Connected Socket"
     emit('test', 'test')
+    for i in range(1, 101):
+        send_message(i)
     # plates = Plate.query.all()
     # if plates:
     #     plates = [x.to_json() for x in plates]
     # socketio.emit('all_projects', wrap_data(plates))
-
 
 @socketio.on('client_test')
 def client_test(message=None):
@@ -253,7 +262,7 @@ def client_test(message=None):
 
 @socketio.on('list', namespace='/project')
 def socket_get_or_post_projects():
-    print "Listing Projects"
+    send_message('GETTING/POSTING PROJECTS')
     projects = GenotypingProject.query.all()
     emit('list_all', [x.serialize() for x in projects])
     print "Done Listing Projects"
