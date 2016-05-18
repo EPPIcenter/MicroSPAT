@@ -1,5 +1,5 @@
-import { Component, OnInit } from 'angular2/core';
-import { RouteParams, Router } from 'angular2/router';
+import { Component, OnInit } from '@angular/core';
+import { RouteParams, Router } from '@angular/router-deprecated';
 
 import { LocusPipe } from '../../../pipes/locus.pipe';
 

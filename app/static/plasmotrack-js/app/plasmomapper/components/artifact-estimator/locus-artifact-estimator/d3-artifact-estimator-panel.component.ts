@@ -1,4 +1,4 @@
-import { Component, Output, ElementRef, OnInit, EventEmitter, OnDestroy } from 'angular2/core';
+import { Component, Output, ElementRef, OnInit, EventEmitter, OnDestroy } from '@angular/core';
 
 import { LocusArtifactEstimator } from '../../../services/artifact-estimator-project/locus-artifact-estimator/locus-artifact-estimator.model';
 import { ArtifactEstimator } from '../../../services/artifact-estimator-project/locus-artifact-estimator/artifact-estimator/artifact-estimator.model';

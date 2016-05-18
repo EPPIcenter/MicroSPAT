@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnChanges, OnInit, SimpleChange } from 'angular2/core';
+import { Component, ElementRef, OnChanges, OnInit, SimpleChange } from '@angular/core';
 import { Well } from '../../services/well/well.model';
 import { Plate } from '../../services/plate/plate.model';
 import { Channel } from '../../services/channel/channel.model';

@@ -1,5 +1,5 @@
-/// <reference path="./../../../../typings/browser.d.ts" />
-import { Component, ElementRef, OnChanges, OnInit, Output, EventEmitter } from 'angular2/core';import { Well } from '../../services/well/well.model';
+import { Component, ElementRef, OnChanges, OnInit, Output, EventEmitter } from '@angular/core';
+import { Well } from '../../services/well/well.model';
 import { Plate } from '../../services/plate/plate.model';
 import { Channel } from '../../services/channel/channel.model';
 import { Ladder } from '../../services/ladder/ladder.model';

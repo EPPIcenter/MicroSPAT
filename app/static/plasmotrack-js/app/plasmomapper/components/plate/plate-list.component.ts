@@ -1,5 +1,5 @@
-import { Component, OnInit } from 'angular2/core';
-import { Router } from 'angular2/router';
+import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router-deprecated';
 
 import { SectionHeaderComponent } from '../layout/section-header.component'
 
@@ -57,6 +57,7 @@ import { PlateDetailComponent } from './d3-plate-detail.component';
                                         <th (click)="sortingParam='date_processed'; reversed=!reversed; sortPlates()">Date Processed</th>
                                         <th (click)="sortingParam='date_run'; reversed=!reversed; sortPlates()">Date Run</th>
                                         <th (click)="sortingParam='ce_machine'; reversed=!reversed; sortPlates()">CE Machine</th>
+                                        <th>Contamination Count</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -65,6 +66,7 @@ import { PlateDetailComponent } from './d3-plate-detail.component';
                                         <td>{{plate.date_processed | date: "shortDate"}}</td>
                                         <td>{{plate.date_run | date: "shortDate"}}</td>
                                         <td>{{plate.ce_machine}}</td>
+                                        <td>{{plate.flags['contamination_count']}}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -114,6 +116,7 @@ export class PlateListComponent implements OnInit {
             .subscribe(
                 plates => {
                     this.plates = plates;
+                    console.log(plates);
                     this.sortPlates();
                 },
                 error => this.errorMessages.push(error)

@@ -1,6 +1,6 @@
-import { Component, OnInit } from 'angular2/core';
-import { RouteParams, Router } from 'angular2/router';
-import { FORM_DIRECTIVES } from 'angular2/common';
+import { Component, OnInit } from '@angular/core';
+import { RouteParams, Router } from '@angular/router-deprecated';
+import { FORM_DIRECTIVES } from '@angular/common';
 
 import { LocusPipe } from '../../../pipes/locus.pipe';
 import { SectionHeaderComponent } from '../../layout/section-header.component';

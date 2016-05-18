@@ -1,4 +1,4 @@
-import { Injectable }           from 'angular2/core';
+import { Injectable }           from '@angular/core';
 import { SERVER_BASE, API_BASE }             from '../../api';
 
 import { Observable }           from 'rxjs/Observable';
