@@ -6,8 +6,6 @@ from flask_sqlalchemy import SQLAlchemy
 
 from config import config, Config
 
-
-
 # async_mode = None
 #
 # if async_mode is None:

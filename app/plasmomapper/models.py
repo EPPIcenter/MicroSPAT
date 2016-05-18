@@ -13,9 +13,12 @@ from sqlalchemy.orm.session import attributes
 
 from app import db
 from config import Config
+
 from fsa_extractor.PlateExtractor import PlateExtractor, WellExtractor, ChannelExtractor
 import bin_finder.BinFinder as BF
 import artifact_estimator.ArtifactEstimator as AE
+
+import eventlet
 
 from app.custom_sql_types.custom_types import JSONEncodedData, MutableDict, MutableList
 from app.plasmomapper.peak_annotator.PeakFilters import base_size_filter, bleedthrough_filter, crosstalk_filter, \
@@ -92,6 +95,20 @@ class TimeStamped(object):
 class Flaggable(object):
     flags = db.Column(MutableDict.as_mutable(JSONEncodedData), default={}, nullable=False)
     comments = db.Column(db.Text)
+
+    def set_flag(self, key, value):
+        self.flags[key] = value
+        return self
+
+    def get_flag(self, key, default=None):
+        return self.flags.get(key, default)
+
+    def get_flag_values(self):
+        return self.flags.values()
+
+    def clear_flags(self):
+        self.flags = {}
+        return self
 
 
 class LocusSetAssociatedMixin(object):
@@ -219,6 +236,7 @@ class Project(LocusSetAssociatedMixin, TimeStamped, db.Model):
         channel_annotations = []
 
         for channel_id in channel_ids:
+            eventlet.sleep()
             channel_locus_id = Channel.query.filter(Channel.id == channel_id).value(Channel.locus_id)
 
             if not channel_locus_id:
@@ -282,6 +300,7 @@ class Project(LocusSetAssociatedMixin, TimeStamped, db.Model):
 
             total_peaks = -1
             while len(channel.peaks) != total_peaks:
+                eventlet.sleep()
                 channel.post_annotate_peaks()
                 channel.post_filter_peaks(filter_params)
                 total_peaks = len(channel.peaks)
@@ -296,6 +315,7 @@ class Project(LocusSetAssociatedMixin, TimeStamped, db.Model):
     def recalculate_channels(self, channel_annotation_ids, rescan_peaks, block_commit=False):
         channel_annotations = []
         for channel_annotation_id in channel_annotation_ids:
+            eventlet.sleep()
             channel_annotations.append(self.recalculate_channel(channel_annotation_id, rescan_peaks, block_commit=True))
 
         if not block_commit:
@@ -813,11 +833,13 @@ class LocusArtifactEstimator(AE.ArtifactEstimatorSet, db.Model):
                                                 nucleotide_repeat_length=locus.nucleotide_repeat_length)
 
         for estimator in ae.artifact_estimators:
+            eventlet.sleep()
             assert isinstance(estimator, AE.ArtifactEstimator)
             artifact_estimator = ArtifactEstimator(artifact_distance=estimator.artifact_distance,
                                                    artifact_distance_buffer=estimator.artifact_distance_buffer,
                                                    peak_data=estimator.peak_data)
             for eqn in estimator.artifact_equations:
+                eventlet.sleep()
                 assert isinstance(eqn, AE.ArtifactEquation)
                 artifact_equation = ArtifactEquation(sd=eqn.sd, r_squared=eqn.r_squared, slope=eqn.slope,
                                                      intercept=eqn.intercept, start_size=eqn.start_size,
@@ -972,7 +994,7 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
             assert isinstance(sample_annotation, SampleLocusAnnotation)
             sample_annotation.annotated_peaks = []
             sample_annotation.reference_run_id = None
-            sample_annotation.flags = {}
+            sample_annotation.clear_flags()
 
     def clear_bin_annotations(self, locus_id):
         channel_annotations = ProjectChannelAnnotations.query.join(Channel).filter(Channel.locus_id == locus_id).filter(
@@ -1037,6 +1059,8 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
 
     def recalculate_channel(self, channel_annotation_id, rescan_peaks, block_commit=False):
         print "Recalculating Channel " + str(self)
+        print "Eventlet Sleeping"
+        eventlet.sleep()
         channel_annotation = super(GenotypingProject, self).recalculate_channel(channel_annotation_id, rescan_peaks,
                                                                                 block_commit=True)
         self.annotate_channel(channel_annotation)
@@ -1106,6 +1130,8 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
         locus_annotations = SampleLocusAnnotation.query.join(ProjectSampleAnnotations).filter(
             ProjectSampleAnnotations.project_id == self.id).filter(SampleLocusAnnotation.locus_id == locus_id).all()
         for locus_annotation in locus_annotations:
+            print "Eventlet Sleeping"
+            eventlet.sleep()
             print locus_annotation
             assert isinstance(locus_annotation, SampleLocusAnnotation)
             channel_annotation = self.get_best_run(locus_annotation.sample_annotation.sample_id,
@@ -1119,7 +1145,8 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
                         'below_relative_threshold': False,
                         'bleedthrough': False,
                         'crosstalk': False,
-                        'artifact': False
+                        'artifact': False,
+                        'out_of_bin': False
                     }
 
                     if peak['relative_peak_height'] < locus_params.relative_peak_height_limit:
@@ -1142,25 +1169,23 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
                 locus_annotation.annotated_peaks = peaks
 
                 if any([x['peak_height'] > locus_params.failure_threshold for x in locus_annotation.annotated_peaks]):
-                    locus_annotation.flags['failure'] = False
+                    locus_annotation.set_flag('failure', False)
                 else:
-                    locus_annotation.flags['failure'] = True
+                    locus_annotation.set_flag('failure', True)
 
                 if any([(x['peak_height'] > locus_params.offscale_threshold) or
-                                                x['peak_height'] * x[
-                                            'bleedthrough_ratio'] > locus_params.offscale_threshold or
-                                                x['peak_height'] * x[
-                                            'crosstalk_ratio'] > locus_params.offscale_threshold
+                        x['peak_height'] * x['bleedthrough_ratio'] > locus_params.offscale_threshold or
+                        x['peak_height'] * x['crosstalk_ratio'] > locus_params.offscale_threshold
                         for x in locus_annotation.annotated_peaks]):
-                    locus_annotation.flags['offscale'] = True
+                    locus_annotation.set_flag('offscale', True)
                 else:
-                    locus_annotation.flags['offscale'] = False
+                    locus_annotation.set_flag('offscale', False)
 
-                locus_annotation.flags['manual_curation'] = False
+                locus_annotation.set_flag('manual_curation', False)
 
                 locus_annotation.alleles = dict.fromkeys(locus_annotation.alleles, False)
 
-                if not locus_annotation.flags['failure']:
+                if not locus_annotation.get_flag('failure'):
                     for peak in locus_annotation.annotated_peaks:
                         if peak.get('in_bin', False) and not any(peak['flags'].values()):
                             locus_annotation.alleles[str(peak['bin_id'])] = True
@@ -1187,7 +1212,7 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
         print "Initializing Probabilities"
 
         for locus_annotation in all_locus_annotations:
-            if locus_annotation.annotated_peaks and not locus_annotation.flags['failure']:
+            if locus_annotation.annotated_peaks and not locus_annotation.get_flag('failure'):
                 for peak in locus_annotation.annotated_peaks:
                     if peak.get('in_bin') and not any(peak['flags'].values()):
                         peak['probability'] = 1
@@ -1210,7 +1235,7 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
 
             for locus_annotation in all_locus_annotations:
                 assert isinstance(locus_annotation, SampleLocusAnnotation)
-                if locus_annotation.annotated_peaks and not locus_annotation.flags['failure']:
+                if locus_annotation.annotated_peaks and not locus_annotation.get_flag('failure'):
                     locus_totals[locus_annotation.locus_id] += 1
                     for peak in locus_annotation.annotated_peaks:
                         if peak['in_bin'] and not any(peak['flags'].values()) and peak['probability'] >= self.probability_threshold:
@@ -1227,13 +1252,13 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
                 assert isinstance(sample_annotation, ProjectSampleAnnotations)
                 sample_annotation.moi = 0
                 for locus_annotation in locus_annotation_dict[sample_annotation.id]:
-                    if locus_annotation.annotated_peaks and not locus_annotation.flags['failure']:
+                    if locus_annotation.annotated_peaks and not locus_annotation.get_flag('failure'):
                         sample_annotation.moi = max(sample_annotation.moi, len(
                             [x for x in locus_annotation.annotated_peaks if
                              x['probability'] >= self.probability_threshold]))
 
                 for locus_annotation in locus_annotation_dict[sample_annotation.id]:
-                    if locus_annotation.annotated_peaks and not locus_annotation.flags['failure']:
+                    if locus_annotation.annotated_peaks and not locus_annotation.get_flag('failure'):
                         if not locus_param_cache.get(locus_annotation.locus_id, None):
                             locus_param_cache[locus_annotation.locus_id] = self.get_locus_parameters(
                                 locus_annotation.locus_id)
@@ -1271,7 +1296,7 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
             for locus_annotation in locus_annotation_dict[sample_annotation.id]:
                 locus_annotation.alleles = dict.fromkeys(locus_annotation.alleles, False)
                 locus_annotation.alleles.changed()
-                if locus_annotation.annotated_peaks and not locus_annotation.flags['failure']:
+                if locus_annotation.annotated_peaks and not locus_annotation.get_flag('failure'):
                     for peak in locus_annotation.annotated_peaks:
                         if peak['probability'] >= self.probability_threshold:
                             locus_annotation.alleles[str(peak['bin_id'])] = True
@@ -1562,24 +1587,24 @@ class ProjectSampleAnnotations(TimeStamped, db.Model):
 
         best_annotation = None
         for annotation in channel_annotations:
+            assert isinstance(annotation, ProjectChannelAnnotations)
             if not best_annotation:
-                assert isinstance(annotation, ProjectChannelAnnotations)
                 best_annotation = annotation
             else:
-                max_best_peak = max(lambda x: x['peak_height'],
-                                    filter(lambda y: y['peak_height'] < locus_parameters.offscale_threshold,
-                                           best_annotation.annotated_peaks))
-                max_curr_peak = max(lambda x: x['peak_height'],
-                                    filter(lambda y: y['peak_height'] < locus_parameters.offscale_threshold,
-                                           annotation.annotated_peaks))
-                if max_curr_peak['peak_height'] > max_best_peak['peak_height']:
-                    best_annotation = annotation
+                if not annotation.channel.get_flag('contamination', False):
+                    max_best_peak = max(lambda x: x['peak_height'],
+                                        filter(lambda y: y['peak_height'] < locus_parameters.offscale_threshold,
+                                               best_annotation.annotated_peaks))
+                    max_curr_peak = max(lambda x: x['peak_height'],
+                                        filter(lambda y: y['peak_height'] < locus_parameters.offscale_threshold,
+                                               annotation.annotated_peaks))
+                    if max_curr_peak['peak_height'] > max_best_peak['peak_height']:
+                        best_annotation = annotation
         return best_annotation
 
     def serialize(self):
         res = {
             'id': self.id,
-            # 'sample_id': self.sample_id,
             'sample': self.sample.serialize(),
             'project_id': self.project_id,
             'moi': self.moi,
@@ -1754,7 +1779,7 @@ class Plate(PlateExtractor, TimeStamped, Flaggable, db.Model):
     @classmethod
     def get_serialized_list(cls):
         plates = cls.query.values(cls.id, cls.label, cls.creator, cls.date_processed, cls.date_run,
-                                  cls.well_arrangement, cls.ce_machine, cls.plate_hash, cls.last_updated)
+                                  cls.well_arrangement, cls.ce_machine, cls.plate_hash, cls.last_updated, cls.flags)
         plates = [{'id': p[0],
                    'label': p[1],
                    'creator': p[2],
@@ -1763,7 +1788,8 @@ class Plate(PlateExtractor, TimeStamped, Flaggable, db.Model):
                    'well_arrangement': str(p[5]),
                    'ce_machine': str(p[6]),
                    'plate_hash': str(p[7]),
-                   'last_updated': str(p[8])} for p in plates]
+                   'last_updated': str(p[8]),
+                   'flags': p[9]} for p in plates]
         return plates
 
     @classmethod
@@ -1826,6 +1852,39 @@ class Plate(PlateExtractor, TimeStamped, Flaggable, db.Model):
                     channel.add_locus(locus.id)
                     channel.add_sample(sample.id)
         return self
+
+    def check_contamination(self):
+        channels = Channel.query.join(Well).join(Plate).join(Sample).filter(Plate.id == self.id)\
+            .filter(Sample.designation == 'negative_control').all()
+        for channel in channels:
+            channel.check_contamination()
+        return self
+
+    def set_contamination_flag(self, wavelength):
+        print "Setting Contamination Flag for " + self.label + " At " + str(wavelength)
+        if self.get_flag('contamination_count', None):
+            self.set_flag('contamination_count', self.get_flag('contamination_count') + 1)
+        else:
+            self.set_flag('contamination_count', 1)
+        channels = Channel.query.join(Well).join(Plate).filter(Plate.id == self.id).filter(Channel.wavelength == wavelength).all()
+        for channel in channels:
+            channel.set_flag('contamination', True)
+        return self
+
+    def unset_contamination_flag(self, wavelength):
+        if self.get_flag('contamination_count', None):
+            self.set_flag('contamination_count', self.get_flag('contamination_count') - 1)
+            channels = Channel.query.join(Plate).filter(Plate.id == self.id).filter(Channel.wavelength == wavelength).all()
+            for channel in [_ for _ in channels if _.designation == 'negative_control']:
+                if channel.flags.get('contamination', None):
+                    return self
+
+            for channel in [_ for _ in channels if _.designation != 'negative_control']:
+                channel.flags.set('contamination', False)
+        self.set_flag('contamination_count', 0)
+        return self
+
+
 
     def serialize(self):
         return {
@@ -1979,12 +2038,8 @@ class Channel(ChannelExtractor, TimeStamped, Colored, Flaggable, db.Model):
 
     def add_sample(self, sample_id, block_commit=False):
         self.sample_id = sample_id
-        # if self.locus_id:
-        #     projects = GenotypingProject.query.join(ProjectSampleAnnotations).filter(
-        #         ProjectSampleAnnotations.sample_id == sample_id).all()
-        #     for project in projects:
-        #         if self.locus in project.locus_set.loci:
-        #             project.add_channel(self.id, block_commit=block_commit)
+        if self.locus_id and Sample.query.filter(Sample.id == sample_id).value(Sample.designation) == 'negative_control':
+            self.check_contamination()
         return self
 
     def add_locus(self, locus_id, block_commit=False):
@@ -1992,12 +2047,8 @@ class Channel(ChannelExtractor, TimeStamped, Colored, Flaggable, db.Model):
         self.locus = locus
         self.locus_id = locus_id
         self.find_max_data_point()
-        # if self.sample_id:
-        #     projects = GenotypingProject.query.join(ProjectSampleAnnotations).filter(
-        #         ProjectSampleAnnotations.sample_id == self.sample_id).all()
-        #     for project in projects:
-        #         if self.locus in project.locus_set.loci:
-        #             project.add_channel(self.id, block_commit=block_commit)
+        if self.sample_id and Sample.query.filter(Sample.id == self.sample_id).value(Sample.designation) == 'negative_control':
+            self.check_contamination()
         return self
 
     def find_max_data_point(self):
@@ -2012,6 +2063,19 @@ class Channel(ChannelExtractor, TimeStamped, Colored, Flaggable, db.Model):
                 if self.well.base_sizes[i] > self.locus.min_base_length:
                     if self.data[i] > self.max_data_point:
                         self.max_data_point = self.data[i]
+
+    def check_contamination(self):
+        if self.sample.designation == 'negative_control':
+            print self.max_data_point
+            if self.max_data_point > Config.CONTAMINATION_LIMIT:
+                self.set_flag('contamination', True)
+                self.well.plate.set_contamination_flag(self.wavelength)
+
+    def unset_contamination_flag(self):
+        if self.get_flag('contamination', False):
+            self.set_flag('contamination', False)
+            if self.sample.designation == 'negative_control':
+                self.well.plate.unset_contamination_flag(self.wavelength)
 
     def serialize(self):
         res = {
