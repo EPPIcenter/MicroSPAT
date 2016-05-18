@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnChanges, OnInit, Output, EventEmitter, OnDestroy } from 'angular2/core';
+import { Component, ElementRef, OnChanges, OnInit, Output, EventEmitter, OnDestroy } from '@angular/core';
 import { Observable } from 'rxjs/Observable';
 import { Well } from '../../services/well/well.model';
 import { Plate } from '../../services/plate/plate.model';

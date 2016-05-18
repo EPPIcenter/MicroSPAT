@@ -1,6 +1,6 @@
 import 'rxjs/Rx'
-import { Component, enableProdMode }                        from 'angular2/core';
-import {RouteConfig, ROUTER_DIRECTIVES, ROUTER_PROVIDERS}   from 'angular2/router';
+import { Component, enableProdMode }                        from '@angular/core';
+import {RouteConfig, ROUTER_DIRECTIVES, ROUTER_PROVIDERS}   from '@angular/router-deprecated';
 
 import { PlasmoMapperComponent }                            from './plasmomapper/plasmomapper.component';
 import { SampleListComponent }                              from './plasmomapper/components/project/samples-list.component';

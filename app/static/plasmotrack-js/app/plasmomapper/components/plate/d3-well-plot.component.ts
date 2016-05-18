@@ -1,5 +1,5 @@
-/// <reference path="./../../../../typings/browser.d.ts" />
-import { Component, Output, ElementRef, OnChanges, EventEmitter, OnDestroy } from 'angular2/core';
+
+import { Component, Output, ElementRef, OnChanges, EventEmitter, OnDestroy } from '@angular/core';
 
 import { Square } from '../d3/square.model';
 

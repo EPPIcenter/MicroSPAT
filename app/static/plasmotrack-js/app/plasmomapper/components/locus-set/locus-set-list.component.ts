@@ -1,4 +1,4 @@
-import { Component, OnInit } from 'angular2/core';
+import { Component, OnInit } from '@angular/core';
 import { SectionHeaderComponent } from '../layout/section-header.component';
 
 import { CapitalizePipe } from '../../pipes/capitalize.pipe';

@@ -1,5 +1,5 @@
-import { Component, OnInit } from 'angular2/core';
-import { RouteConfig, ROUTER_DIRECTIVES, ROUTER_PROVIDERS } from 'angular2/router';
+import { Component, OnInit } from '@angular/core';
+import { RouteConfig, ROUTER_DIRECTIVES, ROUTER_PROVIDERS } from '@angular/router-deprecated';
 
 import { Observer } from 'rxjs/Observer';
 import { Subscriber } from 'rxjs/Subscriber';
@@ -28,6 +28,7 @@ import { ProjectService } from './services/project/project.service';
 import { LadderService } from './services/ladder/ladder.service';
 import { SampleService } from './services/sample/sample.service';
 import { WellService } from './services/well/well.service';
+import { NotificationService } from './services/notifications/notification.service';
 
 @Component({
     selector: 'plasmomapper',
@@ -38,7 +39,7 @@ import { WellService } from './services/well/well.service';
         CommonServerMethods, ProjectServerMethods, GenotypingProjectService, 
         ChannelService, LocusSetService, PlateService, LocusService, ProjectService,
         ArtifactEstimatorProjectService, BinEstimatorProjectService, LadderService,
-        SampleService, WellService
+        SampleService, WellService, NotificationService
     ]
 })
 @RouteConfig([
@@ -93,7 +94,8 @@ export class PlasmoMapperComponent implements OnInit {
     constructor(
         private _ladderService: LadderService,
         private _locusService: LocusService,
-        private _locusSetService: LocusSetService
+        private _locusSetService: LocusSetService,
+        private _notificationService: NotificationService
     ) {}
     
     initServices() {

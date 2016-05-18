@@ -1,4 +1,4 @@
-import { Component, OnChanges, SimpleChange } from 'angular2/core';
+import { Component, OnChanges, SimpleChange } from '@angular/core';
 import { SampleAnnotation } from '../../services/sample-based-project/sample-annotation/sample-annotation.model';
 
 @Component({
