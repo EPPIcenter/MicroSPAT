@@ -33,6 +33,7 @@ class DevelopmentConfig(Config):
     DEBUG = True
     SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URL') or \
                               'sqlite:///' + os.path.join(basedir, 'data-dev.sqlite')
+
     CELERY_RESULT_BACKEND = os.environ.get('DEV_RESULT_BACKEND_URL') or \
                             'db+sqlite:///' + os.path.join(basedir, 'result-backend-dev.sqlite')
     SQLALCHEMY_ECHO = False
