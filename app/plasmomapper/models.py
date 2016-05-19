@@ -806,7 +806,6 @@ class ArtifactEstimatorProject(Project):
         return res
 
 
-
 class LocusArtifactEstimator(AE.ArtifactEstimatorSet, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     locus_id = db.Column(db.Integer, db.ForeignKey('locus.id', ondelete="CASCADE"))
@@ -1011,7 +1010,8 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
         return self
 
     def clear_artifact_annotations(self, locus_id):
-        channel_annotations = ProjectChannelAnnotations.query.join(Channel).filter(Channel.locus_id == locus_id).filter(ProjectChannelAnnotations.project_id == self.id).all()
+        channel_annotations = ProjectChannelAnnotations.query.join(Channel).filter(Channel.locus_id == locus_id).filter(
+            ProjectChannelAnnotations.project_id == self.id).all()
         for annotation in channel_annotations:
             assert isinstance(annotation, ProjectChannelAnnotations)
             if annotation.annotated_peaks:
@@ -1174,8 +1174,10 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
                     locus_annotation.set_flag('failure', True)
 
                 if any([(x['peak_height'] > locus_params.offscale_threshold) or
-                        x['peak_height'] * x['bleedthrough_ratio'] > locus_params.offscale_threshold or
-                        x['peak_height'] * x['crosstalk_ratio'] > locus_params.offscale_threshold
+                                                x['peak_height'] * x[
+                                            'bleedthrough_ratio'] > locus_params.offscale_threshold or
+                                                x['peak_height'] * x[
+                                            'crosstalk_ratio'] > locus_params.offscale_threshold
                         for x in locus_annotation.annotated_peaks]):
                     locus_annotation.set_flag('offscale', True)
                 else:
@@ -1227,6 +1229,7 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
         alleles_changed = True
         cycles = 0
         while alleles_changed:
+            eventlet.sleep()
             cycles += 1
             alleles_changed = False
 
@@ -1238,7 +1241,8 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
                 if locus_annotation.annotated_peaks and not locus_annotation.get_flag('failure'):
                     locus_totals[locus_annotation.locus_id] += 1
                     for peak in locus_annotation.annotated_peaks:
-                        if peak['in_bin'] and not any(peak['flags'].values()) and peak['probability'] >= self.probability_threshold:
+                        if peak['in_bin'] and not any(peak['flags'].values()) and \
+                                        peak['probability'] >= self.probability_threshold:
                             allele_counts[locus_annotation.locus_id][peak['bin_id']] += 1
 
             allele_frequencies = defaultdict(dict)
@@ -1250,12 +1254,17 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
             for sample_annotation in sample_annotations:
                 print sample_annotation
                 assert isinstance(sample_annotation, ProjectSampleAnnotations)
+                mois = []
                 sample_annotation.moi = 0
                 for locus_annotation in locus_annotation_dict[sample_annotation.id]:
                     if locus_annotation.annotated_peaks and not locus_annotation.get_flag('failure'):
-                        sample_annotation.moi = max(sample_annotation.moi, len(
-                            [x for x in locus_annotation.annotated_peaks if
-                             x['probability'] >= self.probability_threshold]))
+                        mois.append(len([x for x in locus_annotation.annotated_peaks if
+                                         x['probability'] >= self.probability_threshold]))
+                    else:
+                        mois.append(0)
+
+                mois.sort()
+                sample_annotation.moi = mois[-2]
 
                 for locus_annotation in locus_annotation_dict[sample_annotation.id]:
                     if locus_annotation.annotated_peaks and not locus_annotation.get_flag('failure'):
@@ -1269,17 +1278,23 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
                         peaks_copy = locus_annotation.annotated_peaks[:]
                         all_peaks = [x for x in peaks_copy if x['probability'] > self.probability_threshold]
                         possible_artifact_peaks = [x for x in all_peaks if (
-                        x['peak_height'] - x['artifact_contribution'] - (x['artifact_error'] * locus_params.soft_artifact_sd_limit)) <= locus_params.absolute_peak_height_limit]
+                            x['peak_height'] - x['artifact_contribution'] - (x['artifact_error'] * locus_params.soft_artifact_sd_limit)) <= locus_params.absolute_peak_height_limit]
                         # possible_artifact_peaks = [x for x in all_peaks]
                         new_probs = {}
                         for peak in possible_artifact_peaks:
                             other_peaks = [x for x in all_peaks if x['peak_index'] != peak['peak_index']]
-                            this_peak_freq = allele_frequencies[locus_annotation.locus_id][peak['bin_id']] * peak['probability'] * st.norm.cdf((peak['peak_height'] - peak['artifact_contribution']) / (peak['artifact_error'] + .0000000001))
-                            other_peak_freqs = [
-                                allele_frequencies[locus_annotation.locus_id][x['bin_id']] * x['probability'] * st.norm.cdf((x['peak_height'] - x['artifact_contribution']) / (x['artifact_error'] + .0000000001)) for x in
-                                other_peaks]
+
+                            this_peak_freq = allele_frequencies[locus_annotation.locus_id][peak['bin_id']] * peak[
+                                'probability'] * st.norm.cdf((peak['peak_height'] - peak['artifact_contribution']) / (
+                                    peak['artifact_error'] + .0000000001))
+
+                            other_peak_freqs = [allele_frequencies[locus_annotation.locus_id][x['bin_id']] * x[
+                                'probability'] * st.norm.cdf((x['peak_height'] - x['artifact_contribution']) / (
+                                    x['artifact_error'] + .0000000001)) for x in other_peaks]
+
                             total_probability = (sum(other_peak_freqs) + this_peak_freq) ** sample_annotation.moi
-                            new_probs[peak['peak_index']] = (total_probability - (sum(other_peak_freqs) ** sample_annotation.moi)) / total_probability
+                            new_probs[peak['peak_index']] = (total_probability - (
+                                sum(other_peak_freqs) ** sample_annotation.moi)) / total_probability
 
                         for peak in possible_artifact_peaks:
                             print "Old Probability:" + str(peak['probability'])
@@ -1622,7 +1637,8 @@ class ProjectSampleAnnotations(TimeStamped, db.Model):
 
 class SampleLocusAnnotation(TimeStamped, Flaggable, db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    sample_annotations_id = db.Column(db.Integer, db.ForeignKey("project_sample_annotations.id", ondelete="CASCADE"), index=True)
+    sample_annotations_id = db.Column(db.Integer, db.ForeignKey("project_sample_annotations.id", ondelete="CASCADE"),
+                                      index=True)
     locus_id = db.Column(db.Integer, db.ForeignKey('locus.id', ondelete="CASCADE"), index=True)
     locus = db.relationship('Locus', lazy='immediate')
     annotated_peaks = db.Column(MutableList.as_mutable(JSONEncodedData), default=[])
@@ -1854,7 +1870,8 @@ class Plate(PlateExtractor, TimeStamped, Flaggable, db.Model):
         return self
 
     def check_contamination(self):
-        channels = Channel.query.join(Well).join(Plate).join(Sample).filter(Plate.id == self.id)\
+        self.set_flag('contamination_count', 0)
+        channels = Channel.query.join(Well).join(Plate).join(Sample).filter(Plate.id == self.id) \
             .filter(Sample.designation == 'negative_control').all()
         for channel in channels:
             channel.check_contamination()
@@ -1866,7 +1883,8 @@ class Plate(PlateExtractor, TimeStamped, Flaggable, db.Model):
             self.set_flag('contamination_count', self.get_flag('contamination_count') + 1)
         else:
             self.set_flag('contamination_count', 1)
-        channels = Channel.query.join(Well).join(Plate).filter(Plate.id == self.id).filter(Channel.wavelength == wavelength).all()
+        channels = Channel.query.join(Well).join(Plate).filter(Plate.id == self.id).filter(
+            Channel.wavelength == wavelength).all()
         for channel in channels:
             channel.set_flag('contamination', True)
         return self
@@ -1874,7 +1892,8 @@ class Plate(PlateExtractor, TimeStamped, Flaggable, db.Model):
     def unset_contamination_flag(self, wavelength):
         if self.get_flag('contamination_count', None):
             self.set_flag('contamination_count', self.get_flag('contamination_count') - 1)
-            channels = Channel.query.join(Plate).filter(Plate.id == self.id).filter(Channel.wavelength == wavelength).all()
+            channels = Channel.query.join(Plate).filter(Plate.id == self.id).filter(
+                Channel.wavelength == wavelength).all()
             for channel in [_ for _ in channels if _.designation == 'negative_control']:
                 if channel.flags.get('contamination', None):
                     return self
@@ -1883,8 +1902,6 @@ class Plate(PlateExtractor, TimeStamped, Flaggable, db.Model):
                 channel.flags.set('contamination', False)
         self.set_flag('contamination_count', 0)
         return self
-
-
 
     def serialize(self):
         return {
@@ -2036,19 +2053,15 @@ class Channel(ChannelExtractor, TimeStamped, Colored, Flaggable, db.Model):
         self.filter_annotated_peaks(
             relative_peak_height_filter(min_relative_peak_height=filter_params['min_peak_height_ratio']))
 
-    def add_sample(self, sample_id, block_commit=False):
+    def add_sample(self, sample_id):
         self.sample_id = sample_id
-        if self.locus_id and Sample.query.filter(Sample.id == sample_id).value(Sample.designation) == 'negative_control':
-            self.check_contamination()
         return self
 
-    def add_locus(self, locus_id, block_commit=False):
+    def add_locus(self, locus_id):
         locus = Locus.query.get(locus_id)
         self.locus = locus
         self.locus_id = locus_id
         self.find_max_data_point()
-        if self.sample_id and Sample.query.filter(Sample.id == self.sample_id).value(Sample.designation) == 'negative_control':
-            self.check_contamination()
         return self
 
     def find_max_data_point(self):
@@ -2063,6 +2076,7 @@ class Channel(ChannelExtractor, TimeStamped, Colored, Flaggable, db.Model):
                 if self.well.base_sizes[i] > self.locus.min_base_length:
                     if self.data[i] > self.max_data_point:
                         self.max_data_point = self.data[i]
+                        self.max_data_point_index = i
 
     def check_contamination(self):
         if self.sample.designation == 'negative_control':

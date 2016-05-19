@@ -62,6 +62,10 @@ import * as d3 from 'd3';
                         <td>Probability</td>
                         <td>{{selectedPeak['probability'] | number}}</td>
                     </tr>
+                    <tr *ngIf="selectedPeak">
+                        <td>Relative Peak Height</td>
+                        <td>{{selectedPeak['relative_peak_height'] | number}}</td>
+                    </tr>
                 </tbody>
             </table>
         </div>
