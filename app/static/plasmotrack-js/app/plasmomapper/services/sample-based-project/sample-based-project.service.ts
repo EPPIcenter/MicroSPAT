@@ -17,7 +17,6 @@ import { ChannelAnnotation }        from '../project/channel-annotation/channel-
 export class SampleBasedProjectService extends ProjectService {
     public getLocusAnnotations: (project_id: number, locus_id: number) => Observable<SampleLocusAnnotation[]>;
     public getSampleLocusAnnotations: (project_id: number, sample_id: number) => Observable<SampleLocusAnnotation[]>;
-    
     public getSampleChannelAnnotations: (project_id: number, sample_id: number) => Observable<ChannelAnnotation[]>
     
     private _locusAnnotationUrl = API_BASE + '/locus-annotations/';

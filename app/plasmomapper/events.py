@@ -200,8 +200,8 @@ def load_plate_map(plate_map_file, plate):
                 projects = [x[0] for x in projects]
                 well = plate.wells_dict[well_label]
                 channel = well.channels_dict[locus.color]
-                channel.add_locus(locus.id, block_commit=True)
-                channel.add_sample(sample.id, block_commit=True)
+                channel.add_locus(locus.id)
+                channel.add_sample(sample.id)
                 for project_id in projects:
                     new_channels[project_id].append(channel.id)
     db.session.flush()
@@ -247,8 +247,9 @@ def catch_all(path):
 def test_message(message=None):
     print "Connected Socket"
     emit('test', 'test')
-    for i in range(1, 101):
-        send_message(i)
+    emit('message', request.sid + ' Connected', broadcast=True)
+    # for i in range(1, 101):
+    #     send_message(i)
     # plates = Plate.query.all()
     # if plates:
     #     plates = [x.to_json() for x in plates]
@@ -331,6 +332,34 @@ def get_or_update_project(id):
             return jsonify(wrap_data({"id": "project.id"}))
         except Exception as e:
             return handle_error(e)
+
+
+@plasmomapper.route('/genotyping-project/<int:id>/add-samples/', methods=['POST'])
+def genotyping_project_add_samples(id):
+    gp = GenotypingProject.query.get(id)
+    assert isinstance(gp, GenotypingProject)
+    files = request.files.getlist('files')
+
+    if not files:
+        return handle_error("Nothing Uploaded")
+
+    sample_ids = set()
+    for sample_file in files:
+        if sample_file.filename[-4:] != '.csv':
+            return handle_error("Uploaded file is not a csv.")
+
+        r = CaseInsensitiveDictReader(sample_file)
+
+        if 'barcode' not in r.fieldnames:
+            return handle_error("File header not valid")
+
+        for sample_entry in r:
+            sample_ids.add(Sample.query.filter(Sample.barcode == sample_entry['barcode']).value(Sample.id))
+
+    gp.add_samples(list(sample_ids))
+    return jsonify(wrap_data(gp.serialize_details()))
+
+
 
 
 @plasmomapper.route('/artifact-estimator-project/', methods=['GET', 'POST'])
