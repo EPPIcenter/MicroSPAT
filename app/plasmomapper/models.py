@@ -469,6 +469,10 @@ class SampleBasedProject(Project):
             # self.recalculate_channels(channel_annotation_ids, rescan_peaks=True, block_commit=True)
             db.session.commit()
             n += 1
+        locus_params = self.locus_parameters
+        for lp in locus_params:
+            lp.filter_parameters_stale = True
+            lp.scanning_parameters_stale = True
         db.session.commit()
 
     def serialize(self):
@@ -1130,7 +1134,6 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
         locus_annotations = SampleLocusAnnotation.query.join(ProjectSampleAnnotations).filter(
             ProjectSampleAnnotations.project_id == self.id).filter(SampleLocusAnnotation.locus_id == locus_id).all()
         for locus_annotation in locus_annotations:
-            print "Eventlet Sleeping"
             eventlet.sleep()
             print locus_annotation
             assert isinstance(locus_annotation, SampleLocusAnnotation)
@@ -1570,7 +1573,9 @@ class ProjectChannelAnnotations(TimeStamped, db.Model):
             'channel_id': self.channel_id,
             'project_id': self.project_id,
             'annotated_peaks': self.annotated_peaks or [],
-            'last_updated': self.last_updated
+            'last_updated': self.last_updated,
+            'locus_id': self.channel.locus_id,
+            'sample_id': self.channel.sample_id
         }
         return res
 
@@ -2076,7 +2081,6 @@ class Channel(ChannelExtractor, TimeStamped, Colored, Flaggable, db.Model):
                 if self.well.base_sizes[i] > self.locus.min_base_length:
                     if self.data[i] > self.max_data_point:
                         self.max_data_point = self.data[i]
-                        self.max_data_point_index = i
 
     def check_contamination(self):
         if self.sample.designation == 'negative_control':

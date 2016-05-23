@@ -17,6 +17,8 @@ import { Sample } from '../../../../services/sample/sample.model';
 import { SampleLocusAnnotation } from '../../../../services/sample-based-project/sample-annotation/locus-annotation/sample-locus-annotation.model';
 import { SampleListComponent } from '../../../project/samples-list.component';
 
+import { ChannelAnnotation } from '../../../../services/project/channel-annotation/channel-annotation.model';
+
 import { D3SampleAnnotationEditor } from '../../sample-annotation-editor.component';
 
 @Component({
@@ -41,6 +43,24 @@ import { D3SampleAnnotationEditor } from '../../sample-annotation-editor.compone
                                     <button class="btn btn-primary" (click)="calculateProbability()">Calculate</button>
                                 </form>
                                 <span *ngIf="calculatingProbability" class="label label-info">Calculating Probability...</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-12">
+                        <div class="panel panel-default">
+                            <div class="panel-heading">
+                                <h3 class="panel-title">Add Samples</h3>
+                            </div>
+                            <div class="panel-body">
+                                <form>
+                                    <div class="form-group">
+                                        <input type="file" (change)="fileChangeEvent($event)" placeholder="Upload file..." />
+                                    </div>
+                                    <button class="btn btn-primary" type="button" (click)="upload()">Upload</button>
+                                </form>
+                                <span *ngIf="uploading" class="label label-info">Uploading Files...</span>
+                                <span *ngIf="uploadComplete" class="label label-success">Upload Successful</span>
+                                <span class="label label-danger">{{newPlateError}}</span>
                             </div>
                         </div>
                     </div>
@@ -86,9 +106,11 @@ import { D3SampleAnnotationEditor } from '../../sample-annotation-editor.compone
                                     {{selectedLocusAnnotation.locus_id | locus | async}}
                                 </div>
                             </div>
-                            <div *ngIf="selectedLocusAnnotation.reference_channel_id" class="panel-body">
+                            <div *ngIf="selectedLocusChannelAnnotations" class="panel-body">
                                 <div id="channel_plot" style="height: 30vh">
-                                    <pm-d3-sample-annotation-editor [locusAnnotation]="selectedLocusAnnotation" [bins]="selectedBins"></pm-d3-sample-annotation-editor>
+                                    <div *ngFor="#channelAnnotation of selectedLocusChannelAnnotations">
+                                        <pm-d3-sample-annotation-editor [channelAnnotation]="channelAnnotation" [locusAnnotation]="selectedLocusAnnotation" [bins]="selectedBins"></pm-d3-sample-annotation-editor>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -148,6 +170,11 @@ export class GenotypingProjectSampleList implements OnInit {
     private selectedBinEstimator: BinEstimatorProject;
     private selectedBins: Map<number, Bin>;
     
+    private filesToUpload: File[] = [];
+    private uploading = false;
+    private uploadComplete = false;
+    private uploadError: string;
+    
     private sampleSortingParam: string = 'barcode';
     private reverseSampleSorting = true;
     
@@ -156,6 +183,9 @@ export class GenotypingProjectSampleList implements OnInit {
     
     private _sampleAnnotations: SampleAnnotation[] = [];
     private selectedLocusAnnotationIndex = 0;
+    
+    private channelAnnotations: Map<number, ChannelAnnotation[]>
+    private selectedLocusChannelAnnotations: ChannelAnnotation[];
     
     private calculatingProbability = false;
     
@@ -174,9 +204,10 @@ export class GenotypingProjectSampleList implements OnInit {
     
     private selectLocusAnnotation() {
         let annotation = this.selectedSampleLocusAnnotations[this.selectedLocusAnnotationIndex];
-        if(annotation.reference_run_id) {}
+        // if(annotation.reference_run_id) {}
         this.selectedBins = null;
         this.selectedLocusAnnotation = annotation;
+        this.selectedLocusChannelAnnotations = this.channelAnnotations.get(this.selectedLocusAnnotation.locus_id);
         if(this.selectedBinEstimator.locus_bin_sets.get(this.selectedLocusAnnotation.locus_id)) {
             this.selectedBins = this.selectedBinEstimator.locus_bin_sets.get(this.selectedLocusAnnotation.locus_id).bins;
         };
@@ -225,6 +256,29 @@ export class GenotypingProjectSampleList implements OnInit {
                 )
     }
     
+    fileChangeEvent(fileInput: any){
+        this.filesToUpload = <Array<File>> fileInput.target.files;
+    }
+    
+    upload() {
+        this.uploading = true;
+        this.uploadComplete = false
+        this._genotypingProjectService.addSamples(this.filesToUpload, this.selectedProject.id).subscribe(
+            project => {
+                this.selectedProject = project;
+            }, 
+            error => {
+                this.uploadError = error
+                this.uploading = false;
+            },
+            () => {
+                // this.getProject();
+                this.uploading = false;
+                this.uploadComplete = true;
+            }
+        )
+    }
+    
     private countOf(object: Object, status) {
         let count = 0;
         for(let k in object) {
@@ -266,10 +320,23 @@ export class GenotypingProjectSampleList implements OnInit {
         this._genotypingProjectService.getSampleLocusAnnotations(sample_annotation.project_id, sample_annotation.sample.id)
             .subscribe(sampleLocusAnnotations => {
                 this.selectedLocusAnnotation = null;
-                this.selectedSample = sample_annotation.sample
-                this.selectedSampleLocusAnnotations = sampleLocusAnnotations;
-                this.sortAnnotations();
-                console.log(sampleLocusAnnotations);
+                this.selectedSample = sample_annotation.sample;
+                this.channelAnnotations = new Map<number, ChannelAnnotation[]>();
+                this._genotypingProjectService.getSampleChannelAnnotations(sample_annotation.project_id, sample_annotation.sample.id).subscribe(
+                    channelAnnotations => {
+                        channelAnnotations.forEach(channelAnnotation => {
+                            if(this.channelAnnotations.has(channelAnnotation.locus_id)) {
+                                this.channelAnnotations.get(channelAnnotation.locus_id).push(channelAnnotation);
+                            } else {
+                                this.channelAnnotations.set(channelAnnotation.locus_id, [channelAnnotation]);
+                            }
+                        });
+                        this.selectedSampleLocusAnnotations = sampleLocusAnnotations;
+                        this.sortAnnotations();
+                        console.log(sampleLocusAnnotations);
+                        console.log(this.channelAnnotations);
+                    }
+                );
             })
     }
   
