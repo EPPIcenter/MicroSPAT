@@ -22,6 +22,9 @@ export class GenotypingProjectService extends SampleBasedProjectService {
     public deleteProject: (id: number) => Observable<DatabaseItem>;
     public calculateProbability: (project: GenotypingProject) => Observable<any>;
     public saveAnnotations: (annotations: SampleLocusAnnotation[]) => Observable<any>;
+    
+    public addSamples: (files: File[], id: number) => Observable<GenotypingProject>;
+    
     public clearCache: (id: number) => void;
     
     private _projectsUrl = API_BASE + '/genotyping-project/';
@@ -62,6 +65,16 @@ export class GenotypingProjectService extends SampleBasedProjectService {
         this.deleteProject = (id: number) => {
             return this._commonServerMethods.deleteItem(id, this._projectsUrl, this._projectCache);
         };
+        
+        this.addSamples = (files: File[], id: number) => {
+            return this._commonServerMethods.postFiles(files, this._projectsUrl + id + "/add-samples/", {})
+                .map(proj => {
+                    let t = new GenotypingProject();
+                    t.fillFromJSON(proj);
+                    this._projectCache.set(t.id, t);
+                    return t;
+                })
+        }
         
         this.clearCache = (id: number) => this._projectCache.remove(id);
         

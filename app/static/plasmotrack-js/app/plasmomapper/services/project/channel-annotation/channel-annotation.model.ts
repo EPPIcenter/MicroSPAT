@@ -8,6 +8,9 @@ export class ChannelAnnotation extends DatabaseItem implements TimeStamped {
     project_id: number;
     annotated_peaks: Object[];
     peak_indices: number[];
+    locus_id: number;
+    channel_id: number;
+    sample_id: number;
     
     fillFromJSON(obj) {
         this.isDirty = false;

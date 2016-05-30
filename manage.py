@@ -46,11 +46,11 @@ def deploy():
 
 
 @manager.command
-def runsockets():
-    port = 5000
+def runsockets(addr='localhost:5000'):
+    host, port = addr.split(':')
+    port = int(port) or 5000
     # webbrowser.open("http://localhost:{}/".format(port))
-    socketio.run(app, port=port)
-
+    socketio.run(app, host=host, port=port)
 
 
 if __name__ == '__main__':
