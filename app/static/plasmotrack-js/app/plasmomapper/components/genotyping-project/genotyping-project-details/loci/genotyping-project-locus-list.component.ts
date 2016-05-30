@@ -27,6 +27,7 @@ import { D3SampleAnnotationEditor } from '../../sample-annotation-editor.compone
 interface AnnotationFilter {
     failures: boolean;
     offscale: boolean;
+    out_of_bin: boolean;
     min_allele_count: number;
     max_allele_count: number;
     crosstalk: number;
@@ -126,12 +127,15 @@ interface AnnotationFilter {
                                         <input type="checkbox" (change)="filters.failures=false" [(ngModel)]="filters.offscale"> Offscale Only
                                     </div>
                                     <div class="form-group">
+                                        <input type="checkbox" (change)="filters.out_of_bin=false" [(ngModel)]="filters.out_of_bin"> Out Of Bin Peaks
+                                    </div>
+                                    <div class="form-group">
                                         <label>Crosstalk Limit</label>
-                                        <input class="form-control" type="number" step="any" min=0 [(ngModel)]="filters.crosstalk" [disabled]="filters.failures || filters.offscale">
+                                        <input class="form-control" type="number" step="any" min=0 [(ngModel)]="filters.crosstalk" [disabled]="filters.failures || filters.offscale || filters.out_of_bin">
                                     </div>
                                     <div class="form-group">
                                         <label>Bleedthrough Limit</label>
-                                        <input class="form-control" type="number" step="any" min=0 [(ngModel)]="filters.bleedthrough" [disabled]="filters.failures || filters.offscale">
+                                        <input class="form-control" type="number" step="any" min=0 [(ngModel)]="filters.bleedthrough" [disabled]="filters.failures || filters.offscale || filters.out_of_bin">
                                     </div>
                                 </div>
                                 <div class="col-sm-6">
@@ -168,9 +172,11 @@ interface AnnotationFilter {
                                 <div class="panel-heading">
                                     <h3 *ngIf="selectedLocusAnnotation" class="panel-title">{{selectedProject.sample_annotations.get(selectedLocusAnnotation.sample_annotations_id).sample.barcode}}</h3>
                                 </div>
-                                <div class="panel-body">
+                                <div *ngIf="selectedSampleChannelAnnotations" class="panel-body">
                                     <div id="channel_plot" style="height: 30vh">
-                                        <pm-d3-sample-annotation-editor *ngIf="selectedLocusAnnotation" [locusAnnotation]="selectedLocusAnnotation" [bins]="selectedBins"></pm-d3-sample-annotation-editor>
+                                        <div *ngFor="#channelAnnotation of selectedSampleChannelAnnotations">
+                                            <pm-d3-sample-annotation-editor [channelAnnotation]="channelAnnotation" [locusAnnotation]="selectedLocusAnnotation" [bins]="selectedBins"></pm-d3-sample-annotation-editor>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -236,6 +242,9 @@ export class GenotypingProjectLocusList {
     private selectedLocusAnnotation: SampleLocusAnnotation;
     private filteredLocusAnnotations: SampleLocusAnnotation[] = [];
     private filteredLocusAnnotationIndex = 0;
+    
+    private channelAnnotations: Map<number, ChannelAnnotation[]>;
+    private selectedSampleChannelAnnotations: ChannelAnnotation[];
     
     private filters: AnnotationFilter;
     
@@ -337,6 +346,14 @@ export class GenotypingProjectLocusList {
                 if(locusAnnotation.flags['offscale']) {
                     this.filteredLocusAnnotations.push(locusAnnotation);
                 }
+            } else if(this.filters.out_of_bin) {
+              for (var peak_idx = 0; peak_idx < locusAnnotation.annotated_peaks.length; peak_idx++) {
+                  var peak = locusAnnotation.annotated_peaks[peak_idx];
+                  if(!peak['in_bin'] && peak['bin'] && locusAnnotation.alleles[+peak['bin_id']]) {
+                      this.filteredLocusAnnotations.push(locusAnnotation);
+                      break;
+                  }
+              }  
             } else {
                 let main_peak = null;
                 locusAnnotation.annotated_peaks.forEach(peak => {
@@ -370,6 +387,7 @@ export class GenotypingProjectLocusList {
         this.filters = {
             failures: false,
             offscale: false,
+            out_of_bin: false,
             min_allele_count: 0,
             max_allele_count: Object.keys(this.selectedLocusAnnotations[0].alleles).length,
             bleedthrough: 0,
@@ -398,10 +416,14 @@ export class GenotypingProjectLocusList {
     
     private selectLocusAnnotation() {
         if (this.filteredLocusAnnotations.length > this.filteredLocusAnnotationIndex){
-            this.selectedLocusAnnotation = this.filteredLocusAnnotations[this.filteredLocusAnnotationIndex];    
+            this.selectedLocusAnnotation = this.filteredLocusAnnotations[this.filteredLocusAnnotationIndex];
+            let sample_id = this.selectedProject.sample_annotations.get(this.selectedLocusAnnotation.sample_annotations_id).sample.id;
+            this.selectedSampleChannelAnnotations = this.channelAnnotations.get(sample_id)    
         } else if(this.filteredLocusAnnotations.length > 0) {
             this.filteredLocusAnnotationIndex = 0;
             this.selectedLocusAnnotation = this.filteredLocusAnnotations[this.filteredLocusAnnotationIndex];
+            let sample_id = this.selectedProject.sample_annotations.get(this.selectedLocusAnnotation.sample_annotations_id).sample.id;
+            this.selectedSampleChannelAnnotations = this.channelAnnotations.get(sample_id)
         } else {
             this.filteredLocusAnnotationIndex = 0;
             this.selectedLocusAnnotation = null;
@@ -441,6 +463,7 @@ export class GenotypingProjectLocusList {
         this.selectedLocusAnnotation = null;
         this.filteredLocusAnnotations = [];
         this.selectedLocusAnnotations = null;
+        this.channelAnnotations = new Map<number, ChannelAnnotation[]>();
         if(!this.isSubmitting) {
             this._locusService.getLocus(locus_id)
             .subscribe(locus => {
@@ -449,10 +472,20 @@ export class GenotypingProjectLocusList {
                 if(this.selectedBinEstimator.locus_bin_sets.has(this.selectedLocus.id)) {
                     this.selectedBins = this.selectedBinEstimator.locus_bin_sets.get(this.selectedLocus.id).bins;
                 };
-                
                 this.getLocusAnnotations().subscribe(
                     () => this.clearFilter()
                 );
+                this._genotypingProjectService.getLocusChannelAnnotations(this.selectedProject.id, locus_id).subscribe(
+                    channelAnnotations => {
+                        channelAnnotations.forEach(channelAnnotation => {
+                            if(this.channelAnnotations.has(channelAnnotation.sample_id)) {
+                                this.channelAnnotations.get(channelAnnotation.sample_id).push(channelAnnotation)
+                            } else {
+                                this.channelAnnotations.set(channelAnnotation.sample_id, [channelAnnotation]);
+                            }
+                        });
+                    }
+                )
             })
         }
     }

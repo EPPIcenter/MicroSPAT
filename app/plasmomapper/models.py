@@ -1135,6 +1135,14 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
             ProjectSampleAnnotations.project_id == self.id).filter(SampleLocusAnnotation.locus_id == locus_id).all()
         for locus_annotation in locus_annotations:
             eventlet.sleep()
+
+            try:
+                # locus_annotation.alleles.pop(None)
+                locus_annotation.alleles.pop('None')
+                print "Removed a None Key"
+            except KeyError:
+                pass
+
             print locus_annotation
             assert isinstance(locus_annotation, SampleLocusAnnotation)
             channel_annotation = self.get_best_run(locus_annotation.sample_annotation.sample_id,
@@ -1149,7 +1157,6 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
                         'bleedthrough': False,
                         'crosstalk': False,
                         'artifact': False,
-                        'out_of_bin': False
                     }
 
                     if peak['relative_peak_height'] < locus_params.relative_peak_height_limit:
@@ -1192,7 +1199,11 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
 
                 if not locus_annotation.get_flag('failure'):
                     for peak in locus_annotation.annotated_peaks:
-                        if peak.get('in_bin', False) and not any(peak['flags'].values()):
+                        # print peak
+                        # if peak.get('in_bin', False) and not any(peak['flags'].values()):
+                        # print peak['bin_id']
+                        if not any(peak['flags'].values()) and peak['bin_id']:
+                            # print peak['bin_id']
                             locus_annotation.alleles[str(peak['bin_id'])] = True
             else:
                 locus_annotation.reference_run = None
@@ -1204,7 +1215,7 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
         # for each sample, find MOI using "real peaks" only => real peaks are greater than hard artifact threshold
 
         all_locus_annotations = SampleLocusAnnotation.query.join(ProjectSampleAnnotations).filter(
-            ProjectSampleAnnotations.project_id == self.id).all()
+            ProjectSampleAnnotations.project_id == self.id).join(Sample).filter(Sample.designation == 'sample').all()
 
         locus_annotation_dict = defaultdict(list)
 
@@ -1227,7 +1238,7 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
 
         db.session.flush()
 
-        sample_annotations = self.sample_annotations.all()
+        sample_annotations = self.sample_annotations.join(Sample).filter(Sample.designation == 'sample').all()
 
         alleles_changed = True
         cycles = 0
@@ -1267,7 +1278,10 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
                         mois.append(0)
 
                 mois.sort()
-                sample_annotation.moi = mois[-2]
+                if len(mois) > 2:
+                    sample_annotation.moi = mois[-2]
+                else:
+                    sample_annotation.moi = 0
 
                 for locus_annotation in locus_annotation_dict[sample_annotation.id]:
                     if locus_annotation.annotated_peaks and not locus_annotation.get_flag('failure'):
@@ -1939,6 +1953,7 @@ class Well(WellExtractor, TimeStamped, Flaggable, db.Model):
     ladder_id = db.Column(db.Integer, db.ForeignKey('ladder.id'), nullable=False)
     ladder = db.relationship('Ladder')
     fsa_hash = db.Column(db.String(32), nullable=False, unique=True, index=True)
+    _channels_dict = None
 
     def __repr__(self):
         if self.sizing_quality:

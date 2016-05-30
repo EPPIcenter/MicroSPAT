@@ -36,7 +36,7 @@ interface ZoomWindow {
                 <button (click)="zoomOut()" type="button" class="btn btn-info"><span class="glyphicon glyphicon-minus"></span></button>
             </div>
             <div class="btn-group">
-                <button type="button" class="btn btn-default btn-sm" *ngFor="#trace of traces" (click)="trace.display = !trace.display; render();">{{trace.color}}</button>
+                <button type="button" class="btn btn-default btn-sm" *ngFor="#trace of traces" (click)="trace.display = !trace.display; render();">{{trace.color_label}}</button>
             </div>
         </div>
         <div class="row">
@@ -72,6 +72,13 @@ export class D3WellViewerComponent implements OnChanges {
         private _locusService: LocusService
     ){}
     
+    private COLORMAP = {
+        'blue': '#00D5FF',
+        'red': 'red',
+        'green': 'green',
+        'yellow': 'yellow'
+    }
+    
     
     zoomIn() {
         this.range_max = this.range_max * 0.9;
@@ -97,8 +104,6 @@ export class D3WellViewerComponent implements OnChanges {
             range: [this.range_min, this.range_max]
         }
         this.canvas = new D3Canvas(this.canvasConfig);
-
-        
         this.traces.forEach((trace: Trace) =>{
             if(trace.display) {
                 this.canvas.addTrace(trace);    
@@ -124,15 +129,17 @@ export class D3WellViewerComponent implements OnChanges {
     
     ngOnChanges(){
         this.traces = [];
-        this.zoomWindows = [{
-            label: 'No Zoom',
-            min: 0,
-            max: 600
-        }];
+        this.zoomWindows = []
         this.base_sizes = null;
         this._wellService.getWell(this.well.id).subscribe(
             well => {
                 this.base_sizes = well.base_sizes;
+                this.zoomWindows = [{
+                    label: 'No Zoom',
+                    min: this.base_sizes[0],
+                    max: this.base_sizes[this.base_sizes.length - 1]
+                }]
+                this.setDomain(this.zoomWindows[0].min, this.zoomWindows[0].max);
                 this._ladderService.getLadder(well.ladder_id).subscribe(
                     ladder => {
                         well.channels.forEach((channel: Channel, color: string) => {
@@ -152,8 +159,9 @@ export class D3WellViewerComponent implements OnChanges {
                                     this.range_max = d3.max([d3.max(new_channel.data), this.range_max])
                                     let trace = {
                                         data: data,
-                                        color: color,
-                                        display: true
+                                        color: this.COLORMAP[color],
+                                        display: true,
+                                        color_label: color
                                     }
                                     this.traces.push(trace)
                                     this.render();

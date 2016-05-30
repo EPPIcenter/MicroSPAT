@@ -8,6 +8,7 @@ import { Circle } from '../d3/circle.model';
 
 
 import { SampleLocusAnnotation } from '../../services/sample-based-project/sample-annotation/locus-annotation/sample-locus-annotation.model';
+import { ChannelAnnotation } from '../../services/project/channel-annotation/channel-annotation.model';
 import { GenotypingProject } from '../../services/genotyping-project/genotyping-project.model';
 import { Channel } from '../../services/channel/channel.model';
 import { ChannelService } from '../../services/channel/channel.service';
@@ -20,7 +21,7 @@ import { Bin } from '../../services/bin-estimator-project/locus-bin-set/bin/bin.
 import * as d3 from 'd3';
 
 @Component({
-    inputs: ['locusAnnotation', 'bins'],
+    inputs: ['locusAnnotation', 'bins', 'channelAnnotation'],
     selector: 'pm-d3-sample-annotation-editor',
     template: `
     <div class="col-sm-9" style="height: 100%">
@@ -74,6 +75,7 @@ import * as d3 from 'd3';
 })
 export class D3SampleAnnotationEditor implements OnChanges {
     public locusAnnotation: SampleLocusAnnotation;
+    public channelAnnotation: ChannelAnnotation;
     public bins: Map<number, Bin>;
     
     private selectedPeak: Object;
@@ -116,6 +118,7 @@ export class D3SampleAnnotationEditor implements OnChanges {
         
         for(let k in this.locusAnnotation.alleles) {
             let b = this.bins.get(+k)
+            console.log(k, b);
             let bar = {
                 opacity: .6,
                 center: b.base_size,
@@ -198,7 +201,11 @@ export class D3SampleAnnotationEditor implements OnChanges {
         this.canvas = new D3Canvas(this.canvasConfig);
         this.canvas.addBars(this.bars, this.barClicked.bind(this));
         this.canvas.addTrace(this.trace);
-        this.canvas.addCircles(this.circles, this.selectPeak.bind(this));
+        if(this.locusAnnotation && this.locusAnnotation.reference_channel_id === this.channelAnnotation.channel_id) {
+            this.canvas.addCircles(this.circles, this.selectPeak.bind(this));    
+        };
+        console.log("CREATING CANVAS");
+        
     }
     
     private getWell(channel: Channel) {
@@ -231,7 +238,8 @@ export class D3SampleAnnotationEditor implements OnChanges {
     
     render(){
         
-        let channelObs = this._channelService.getChannel(this.locusAnnotation.reference_channel_id).map(
+        // let channelObs = this._channelService.getChannel(this.locusAnnotation.reference_channel_id).map(
+        let channelObs = this._channelService.getChannel(this.channelAnnotation.channel_id).map(
             channel => {
                 this.channel = channel;
                 return channel;
@@ -274,7 +282,7 @@ export class D3SampleAnnotationEditor implements OnChanges {
     }
     
     ngOnChanges() {
-        if(this.locusAnnotation.reference_run_id) {
+        if(this.locusAnnotation) {
             this.selectedPeak = null;
             this.render();
         }
