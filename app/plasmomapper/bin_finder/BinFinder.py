@@ -32,20 +32,36 @@ class BinFinder(object):
         if peaks:
             map(lambda x: x.setdefault('in_bin', False), peaks)
 
-            bins = sorted(self.bins, key=lambda x: x.base_size)
-            bin_dists = np.array([x.base_size for x in bins])
+            bins = sorted(self.bins, key=lambda x: x.base_size)[:]
 
             for peak in peaks:
-                peak_dists = abs(bin_dists - peak['peak_size'])
-                min_peak_dist_idx = peak_dists.argmin()
-                b = bins[min_peak_dist_idx]
+                if bins:
+                    bin_dists = np.array([x.base_size for x in bins])
+                    peak_dists = abs(bin_dists - peak['peak_size'])
+                    min_peak_dist_idx = peak_dists.argmin()
+                    b = bins.pop(min_peak_dist_idx)
 
-                if b.base_size - b.bin_buffer * 2 <= peak['peak_size'] <= b.base_size + b.bin_buffer * 2:
-                    peak['bin'] = b.label
-                    if hasattr(b, 'id'):
-                        peak['bin_id'] = b.id
-                    if b.base_size - b.bin_buffer <= peak['peak_size'] <= b.base_size + b.bin_buffer:
-                        peak['in_bin'] = True
+                    if b.base_size - b.bin_buffer * 2 <= peak['peak_size'] <= b.base_size + b.bin_buffer * 2:
+                        peak['bin'] = b.label
+                        if hasattr(b, 'id'):
+                            peak['bin_id'] = b.id
+                        if b.base_size - b.bin_buffer <= peak['peak_size'] <= b.base_size + b.bin_buffer:
+                            peak['in_bin'] = True
+
+            # for b in bins:
+            #     peak_dists = np.array([x['peak_size'] for x in peaks if not x.get('bin', None)])
+            #     if peak_dists:
+            #         bin_dists = abs(peak_dists - b.base_size)
+            #         min_bin_dist_idx = bin_dists.argmin()
+            #         p = peaks[min_bin_dist_idx]
+            #
+            #         if b.base_size - b.bin_buffer * 2 <= p['peak_size'] <= b.base_size + b.bin_buffer * 2:
+            #             p['bin'] = b.label
+            #             if hasattr(b, 'id'):
+            #                 p['bin_id'] = b.id
+            #             if b.base_size - b.bin_buffer <= p['peak_size'] <= b.base_size + b.bin_buffer:
+            #                 p['in_bin'] = True
+
 
             # bins = sorted(self.bins, key=lambda x: x.base_size)
             # i = 0

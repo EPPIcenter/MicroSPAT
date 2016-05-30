@@ -539,11 +539,20 @@ class BinEstimatorProject(Project):
             db.session.delete(s)
 
     def annotate_bins(self, peaks, locus_id):
-        lbs = next(locus_bin_set for locus_bin_set in self.locus_bin_sets if locus_bin_set.locus_id == locus_id)
+        lbs = self.get_locus_bin_set(locus_id)
         assert isinstance(lbs, LocusBinSet)
         if peaks:
             peaks = lbs.peak_bin_annotator(peaks)
         return peaks
+
+    def get_locus_bin_set(self, locus_id):
+        """
+        :rtype: LocusBinSet
+        :param locus_id:
+        :return:
+        """
+        lbs = next(locus_bin_set for locus_bin_set in self.locus_bin_sets if locus_bin_set.locus_id == locus_id)
+        return lbs
 
     def analyze_locus(self, locus_id, block_commit=False):
         super(BinEstimatorProject, self).analyze_locus(locus_id, block_commit)
@@ -582,6 +591,10 @@ class BinEstimatorProject(Project):
                                self.locus_bin_sets}
         })
         return res
+
+    def get_alleles_dict(self, locus_id):
+        lbs = self.get_locus_bin_set(locus_id)
+        return {x.id: False for x in lbs.bins}
 
 
 class LocusBinSet(BF.BinFinder, db.Model):
@@ -1195,7 +1208,7 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
 
                 locus_annotation.set_flag('manual_curation', False)
 
-                locus_annotation.alleles = dict.fromkeys(locus_annotation.alleles, False)
+                locus_annotation.alleles = dict.fromkeys(self.bin_estimator.get_alleles_dict(locus_id), False)
 
                 if not locus_annotation.get_flag('failure'):
                     for peak in locus_annotation.annotated_peaks:

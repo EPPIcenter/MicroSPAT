@@ -115,26 +115,36 @@ export class D3SampleAnnotationEditor implements OnChanges {
         this.bars = [];
         console.log(this.locusAnnotation);
         console.log(this.bins);
+        let keys = this.bins.keys();
+        console.log(keys);
         
-        for(let k in this.locusAnnotation.alleles) {
-            let b = this.bins.get(+k)
-            console.log(k, b);
-            let bar = {
-                opacity: .6,
-                center: b.base_size,
-                half_width: b.bin_buffer,
-                height: this.max_height,
-                id: +k,
-                color: null
-            }
-            
-            if(this.locusAnnotation.alleles[k]) {
-                bar.color = '#C96310'
+        while(true) {
+            let e = keys.next();
+            if(e.done) {
+                break;
             } else {
-                bar.color = '#4292D1'
-            }
+                let k = e.value;
+                console.log(k);
             
-            this.bars.push(bar);
+                let b = this.bins.get(+k)
+                console.log(k, b);
+                let bar = {
+                    opacity: .6,
+                    center: b.base_size,
+                    half_width: b.bin_buffer,
+                    height: this.max_height,
+                    id: +k,
+                    color: null
+                }
+                
+                if(this.locusAnnotation.alleles[+k]) {
+                    bar.color = '#C96310'
+                } else {
+                    bar.color = '#4292D1'
+                }
+                
+                this.bars.push(bar);
+            }            
         }
     }
     
