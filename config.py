@@ -41,7 +41,7 @@ class DevelopmentConfig(Config):
 
     CELERY_RESULT_BACKEND = os.environ.get('DEV_RESULT_BACKEND_URL') or \
                             'db+sqlite:///' + os.path.join(basedir, 'result-backend-dev.sqlite')
-    SQLALCHEMY_ECHO = True
+    SQLALCHEMY_ECHO = False
     LOGGING_LEVEL = logging.DEBUG
 
 
