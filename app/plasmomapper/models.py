@@ -1179,8 +1179,15 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
                 pass
 
             assert isinstance(locus_annotation, SampleLocusAnnotation)
-            channel_annotation = self.select_best_run(all_runs[locus_annotation.sample_annotation.sample_id],
-                                                      locus_params.offscale_threshold)
+
+            runs = all_runs.get(locus_annotation.sample_annotation.sample_id, [])
+
+            if runs:
+                channel_annotation = self.select_best_run(all_runs[locus_annotation.sample_annotation.sample_id],
+                                                          locus_params.offscale_threshold)
+            else:
+                channel_annotation = None
+
             if channel_annotation:
                 locus_annotation.reference_run = channel_annotation
                 peaks = channel_annotation.annotated_peaks[:]
@@ -1271,23 +1278,7 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
             cycles += 1
             alleles_changed = False
 
-            allele_counts = defaultdict(lambda: defaultdict(int))
-            locus_totals = defaultdict(int)
-
-            for locus_annotation in all_locus_annotations:
-                assert isinstance(locus_annotation, SampleLocusAnnotation)
-                if locus_annotation.annotated_peaks and not locus_annotation.get_flag('failure'):
-                    locus_totals[locus_annotation.locus_id] += 1
-                    for peak in locus_annotation.annotated_peaks:
-                        if peak['in_bin'] and not any(peak['flags'].values()) and \
-                                        peak['probability'] >= self.probability_threshold:
-                            allele_counts[locus_annotation.locus_id][peak['bin_id']] += 1
-
-            allele_frequencies = defaultdict(dict)
-
-            for locus in allele_counts.keys():
-                for allele in allele_counts[locus].keys():
-                    allele_frequencies[locus][allele] = allele_counts[locus][allele] / float(locus_totals[locus])
+            allele_frequencies = self.calculate_allele_frequencies(all_locus_annotations)
 
             for sample_annotation in sample_annotations:
 
@@ -1299,16 +1290,13 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
 
                 for locus_annotation in locus_annotations:
                     if locus_annotation.annotated_peaks and not locus_annotation.get_flag('failure'):
-                        # if not locus_param_cache.get(locus_annotation.locus_id, None):
-                        #     locus_param_cache[locus_annotation.locus_id] = self.get_locus_parameters(
-                        #         locus_annotation.locus_id)
-                        #
-                        # locus_params = locus_param_cache.get(locus_annotation.locus_id)
                         locus_params = self.get_locus_parameters(locus_annotation.locus_id)
                         assert isinstance(locus_params, GenotypingLocusParams)
 
                         peaks_copy = locus_annotation.annotated_peaks[:]
+
                         all_peaks = [x for x in peaks_copy if x['probability'] > self.probability_threshold]
+
                         possible_artifact_peaks = [x for x in all_peaks if (
                             x['peak_height'] - x['artifact_contribution'] - (x['artifact_error'] * locus_params.soft_artifact_sd_limit)) <= locus_params.absolute_peak_height_limit]
 
@@ -1354,6 +1342,26 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
         db.session.flush()
         app.logger.debug("Cycles Completed: {}".format(cycles))
         return self
+
+    def calculate_allele_frequencies(self, locus_annotations):
+        allele_counts = defaultdict(lambda: defaultdict(int))
+        locus_totals = defaultdict(int)
+        allele_frequencies = defaultdict(dict)
+
+        for locus_annotation in locus_annotations:
+            assert isinstance(locus_annotation, SampleLocusAnnotation)
+            if locus_annotation.annotated_peaks and not locus_annotation.get_flag('failure'):
+                locus_totals[locus_annotation.locus_id] += 1
+                for peak in locus_annotation.annotated_peaks:
+                    if peak['in_bin'] and not any(peak['flags'].values()) and \
+                                    peak['probability'] >= self.probability_threshold:
+                        allele_counts[locus_annotation.locus_id][peak['bin_id']] += 1
+
+        for locus in allele_counts.keys():
+            for allele in allele_counts[locus].keys():
+                allele_frequencies[locus][allele] = allele_counts[locus][allele] / float(locus_totals[locus])
+
+        return allele_frequencies
 
     def calculate_moi(self, locus_annotations):
         peak_counts = []
@@ -1443,13 +1451,6 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
     def initialize_alleles(self, locus_id):
         locus_sample_annotations = SampleLocusAnnotation.query.join(ProjectSampleAnnotations).filter(
             ProjectSampleAnnotations.project_id == self.id).filter(SampleLocusAnnotation.locus_id == locus_id).all()
-
-        # q = Bin.query.join(LocusBinSet).join(BinEstimatorProject).filter(
-        #     BinEstimatorProject.id == self.bin_estimator_id).filter(
-        #     LocusBinSet.locus_id == locus_id)
-
-        print self.bin_estimator_id
-        print locus_id
 
         bin_ids = Bin.query.join(LocusBinSet).join(BinEstimatorProject).filter(
             BinEstimatorProject.id == self.bin_estimator_id).filter(
