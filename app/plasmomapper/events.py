@@ -1,39 +1,14 @@
 from flask_socketio import emit
-
 from app import socketio
 from models import *
 from flask import Blueprint, render_template, jsonify, request, Response
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from utils import CaseInsensitiveDictReader, CaseInsensitiveDict
 import eventlet
 
 
 plasmomapper = Blueprint('plasmomapper', import_name=__name__, template_folder='templates',
                          url_prefix='/plasmomapper/api/v1')
-
-
-class CaseInsensitiveDict(dict):
-    """
-    Dict that removes whitespace, replaces inner spaces with underscores, and is
-    case insensitive.
-    """
-
-    def __getitem__(self, item):
-        return dict.__getitem__(self, item.strip().replace(' ', '_').lower())
-
-
-class CaseInsensitiveDictReader(csv.DictReader, object):
-    @property
-    def fieldnames(self):
-        return [field.strip().replace(' ', '_').lower() for field in super(CaseInsensitiveDictReader, self).fieldnames]
-
-    def __next__(self):
-        d_insensitive = CaseInsensitiveDict()
-        d_original = super(CaseInsensitiveDictReader, self).__next__()
-
-        for k, v in d_original.items():
-            d_insensitive[k] = v
-
-        return d_insensitive
 
 
 @plasmomapper.after_request
@@ -358,8 +333,6 @@ def genotyping_project_add_samples(id):
 
     gp.add_samples(list(sample_ids))
     return jsonify(wrap_data(gp.serialize_details()))
-
-
 
 
 @plasmomapper.route('/artifact-estimator-project/', methods=['GET', 'POST'])
@@ -780,15 +753,15 @@ def get_project_sample_channel_annotations(project_id, sample_id):
 
 @plasmomapper.route('/locus-annotations/<int:project_id>/locus/<int:locus_id>/')
 def get_project_sample_locus_annotations_by_locus(project_id, locus_id):
-    annotations = SampleLocusAnnotation.query.join(ProjectSampleAnnotations).filter(
-        ProjectSampleAnnotations.project_id == project_id).filter(SampleLocusAnnotation.locus_id == locus_id).all()
+    annotations = SampleLocusAnnotation.query.filter(
+        SampleLocusAnnotation.project_id == project_id).filter(SampleLocusAnnotation.locus_id == locus_id).all()
     return jsonify(wrap_data([x.serialize() for x in annotations]))
 
 
 @plasmomapper.route('/locus-annotations/<int:project_id>/sample/<int:sample_id>/')
 def get_project_sample_locus_annotations_by_sample(project_id, sample_id):
-    annotations = SampleLocusAnnotation.query.join(ProjectSampleAnnotations).filter(
-        ProjectSampleAnnotations.project_id == project_id).filter(ProjectSampleAnnotations.sample_id == sample_id).all()
+    annotations = SampleLocusAnnotation.query.filter(
+        SampleLocusAnnotation.project_id == project_id).filter(ProjectSampleAnnotations.sample_id == sample_id).all()
     return jsonify(wrap_data([x.serialize() for x in annotations]))
 
 

@@ -3,7 +3,6 @@ from flask import Flask
 from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy
 
-
 from config import config, Config
 
 # async_mode = None
@@ -41,7 +40,6 @@ db = SQLAlchemy()
 socketio = SocketIO()
 celery = Celery(__name__, broker=Config.CELERY_BROKER_URL)
 
-
 # plate_zips = UploadSet('plates', ARCHIVES)
 # fsa_files = UploadSet('fsafiles', ('fsa',))
 
@@ -52,19 +50,21 @@ def create_app(config_name):
     config[config_name].init_app(app)
 
     socketio.init_app(app)
+    app.logger.debug("SocketIO Initialized")
+
     db.app = app
     db.init_app(app)
-    celery.conf.update(app.config)
+    app.logger.debug("Database Initialized with {}".format(db.engine.name))
 
-
-    # from app.plasmomapper.fsa_extractor import fsa_extractor
-    # app.register_blueprint(fsa_extractor)
+    # celery.conf.update(app.config)
 
     from app.events import plasmotrack
     app.register_blueprint(plasmotrack)
+    app.logger.debug("PlasmoTrack Initialized")
 
     from app.plasmomapper.events import plasmomapper
     app.register_blueprint(plasmomapper)
+    app.logger.debug("PlasmoMapper Initialized")
 
     # configure_uploads(app, (plate_zips,))
 
