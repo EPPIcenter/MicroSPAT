@@ -1075,7 +1075,6 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
 
     def annotate_channel(self, channel_annotation):
         assert isinstance(channel_annotation, ProjectChannelAnnotations)
-        print "Annotating Channel " + str(self)
         if channel_annotation.annotated_peaks:
             if self.bin_estimator:
                 for peak in channel_annotation.annotated_peaks:
@@ -1096,8 +1095,6 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
             channel_annotation.annotated_peaks.changed()
 
     def recalculate_channel(self, channel_annotation, rescan_peaks, block_commit=False):
-        print "Recalculating Channel " + str(self)
-        print "Eventlet Sleeping"
         eventlet.sleep()
         channel_annotation = super(GenotypingProject, self).recalculate_channel(channel_annotation, rescan_peaks,
                                                                                 block_commit=True)
@@ -1159,9 +1156,9 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
         return self
 
     def get_sample_locus_annotations(self, locus_id):
-        q = SampleLocusAnnotation.query.join(ProjectSampleAnnotations).filter(
-            ProjectSampleAnnotations.project_id == self.id).filter(SampleLocusAnnotation.locus_id == locus_id).options(
-            joinedload(SampleLocusAnnotation.sample_annotation)
+        q = SampleLocusAnnotation.query.filter(
+                SampleLocusAnnotation.project_id == self.id).filter(SampleLocusAnnotation.locus_id == locus_id).options(
+                joinedload(SampleLocusAnnotation.sample_annotation)
         )
         return q.all()
 
@@ -1185,7 +1182,7 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
                 locus_annotation.reference_run = channel_annotation
                 peaks = channel_annotation.annotated_peaks[:]
 
-                peaks = [self.flag_peaks(x, locus_params) for x in peaks]
+                peaks = [self.flag_peak(x, locus_params) for x in peaks]
 
                 locus_annotation.annotated_peaks = peaks
 
@@ -1207,7 +1204,6 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
                 locus_annotation.set_flag('manual_curation', False)
 
                 locus_annotation.alleles = dict.fromkeys(self.bin_estimator.get_alleles_dict(locus_id), False)
-                print locus_annotation.alleles
 
                 if not locus_annotation.get_flag('failure'):
                     for peak in locus_annotation.annotated_peaks:
@@ -1219,7 +1215,7 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
                 locus_annotation.annotated_peaks = []
         return self
 
-    def flag_peaks(self, peak, locus_params):
+    def flag_peak(self, peak, locus_params):
         """
         :type peak: dict
         :type locus_params: GenotypingLocusParams
@@ -1299,11 +1295,6 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
 
                 for locus_annotation in locus_annotations:
                     if locus_annotation.annotated_peaks and not locus_annotation.get_flag('failure'):
-                        # if not locus_param_cache.get(locus_annotation.locus_id, None):
-                        #     locus_param_cache[locus_annotation.locus_id] = self.get_locus_parameters(
-                        #         locus_annotation.locus_id)
-                        #
-                        # locus_params = locus_param_cache.get(locus_annotation.locus_id)
                         locus_params = self.get_locus_parameters(locus_annotation.locus_id)
                         assert isinstance(locus_params, GenotypingLocusParams)
 

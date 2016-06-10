@@ -760,7 +760,7 @@ def get_project_sample_locus_annotations_by_locus(project_id, locus_id):
 
 @plasmomapper.route('/locus-annotations/<int:project_id>/sample/<int:sample_id>/')
 def get_project_sample_locus_annotations_by_sample(project_id, sample_id):
-    annotations = SampleLocusAnnotation.query.filter(
+    annotations = SampleLocusAnnotation.query.join(ProjectSampleAnnotations).filter(
         SampleLocusAnnotation.project_id == project_id).filter(ProjectSampleAnnotations.sample_id == sample_id).all()
     return jsonify(wrap_data([x.serialize() for x in annotations]))
 
