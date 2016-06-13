@@ -1,21 +1,18 @@
 def between_values_filter(lesser, greater, key):
     def fn(peak_annotations):
         return filter(lambda x: lesser <= x[key] <= greater, peak_annotations)
-
     return fn
 
 
 def less_than_filter(value, key):
     def fn(peak_annotations):
         return filter(lambda x: x[key] < value, peak_annotations)
-
     return fn
 
 
 def greater_than_filter(value, key):
     def fn(peak_annotations):
         return filter(lambda x: x[key] > value, peak_annotations)
-
     return fn
 
 
@@ -39,11 +36,37 @@ def crosstalk_filter(max_crosstalk_ratio):
     return less_than_filter(max_crosstalk_ratio, 'crosstalk_ratio')
 
 
+def probability_filter(probability_threshold):
+    return greater_than_filter(probability_threshold, 'probability')
+
+
 def artifact_filter(min_peak_height, sd_multiplier):
     def fn(peak_annotations):
         return filter(lambda x: (x['peak_height'] - x['artifact_contribution'] - sd_multiplier * x[
             'artifact_error']) > min_peak_height, peak_annotations)
     return fn
+
+
+def bin_filter(in_bin):
+    def fn(peak_annotations):
+        return filter(lambda _: _['in_bin'] is in_bin, peak_annotations)
+    return fn
+
+
+def flag_filter(flag):
+    def fn(peak_annotations):
+        return filter(lambda _: not(_['flags'][flag]), peak_annotations)
+    return fn
+
+
+def flags_filter(flags=None):
+    if not flags:
+        def fn(peak_annotations):
+            return filter(lambda _: not any(_['flags'].values()), peak_annotations)
+        return fn
+    else:
+        filter_fns = [flag_filter(_) for _ in flags]
+        return compose_filters(*filter_fns)
 
 
 def peak_proximity_filter(min_peak_distance):
@@ -89,3 +112,26 @@ def peak_proximity_filter(min_peak_distance):
         return filtered_peak_annotations.values()
 
     return fn
+
+
+def compose_filters(*filters):
+    def f(peak_annotations):
+        for filter_fn in filters:
+            peak_annotations = filter_fn(peak_annotations)
+        return peak_annotations
+    return f
+
+
+def peak_annotations_diff(left, right):
+    """
+    returns peak annotations of left not contained in right, where peak_annotations are unique by their 'peak_index'
+    value
+    :param left:
+    :param right:
+    :return:
+    """
+    left_set = set([_['peak_index'] for _ in left])
+    right_set = set([_['peak_index'] for _ in right])
+    diff = left_set - right_set
+    return [_ for _ in left if _['peak_index'] in diff]
+

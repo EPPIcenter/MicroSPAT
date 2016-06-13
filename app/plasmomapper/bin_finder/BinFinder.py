@@ -1,4 +1,4 @@
-from app.plasmomapper.cluster.ClusterModel import find_clusters
+from app.plasmomapper.cluster.FeatureCluster import find_clusters
 import numpy as np
 
 
@@ -6,11 +6,24 @@ class BinFinder(object):
     def __init__(self, bins=None):
         if bins is None:
             bins = []
-
         self.bins = bins
 
-    def calculate_bins(self, peaks, nucleotide_repeat_length=3, min_peak_frequency=20, bin_buffer=.75):
-        self.bins = []
+    @classmethod
+    def calculate_bins(cls, peaks, nucleotide_repeat_length=3, min_peak_frequency=20, bin_buffer=.75):
+        """
+        Calculate bins for a given set of peaks.
+
+        peak = {
+            'peak_size': int
+        }
+
+        :param peaks: list of peaks
+        :param nucleotide_repeat_length: expected size difference between bins.
+        :param min_peak_frequency: minimum number of peaks in bin for bin to be considered real
+        :param bin_buffer: buffer allowed for bin classification
+        :return: BinFinder
+        """
+        bins = []
         clusters = find_clusters('peak_size', peaks, bandwidth=nucleotide_repeat_length * .5,
                                  min_bin_freq=min_peak_frequency, cluster_all=False)
 
@@ -23,14 +36,36 @@ class BinFinder(object):
                 bin_buffer = cluster['sd']
 
             if peak_count > min_peak_frequency:
-                self.bins.append(Bin(label=label, base_size=base_size, bin_buffer=bin_buffer, peak_count=peak_count))
+                bins.append(Bin(label=label, base_size=base_size, bin_buffer=bin_buffer, peak_count=peak_count))
 
-    def peak_bin_annotator(self, annotated_peaks):
-        peaks = [] or annotated_peaks
-        peaks = sorted(peaks, key=lambda x: x['peak_size'])
+        return cls(bins=bins)
+
+    def annotate_bins(self, peaks):
+        """
+        Annotate peak bins.  If BinFinder bin id parameter is set, will also annotate the bin id.  Peak is labeled
+        with bin label if peak falls within 2 * bin_buffer.  Peak is labeled as in_bin if peak falls within bin_buffer.
+
+        peak = {
+            peak_size: int
+        }
+
+        :param peaks: list of peaks
+        :return: Annotated peaks
+
+        annotated_peak = {
+            peak_size: int,
+            bin: string
+            in_bin: bool
+            *** If bin.id is set ***
+            bin_id: int
+            ***
+        }
+        """
+        peaks = [] or peaks
+        peaks = sorted(peaks, key=lambda _: _['peak_size'])
 
         if peaks:
-            map(lambda x: x.setdefault('in_bin', False), peaks)
+            map(lambda _: _.setdefault('in_bin', False), peaks)
 
             bins = sorted(self.bins, key=lambda x: x.base_size)[:]
 
@@ -47,41 +82,7 @@ class BinFinder(object):
                             peak['bin_id'] = b.id
                         if b.base_size - b.bin_buffer <= peak['peak_size'] <= b.base_size + b.bin_buffer:
                             peak['in_bin'] = True
-
-            # for b in bins:
-            #     peak_dists = np.array([x['peak_size'] for x in peaks if not x.get('bin', None)])
-            #     if peak_dists:
-            #         bin_dists = abs(peak_dists - b.base_size)
-            #         min_bin_dist_idx = bin_dists.argmin()
-            #         p = peaks[min_bin_dist_idx]
-            #
-            #         if b.base_size - b.bin_buffer * 2 <= p['peak_size'] <= b.base_size + b.bin_buffer * 2:
-            #             p['bin'] = b.label
-            #             if hasattr(b, 'id'):
-            #                 p['bin_id'] = b.id
-            #             if b.base_size - b.bin_buffer <= p['peak_size'] <= b.base_size + b.bin_buffer:
-            #                 p['in_bin'] = True
-
-
-            # bins = sorted(self.bins, key=lambda x: x.base_size)
-            # i = 0
-            # len_peaks = len(peaks)
-            #
-            # peak = peaks[i]
-            # while bins:
-            #     b = bins.pop(0)
-            #     while peak['peak_size'] <= b.base_size + b.bin_buffer:
-            #         if b.base_size - b.bin_buffer <= peak['peak_size']:
-            #             peak['in_bin'] = True
-            #             peak['bin'] = b.label
-            #             if hasattr(b, 'id'):
-            #                 peak['bin_id'] = b.id
-            #         i += 1
-            #         if i < len_peaks:
-            #             peak = peaks[i]
-            #         else:
-            #             break
-        return annotated_peaks
+        return peaks
 
 
 class Bin(object):
