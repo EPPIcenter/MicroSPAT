@@ -18,7 +18,7 @@ from config import Config
 from flask import current_app as app
 
 from fsa_extractor.PlateExtractor import PlateExtractor, WellExtractor, ChannelExtractor
-from .statistics.utils import calculate_allele_frequencies, calculate_moi
+from .statistics.utils import calculate_allele_frequencies, calculate_moi, calculate_peak_probability
 import bin_finder.BinFinder as BF
 import artifact_estimator.ArtifactEstimator as AE
 
@@ -65,20 +65,74 @@ def params_changed(target, params):
         return False
 
 
-def format_locus_annotations(all_locus_annotations, peak_filter):
-        all_locus_annotations.sort(key=lambda _: _.locus.label)
-        formatted_locus_annotations = []
-        for locus_annotation in all_locus_annotations:
-            formatted_locus_annotations.append((locus_annotation.locus.label,
-                                                peak_filter(locus_annotation.annotated_peaks)))
-        return formatted_locus_annotations
+def format_locus_annotations(all_locus_annotations, peak_filter=None):
+    """
+    Given a set of locus annotations, converts them to (locus_label, annotated_peaks) tuples, where the annotated peaks
+    have had the optional peak_filter applied.
+
+    :param all_locus_annotations: SampleLocusAnnotation[]
+    :param peak_filter: function that returns peaks that satisfy condition
+    :return:
+    """
+    if not peak_filter:
+        return lambda _: _
+
+    all_locus_annotations.sort(key=lambda _: _.locus.label)
+    formatted_locus_annotations = []
+    for locus_annotation in all_locus_annotations:
+        formatted_locus_annotations.append((locus_annotation.locus.label,
+                                            peak_filter(locus_annotation.annotated_peaks)))
+    return formatted_locus_annotations
+
+
+def select_best_run(channel_annotations, offscale_threshold):
+    """
+    Naive implementation to determine best run. Given more than one run, chooses run with largest peaks that does not
+    have poor sizing quality, and if possible, peaks do not exceed offscale_threshold
+
+    :param channel_annotations: ProjectChannelAnnotation[]
+    :param offscale_threshold: int
+    :return: ProjectChannelAnnotation
+    """
+    channel_annotations = [x for x in channel_annotations if not x.get_flag('poor_sizing_quality')]
+
+    best_annotation = None
+
+    for annotation in channel_annotations:
+        if not annotation.annotated_peaks:
+            annotation.annotated_peaks = []
+        assert isinstance(annotation, ProjectChannelAnnotations)
+
+        peak_filter = compose_filters(peak_height_filter(max_height=offscale_threshold), bin_filter(in_bin=True))
+
+        if not best_annotation:
+            best_annotation = annotation
+        else:
+
+            best_peaks = peak_filter(best_annotation.annotated_peaks)
+            curr_peaks = peak_filter(annotation.annotated_peaks)
+
+            if best_peaks:
+                max_best_peak = max(best_peaks, key=lambda x: x['peak_height'])
+            else:
+                max_best_peak = {'peak_height': 0}
+
+            if curr_peaks:
+                max_curr_peak = max(curr_peaks, key=lambda x: x['peak_height'])
+            else:
+                max_curr_peak = {'peak_height': 0}
+
+            if max_curr_peak['peak_height'] > max_best_peak['peak_height']:
+                best_annotation = annotation
+
+    return best_annotation
 
 
 class Colored(object):
     color = db.Column(db.String(6), nullable=False)
 
     @validates('color')
-    def validate_color(self, key, color):
+    def validate_color(self, _, color):
         assert color in ['orange', 'red', 'yellow', 'green', 'blue']
         return color
 
@@ -100,7 +154,7 @@ class PeakScanner(object):
     noise_perc = db.Column(db.Float, default=13, nullable=False)
 
     @validates('scanning_method')
-    def validate_scanning_method(self, key, scanning_method):
+    def validate_scanning_method(self, _, scanning_method):
         assert scanning_method in ['cwt', 'relmax']
         return scanning_method
 
@@ -441,7 +495,6 @@ class BinEstimating(object):
         raise NotImplementedError()
 
     def clear_bin_annotations(self, channel_annotations):
-        # channel_annotations = self.get_locus_channel_annotations(locus_id)
         for annotation in channel_annotations:
             assert isinstance(annotation, ProjectChannelAnnotations)
             if annotation.annotated_peaks:
@@ -449,12 +502,7 @@ class BinEstimating(object):
                     peak['in_bin'] = False
                     peak['bin'] = ""
                     peak['bin_id'] = None
-        # self.clear_sample_annotations(locus_id)
         return self
-
-        # artifact_estimator_id = db.Column(db.Integer, db.ForeignKey('artifact_estimator_project.id'))
-        # artifact_estimator = db.relationship('ArtifactEstimatorProject', foreign_keys=[artifact_estimator_id],
-        #                                      lazy='immediate')
 
 
 class ArtifactEstimating(object):
@@ -523,7 +571,7 @@ class SampleBasedProject(Project):
                     bin_ids = Bin.query.join(LocusBinSet).join(BinEstimatorProject).filter(
                         BinEstimatorProject.id == self.bin_estimator_id).filter(
                         LocusBinSet.locus_id == locus.id).values(Bin.id)
-                    locus_sample_annotation.alleles = dict([(str(id[0]), False) for id in bin_ids])
+                    locus_sample_annotation.alleles = dict([(str(bin_id[0]), False) for bin_id in bin_ids])
                     sample_annotation.locus_annotations.append(locus_sample_annotation)
             self.bulk_create_channel_annotations(channel_ids, block_commit=True)
             db.session.flush()
@@ -552,9 +600,6 @@ class SampleBasedProject(Project):
             'sample_annotations': [sample_annotation.serialize() for sample_annotation in sample_annotations]
         })
         return res
-
-        # def locus_parameters(self):
-        #     pass
 
 
 class BinEstimatorProject(Project):
@@ -608,11 +653,6 @@ class BinEstimatorProject(Project):
         return peaks
 
     def get_locus_bin_set(self, locus_id):
-        """
-        :rtype: LocusBinSet
-        :param locus_id:
-        :return:
-        """
         lbs = next(locus_bin_set for locus_bin_set in self.locus_bin_sets if locus_bin_set.locus_id == locus_id)
         return lbs
 
@@ -679,8 +719,8 @@ class LocusBinSet(BF.BinFinder, db.Model):
                                min_peak_frequency=min_peak_frequency, bin_buffer=bin_buffer)
         for b in bin_set.bins:
             assert isinstance(b, BF.Bin)
-            bin = Bin(label=b.label, base_size=b.base_size, bin_buffer=b.bin_buffer, peak_count=b.peak_count)
-            locus_bin_set.bins.append(bin)
+            b = Bin(label=b.label, base_size=b.base_size, bin_buffer=b.bin_buffer, peak_count=b.peak_count)
+            locus_bin_set.bins.append(b)
         return locus_bin_set
 
     @reconstructor
@@ -960,7 +1000,6 @@ class ArtifactEstimator(AE.ArtifactEstimator, db.Model):
             db.session.delete(eq)
         self.artifact_equations = []
         artifact_equations = super(ArtifactEstimator, self).generate_estimating_equations(parameter_sets)
-        print artifact_equations
         for ae in artifact_equations:
             self.artifact_equations.append(
                 ArtifactEquation(sd=ae.sd, r_squared=ae.r_squared, slope=ae.slope, intercept=ae.intercept,
@@ -1102,33 +1141,34 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
     def annotate_channel(self, channel_annotation):
         assert isinstance(channel_annotation, ProjectChannelAnnotations)
         if channel_annotation.annotated_peaks:
+
             if self.bin_estimator:
                 for peak in channel_annotation.annotated_peaks:
                     peak['in_bin'] = False
                     peak['bin'] = ""
                     peak['bin_id'] = None
-                print 'Annotating Bins'
                 channel_annotation.annotated_peaks = self.bin_estimator.annotate_bins(
                     channel_annotation.annotated_peaks,
                     channel_annotation.channel.locus_id)
+
             if self.artifact_estimator:
                 for peak in channel_annotation.annotated_peaks:
                     peak['artifact_contribution'] = 0
                     peak['artifact_error'] = 0
-                print 'Annotating Artifact'
                 channel_annotation.annotated_peaks = self.artifact_estimator.annotate_artifact(
                     channel_annotation.annotated_peaks, channel_annotation.channel.locus_id)
+
             channel_annotation.annotated_peaks.changed()
 
     def recalculate_channel(self, channel_annotation, rescan_peaks, block_commit=False):
         eventlet.sleep()
         channel_annotation = super(GenotypingProject, self).recalculate_channel(channel_annotation, rescan_peaks,
                                                                                 block_commit=True)
+
         self.annotate_channel(channel_annotation)
 
         if not block_commit:
             db.session.commit()
-
         return channel_annotation
 
     def recalculate_channels(self, channel_annotations, rescan_peaks, block_commit=False):
@@ -1140,20 +1180,20 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
 
         if not block_commit:
             db.session.commit()
-
         return channel_annotations
 
     def add_channel(self, channel_id, block_commit=False):
         channel_annotation = ProjectChannelAnnotations.query.filter(
             ProjectChannelAnnotations.channel_id == channel_id).filter(
             ProjectChannelAnnotations.project_id == self.id).first()
+
         if not channel_annotation:
             print "Adding new channel"
             channel_annotation = super(GenotypingProject, self).add_channel(channel_id, block_commit=True)
+
             if not block_commit:
                 db.session.commit()
-        else:
-            print "Channel Already Added to project."
+
         return channel_annotation
 
     def add_channels(self, channel_ids, block_commit=False):
@@ -1170,7 +1210,7 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
             locus_sample_annotation = SampleLocusAnnotation(locus_id=locus.id, project_id=self.id)
             bin_ids = Bin.query.join(LocusBinSet).join(BinEstimatorProject).filter(
                 BinEstimatorProject.id == self.bin_estimator_id).filter(LocusBinSet.locus_id == locus.id).values(Bin.id)
-            locus_sample_annotation.alleles = dict([(str(id[0]), False) for id in bin_ids])
+            locus_sample_annotation.alleles = dict([(str(bin_id[0]), False) for bin_id in bin_ids])
             sample_annotation.locus_annotations.append(locus_sample_annotation)
 
     def annotate_peak_probability(self):
@@ -1202,8 +1242,8 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
                 pass
 
             assert isinstance(locus_annotation, SampleLocusAnnotation)
-            channel_annotation = self.select_best_run(all_runs[locus_annotation.sample_annotation.sample_id],
-                                                      locus_params.offscale_threshold)
+            channel_annotation = select_best_run(all_runs[locus_annotation.sample_annotation.sample_id],
+                                                 locus_params.offscale_threshold)
             if channel_annotation:
                 locus_annotation.reference_run = channel_annotation
                 peaks = channel_annotation.annotated_peaks[:]
@@ -1241,7 +1281,8 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
                 locus_annotation.annotated_peaks = []
         return self
 
-    def flag_peak(self, peak, locus_params):
+    @staticmethod
+    def flag_peak(peak, locus_params):
         """
         :type peak: dict
         :type locus_params: GenotypingLocusParams
@@ -1285,8 +1326,6 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
         for annotation in all_locus_annotations:
             locus_annotation_dict[annotation.sample_annotations_id].append(annotation)
 
-
-
         self.initialize_probability_annotations(all_locus_annotations)
 
         db.session.flush()
@@ -1313,6 +1352,7 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
                 sample_annotation.moi = moi
 
                 for locus_annotation in locus_annotations:
+
                     if locus_annotation.annotated_peaks and not locus_annotation.get_flag('failure'):
                         locus_params = self.get_locus_parameters(locus_annotation.locus_id)
                         artifact_peak_filter = artifact_filter(locus_params.absolute_peak_height_limit,
@@ -1322,36 +1362,36 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
                         all_peaks = self.probability_filter(peaks_copy)
                         possible_artifact_peaks = peak_annotations_diff(all_peaks, artifact_peak_filter(all_peaks))
 
+                        locus_allele_frequencies = allele_frequencies[locus_annotation.locus.label]
 
-                        # possible_artifact_peaks = [x for x in all_peaks if (
-                        #     x['peak_height'] - x['artifact_contribution'] -
-                        #     (x['artifact_error'] * locus_params.soft_artifact_sd_limit)) <=
-                        #                            locus_params.absolute_peak_height_limit]
-
-                        new_probs = {}
+                        recalculated_probabilities = calculate_peak_probability(possible_artifact_peaks,
+                                                                                sample_annotation.moi,
+                                                                                locus_allele_frequencies)
+                        #
+                        # for peak in possible_artifact_peaks:
+                        #     other_peaks = [x for x in all_peaks if x['peak_index'] != peak['peak_index']]
+                        #
+                        #     # CDF weighted implementation
+                        #     # this_peak_freq = cdf_weighted(peak)
+                        #     # other_peak_freqs = [cdf_weighted(_) for _ in other_peaks]
+                        #
+                        #     # Allele Frequency weighted implementation
+                        #     this_peak_freq = allele_frequency_weighted(peak)
+                        #     other_peak_freqs = [allele_frequency_weighted(_) for _ in other_peaks]
+                        #
+                        #     # Allele Frequency and CDF weighted implementation
+                        #     # this_peak_freq = combo_weighted(peak)
+                        #     # other_peak_freqs = [combo_weighted(_) for _ in other_peaks]
+                        #
+                        #     total_probability = (sum(other_peak_freqs) + this_peak_freq) ** sample_annotation.moi
+                        #
+                        #     recalculated_probabilities[peak['peak_index']] = (total_probability - (
+                        #         sum(other_peak_freqs) ** sample_annotation.moi)) / total_probability
 
                         for peak in possible_artifact_peaks:
-                            other_peaks = [x for x in all_peaks if x['peak_index'] != peak['peak_index']]
-
-                            this_peak_freq = allele_frequencies[locus_annotation.locus.label][peak['bin']] * peak[
-                                'probability'] * st.norm.cdf((peak['peak_height'] - peak['artifact_contribution']) / (
-                                peak['artifact_error'] + 1e-6))
-
-                            other_peak_freqs = [allele_frequencies[locus_annotation.locus.label][x['bin']] * x[
-                                'probability'] * st.norm.cdf((x['peak_height'] - x['artifact_contribution']) / (
-                                x['artifact_error'] + 1e-6)) for x in other_peaks]
-
-                            total_probability = (sum(other_peak_freqs) + this_peak_freq) ** sample_annotation.moi
-
-                            new_probs[peak['peak_index']] = (total_probability - (
-                                sum(other_peak_freqs) ** sample_annotation.moi)) / total_probability
-
-                        for peak in possible_artifact_peaks:
-                            print "Old Probability:" + str(peak['probability'])
-                            print "New Probability:" + str(new_probs[peak['peak_index']])
-                            if new_probs[peak['peak_index']] < self.probability_threshold:
+                            if recalculated_probabilities[peak['peak_index']] < self.probability_threshold:
                                 alleles_changed = True
-                            peak['probability'] = new_probs[peak['peak_index']]
+                            peak['probability'] = recalculated_probabilities[peak['peak_index']]
                         locus_annotation.annotated_peaks = peaks_copy
 
         for locus_annotation in all_locus_annotations:
@@ -1427,7 +1467,8 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
 
         return runs
 
-    def select_best_run(self, channel_annotations, offscale_threshold):
+    @staticmethod
+    def select_best_run(channel_annotations, offscale_threshold):
         channel_annotations = [x for x in channel_annotations if not x.get_flag('poor_sizing_quality')]
         print len(channel_annotations)
         best_annotation = None
