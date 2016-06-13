@@ -1,5 +1,6 @@
 import numpy as np
-from app.plasmomapper.fsa_extractor.signal_processor.SignalProcessor import smooth_signal, correct_baseline
+
+from ..signal_processor.SignalProcessor import smooth_signal, correct_baseline
 
 
 def fake_pre_annotation():
@@ -152,14 +153,3 @@ def annotate_relative_peak_area():
 def annotate_peak_area_fraction():
     return annotate_fraction('peak_area', 'peak_area_fraction')
 
-
-"""
-    x-Peak Size
-    x-Peak Height
-    -Peak Area
-    -Peak Relative Area
-    -Artifact Estimate
-    x-Bleedthrough
-    x-Crosstalk
-    -Bin
-"""

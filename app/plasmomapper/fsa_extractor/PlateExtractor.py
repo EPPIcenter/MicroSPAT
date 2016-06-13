@@ -2,8 +2,8 @@ import hashlib
 import zipfile
 
 from app.plasmomapper.peak_annotator.PeakAnnotators import *
+from ..signal_processor.TraceProcessor import LadderProcessor, MicrosatelliteProcessor, NoLadderException
 from fsa_extractor.FSAExtractor import FSAFile
-from signal_processor.TraceProcessor import LadderProcessor, MicrosatelliteProcessor, NoLadderException
 
 
 class PlateExtractor(object):
@@ -64,6 +64,10 @@ class PlateExtractor(object):
                  plate_hash=None):
         if wells is None:
             wells = []
+        else:
+            for well in wells:
+                if not hasattr(well, 'plate'):
+                    well.plate = self
 
         self._wells_dict = None
         self.label = label
@@ -242,8 +246,10 @@ class PlateExtractor(object):
                 well.annotate_bleedthrough(colors, idx_dist)
         return self
 
-    def calculate_base_sizes(self, ladder, color, base_size_precision=2, sq_limit=1, filter_parameters={},
+    def calculate_base_sizes(self, ladder, color, base_size_precision=2, sq_limit=1, filter_parameters=None,
                              scanning_parameters=None):
+        if filter_parameters is None:
+            filter_parameters = {}
         if scanning_parameters is None:
             scanning_parameters = {}
 
@@ -343,9 +349,10 @@ class PlateExtractor(object):
 
 
 class WellExtractor(object):
-    def __init__(self, well_label, comments=None, base_sizes=None, sizing_quality=None, offscale_indices=None,
+    def __init__(self, well_label, plate=None, comments=None, base_sizes=None, sizing_quality=None, offscale_indices=None,
                  ladder_peak_indices=None, channels=None, fsa_hash=None):
         self._channels_dict = None
+
         if offscale_indices is None:
             offscale_indices = []
 
@@ -358,6 +365,9 @@ class WellExtractor(object):
         if base_sizes is None:
             base_sizes = []
 
+        if plate:
+            self.plate = plate
+
         self.well_label = well_label
         self.comments = comments
         self.base_sizes = base_sizes
@@ -367,6 +377,9 @@ class WellExtractor(object):
 
         if channels:
             self.channels = channels
+            for channel in channels:
+                if not hasattr(channel, 'well'):
+                    channel.well = self
 
         self.fsa_hash = fsa_hash
 
@@ -414,6 +427,14 @@ class WellExtractor(object):
             return annotate_base_size(self.base_sizes)
         else:
             return fake_pre_annotation()
+
+    def annotate_bleedthrough(self, colors=None, idx_dist=1):
+        if not colors:
+            colors = self.channels_dict.keys()
+        for color in colors:
+            channel = self.channels_dict[color]
+            channel.annotate_bleedthrough(idx_dist)
+        return self
 
     def bleedthrough_annotator(self, color, idx_dist=1):
         """
@@ -518,7 +539,7 @@ class WellExtractor(object):
         """
         Interpolate base sizes by using peaks found in ladder channel.  Sets base_size and sizing_quality params.
         :param sq_limit:
-        :param base_size_precision: Digits after decimal to be stored in the database.
+        :param base_size_precision: Digits after decimal to be stored.
         :param scanning_parameters:
         :param ladder: List of expected peak base sizes
         :param color: Color of channel containing ladder
@@ -564,56 +585,42 @@ class WellExtractor(object):
 
 
 class ChannelExtractor(object):
-    def __init__(self, color, wavelength, data=None, peak_indices=None, peaks=None):
+    def __init__(self, color, wavelength, well=None, data=None, peak_indices=None, peaks=None):
         # Prevent data being automatically loaded from db during init
         if data:
             self.data = list(data)
+        if well:
+            self.well = well
         self.color = color
         self.wavelength = wavelength
         self.peak_indices = peak_indices
         self.peaks = peaks
 
-        # self.static_pre_annotators = {
-        #     'peak_height': annotate_peak_height(),
-        # }
-        #
-        # self.static_post_annotators = {
-        # }
-        #
-        # self.static_filters = {
-        # }
-        #
-        # self.dynamic_annotators = {
-        #     'relative_peak_height': annotate_relative_peak_height(),
-        #     'peak_height_fraction': annotate_peak_height_fraction(),
-        # }
-        #
-        # self.dynamic_filters = {
-        #
-        # }
-
     def __repr__(self):
         return "<Channel {0} {1}>".format(self.color, self.wavelength)
 
-    # def register_static_annotator(self, type, label, fn):
-    #     if type == 'pre':
-    #         self.static_pre_annotators[label] = fn
-    #     elif type == 'post':
-    #         self.static_post_annotators[label] = fn
-    #     else:
-    #         raise AttributeError("{0} is not a valid function type, must be one of ['pre', 'post']".format(type))
-    #
-    # def register_dynamic_annotator(self, label, fn):
-    #     self.dynamic_annotators[label] = fn
-    #
-    # def register_dynamic_filter(self, label, fn):
-    #     self.dynamic_filters[label] = fn
+    def annotate_bleedthrough(self, idx_dist=1):
+        bleedthrough_annotator = self.well.bleedthrough_annotator(color=self.color, idx_dist=idx_dist)
+        self.pre_annotate_peak_indices(bleedthrough_annotator)
+        return self
+
+    def annotate_crosstalk(self, max_capillary_distance=2, idx_dist=1):
+        crosstalk_annotator = self.well.plate.crosstalk_annotator(well_label=self.well.well_label, color=self.color,
+                                                                  max_capillary_distance=max_capillary_distance,
+                                                                  idx_dist=idx_dist)
+        self.pre_annotate_peak_indices(crosstalk_annotator)
+        return self
 
     def set_peak_indices(self, peak_indices=None):
         if peak_indices is None:
             peak_indices = []
         self.peak_indices = peak_indices
         self.peaks = [{'peak_index': peak_idx} for peak_idx in self.peak_indices]
+
+    def annotate_base_sizes(self):
+        base_size_annotator = self.well.base_size_annotator()
+        self.pre_annotate_peak_indices(base_size_annotator)
+        return self
 
     def identify_peak_indices(self, scanning_parameters=None):
         """
@@ -626,30 +633,6 @@ class ChannelExtractor(object):
         ms_processor = MicrosatelliteProcessor(self, scanning_parameters)
         self.set_peak_indices(ms_processor.find_peaks())
         return self
-
-    # def static_pre_annotate_peaks(self, annotators=None):
-    #     if not annotators:
-    #         temp_annotators = self.static_pre_annotators.keys()
-    #     else:
-    #         temp_annotators = annotators
-    #
-    #     for annotator_key in temp_annotators:
-    #         annotator = self.static_pre_annotators.get(annotator_key, None)
-    #         if annotator:
-    #             self.pre_annotate_peak_indices(annotator)
-    #     return self
-    #
-    # def static_post_annotate_peaks(self, annotators=None):
-    #     if not annotators:
-    #         temp_annotators = self.static_post_annotators.keys()
-    #     else:
-    #         temp_annotators = annotators
-    #
-    #     for annotator_key in temp_annotators:
-    #         annotator = self.static_post_annotators.get(annotator_key, None)
-    #         if annotator:
-    #             self.post_annotate_peak_indices(annotator)
-    #     return self
 
     def annotate_peak_heights(self):
         self.pre_annotate_peak_indices(annotate_peak_height())

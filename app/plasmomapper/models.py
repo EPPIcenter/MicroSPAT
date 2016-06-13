@@ -1,10 +1,10 @@
 import csv
-import os
+# import os
 from collections import defaultdict
 from datetime import datetime
 from itertools import groupby
 
-from sklearn.externals import joblib
+# from sklearn.externals import joblib
 import scipy.stats as st
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import validates, deferred, reconstructor, joinedload
@@ -18,6 +18,7 @@ from config import Config
 from flask import current_app as app
 
 from fsa_extractor.PlateExtractor import PlateExtractor, WellExtractor, ChannelExtractor
+from .statistics.utils import calculate_allele_frequencies, calculate_moi
 import bin_finder.BinFinder as BF
 import artifact_estimator.ArtifactEstimator as AE
 
@@ -25,7 +26,8 @@ import eventlet
 
 from app.custom_sql_types.custom_types import JSONEncodedData, MutableDict, MutableList
 from app.plasmomapper.peak_annotator.PeakFilters import base_size_filter, bleedthrough_filter, crosstalk_filter, \
-    peak_height_filter, peak_proximity_filter, relative_peak_height_filter
+    peak_height_filter, peak_proximity_filter, relative_peak_height_filter, probability_filter, compose_filters, \
+    bin_filter, flags_filter, artifact_filter, peak_annotations_diff
 
 
 @event.listens_for(db.Model, 'after_update', propagate=True)
@@ -61,6 +63,15 @@ def params_changed(target, params):
             return True
     else:
         return False
+
+
+def format_locus_annotations(all_locus_annotations, peak_filter):
+        all_locus_annotations.sort(key=lambda _: _.locus.label)
+        formatted_locus_annotations = []
+        for locus_annotation in all_locus_annotations:
+            formatted_locus_annotations.append((locus_annotation.locus.label,
+                                                peak_filter(locus_annotation.annotated_peaks)))
+        return formatted_locus_annotations
 
 
 class Colored(object):
@@ -150,26 +161,27 @@ class LocusSetAssociatedMixin(object):
         return db.relationship('LocusSet', cascade='save-update, merge')
 
 
-class SkLearnModel(object):
-    def __init__(self):
-        if not os.path.exists(os.path.join(Config.PLASMOMAPPER_BASEDIR, 'pickled_models', type(self).__name__)):
-            os.mkdir(os.path.join(Config.PLASMOMAPPER_BASEDIR, 'pickled_models', type(self).__name__))
-
-        if self.id and os.path.exists(self.model_location):
-            self.model = joblib.load(self.model_location)
-        else:
-            self.model = None
-
-    @property
-    def model_location(self):
-        return os.path.join(Config.PLASMOMAPPER_BASEDIR, 'pickled_models', type(self).__name__, str(self.id) + ".pkl")
-
-    def save_model(self, model):
-        if self.id:
-            self.model = model
-            joblib.dump(self.model, self.model_location)
-        else:
-            raise AttributeError("{} has not yet been persisted to database.".format(type(self).__name__))
+#
+# class SkLearnModel(object):
+#     def __init__(self):
+#         if not os.path.exists(os.path.join(Config.PLASMOMAPPER_BASEDIR, 'pickled_models', type(self).__name__)):
+#             os.mkdir(os.path.join(Config.PLASMOMAPPER_BASEDIR, 'pickled_models', type(self).__name__))
+#
+#         if self.id and os.path.exists(self.model_location):
+#             self.model = joblib.load(self.model_location)
+#         else:
+#             self.model = None
+#
+#     @property
+#     def model_location(self):
+#         return os.path.join(Config.PLASMOMAPPER_BASEDIR, 'pickled_models', type(self).__name__, str(self.id) + ".pkl")
+#
+#     def save_model(self, model):
+#         if self.id:
+#             self.model = model
+#             joblib.dump(self.model, self.model_location)
+#         else:
+#             raise AttributeError("{} has not yet been persisted to database.".format(type(self).__name__))
 
 
 class Sample(TimeStamped, Flaggable, db.Model):
@@ -289,8 +301,7 @@ class Project(LocusSetAssociatedMixin, TimeStamped, db.Model):
         return channel_annotations
 
     def create_channel_annotation(self, channel_id):
-        channel_annotation = ProjectChannelAnnotations()
-        channel_annotation.channel_id = channel_id
+        channel_annotation = ProjectChannelAnnotations(channel_id=channel_id)
         self.channel_annotations.append(channel_annotation)
         return channel_annotation
 
@@ -392,7 +403,8 @@ class Project(LocusSetAssociatedMixin, TimeStamped, db.Model):
 
     def get_locus_parameters(self, locus_id):
         if not self._locus_param_cache.get(locus_id, None):
-            self._locus_param_cache[locus_id] = self.locus_parameters.filter(ProjectLocusParams.locus_id==locus_id).one()
+            self._locus_param_cache[locus_id] = self.locus_parameters.filter(
+                ProjectLocusParams.locus_id == locus_id).one()
         return self._locus_param_cache.get(locus_id)
 
     def serialize(self):
@@ -428,6 +440,18 @@ class BinEstimating(object):
     def bin_estimator_changed(self):
         raise NotImplementedError()
 
+    def clear_bin_annotations(self, channel_annotations):
+        # channel_annotations = self.get_locus_channel_annotations(locus_id)
+        for annotation in channel_annotations:
+            assert isinstance(annotation, ProjectChannelAnnotations)
+            if annotation.annotated_peaks:
+                for peak in annotation.annotated_peaks:
+                    peak['in_bin'] = False
+                    peak['bin'] = ""
+                    peak['bin_id'] = None
+        # self.clear_sample_annotations(locus_id)
+        return self
+
         # artifact_estimator_id = db.Column(db.Integer, db.ForeignKey('artifact_estimator_project.id'))
         # artifact_estimator = db.relationship('ArtifactEstimatorProject', foreign_keys=[artifact_estimator_id],
         #                                      lazy='immediate')
@@ -445,6 +469,15 @@ class ArtifactEstimating(object):
     def artifact_estimator_changed(self):
         raise NotImplementedError()
 
+    def clear_artifact_annotations(self, channel_annotations):
+        for annotation in channel_annotations:
+            assert isinstance(annotation, ProjectChannelAnnotations)
+            if annotation.annotated_peaks:
+                for peak in annotation.annotated_peaks:
+                    peak['artifact_contribution'] = 0
+                    peak['artifact_error'] = 0
+        return self
+
 
 class SampleBasedProject(Project):
     __mapper_args__ = {'polymorphic_identity': 'sample_based_project'}
@@ -453,6 +486,10 @@ class SampleBasedProject(Project):
     def sample_annotations(self):
         return db.relationship('ProjectSampleAnnotations', backref=db.backref('project'), lazy='dynamic',
                                cascade='save-update, merge, delete, delete-orphan')
+
+    @property
+    def locus_parameters(self):
+        raise NotImplementedError("Sample Based Project should not be directly initialized.")
 
     def add_sample(self, sample_id, block_commit=False):
         sample_annotation = ProjectSampleAnnotations(sample_id=sample_id)
@@ -567,7 +604,7 @@ class BinEstimatorProject(Project):
         lbs = self.get_locus_bin_set(locus_id)
         assert isinstance(lbs, LocusBinSet)
         if peaks:
-            peaks = lbs.peak_bin_annotator(peaks)
+            peaks = lbs.annotate_bins(peaks)
         return peaks
 
     def get_locus_bin_set(self, locus_id):
@@ -1038,24 +1075,13 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
 
     def clear_bin_annotations(self, locus_id):
         channel_annotations = self.get_locus_channel_annotations(locus_id)
-        for annotation in channel_annotations:
-            assert isinstance(annotation, ProjectChannelAnnotations)
-            if annotation.annotated_peaks:
-                for peak in annotation.annotated_peaks:
-                    peak['in_bin'] = False
-                    peak['bin'] = ""
-                    peak['bin_id'] = None
+        super(GenotypingProject, self).clear_bin_annotations(channel_annotations)
         self.clear_sample_annotations(locus_id)
         return self
 
     def clear_artifact_annotations(self, locus_id):
         channel_annotations = self.get_locus_channel_annotations(locus_id)
-        for annotation in channel_annotations:
-            assert isinstance(annotation, ProjectChannelAnnotations)
-            if annotation.annotated_peaks:
-                for peak in annotation.annotated_peaks:
-                    peak['artifact_contribution'] = 0
-                    peak['artifact_error'] = 0
+        super(GenotypingProject, self).clear_artifact_annotations(channel_annotations)
         self.clear_sample_annotations(locus_id)
         return self
 
@@ -1157,8 +1183,8 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
 
     def get_sample_locus_annotations(self, locus_id):
         q = SampleLocusAnnotation.query.filter(
-                SampleLocusAnnotation.project_id == self.id).filter(SampleLocusAnnotation.locus_id == locus_id).options(
-                joinedload(SampleLocusAnnotation.sample_annotation)
+            SampleLocusAnnotation.project_id == self.id).filter(SampleLocusAnnotation.locus_id == locus_id).options(
+            joinedload(SampleLocusAnnotation.sample_annotation)
         )
         return q.all()
 
@@ -1240,21 +1266,28 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
             peak['flags']['crosstalk'] = True
         return peak
 
+    @property
+    def probability_filter(self):
+        return probability_filter(self.probability_threshold)
+
     def probabilistic_peak_annotation(self):
         # generate allele frequencies
         # for each sample, find MOI using "real peaks" only => real peaks are greater than hard artifact threshold
 
+        peak_filter = compose_filters(bin_filter(in_bin=True), flags_filter(), self.probability_filter)
+
         all_locus_annotations = SampleLocusAnnotation.query.join(ProjectSampleAnnotations).join(Sample).filter(
             Sample.designation == 'sample').filter(SampleLocusAnnotation.project_id == self.id).all()
 
-        locus_annotation_dict = defaultdict(list)
+        all_locus_annotations = [_ for _ in all_locus_annotations if not _.get_flag('failure')]
 
+        locus_annotation_dict = defaultdict(list)
         for annotation in all_locus_annotations:
             locus_annotation_dict[annotation.sample_annotations_id].append(annotation)
 
-        print "Initializing Probabilities"
 
-        self.initialize_probabilities(all_locus_annotations)
+
+        self.initialize_probability_annotations(all_locus_annotations)
 
         db.session.flush()
 
@@ -1264,26 +1297,12 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
         cycles = 0
         while alleles_changed:
             eventlet.sleep()
+
             cycles += 1
             alleles_changed = False
 
-            allele_counts = defaultdict(lambda: defaultdict(int))
-            locus_totals = defaultdict(int)
-
-            for locus_annotation in all_locus_annotations:
-                assert isinstance(locus_annotation, SampleLocusAnnotation)
-                if locus_annotation.annotated_peaks and not locus_annotation.get_flag('failure'):
-                    locus_totals[locus_annotation.locus_id] += 1
-                    for peak in locus_annotation.annotated_peaks:
-                        if peak['in_bin'] and not any(peak['flags'].values()) and \
-                                        peak['probability'] >= self.probability_threshold:
-                            allele_counts[locus_annotation.locus_id][peak['bin_id']] += 1
-
-            allele_frequencies = defaultdict(dict)
-
-            for locus in allele_counts.keys():
-                for allele in allele_counts[locus].keys():
-                    allele_frequencies[locus][allele] = allele_counts[locus][allele] / float(locus_totals[locus])
+            allele_frequency_locus_annotations = format_locus_annotations(all_locus_annotations, peak_filter)
+            allele_frequencies = calculate_allele_frequencies(allele_frequency_locus_annotations)
 
             for sample_annotation in sample_annotations:
 
@@ -1296,23 +1315,29 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
                 for locus_annotation in locus_annotations:
                     if locus_annotation.annotated_peaks and not locus_annotation.get_flag('failure'):
                         locus_params = self.get_locus_parameters(locus_annotation.locus_id)
-                        assert isinstance(locus_params, GenotypingLocusParams)
+                        artifact_peak_filter = artifact_filter(locus_params.absolute_peak_height_limit,
+                                                               locus_params.soft_artifact_sd_limit)
 
                         peaks_copy = locus_annotation.annotated_peaks[:]
-                        all_peaks = [x for x in peaks_copy if x['probability'] > self.probability_threshold]
-                        possible_artifact_peaks = [x for x in all_peaks if (
-                            x['peak_height'] - x['artifact_contribution'] - (x['artifact_error'] * locus_params.soft_artifact_sd_limit)) <= locus_params.absolute_peak_height_limit]
+                        all_peaks = self.probability_filter(peaks_copy)
+                        possible_artifact_peaks = peak_annotations_diff(all_peaks, artifact_peak_filter(all_peaks))
+
+
+                        # possible_artifact_peaks = [x for x in all_peaks if (
+                        #     x['peak_height'] - x['artifact_contribution'] -
+                        #     (x['artifact_error'] * locus_params.soft_artifact_sd_limit)) <=
+                        #                            locus_params.absolute_peak_height_limit]
 
                         new_probs = {}
 
                         for peak in possible_artifact_peaks:
                             other_peaks = [x for x in all_peaks if x['peak_index'] != peak['peak_index']]
 
-                            this_peak_freq = allele_frequencies[locus_annotation.locus_id][peak['bin_id']] * peak[
+                            this_peak_freq = allele_frequencies[locus_annotation.locus.label][peak['bin']] * peak[
                                 'probability'] * st.norm.cdf((peak['peak_height'] - peak['artifact_contribution']) / (
                                 peak['artifact_error'] + 1e-6))
 
-                            other_peak_freqs = [allele_frequencies[locus_annotation.locus_id][x['bin_id']] * x[
+                            other_peak_freqs = [allele_frequencies[locus_annotation.locus.label][x['bin']] * x[
                                 'probability'] * st.norm.cdf((x['peak_height'] - x['artifact_contribution']) / (
                                 x['artifact_error'] + 1e-6)) for x in other_peaks]
 
@@ -1351,7 +1376,7 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
         for locus_annotation in locus_annotations:
             if locus_annotation.annotated_peaks and not locus_annotation.get_flag('failure'):
                 peak_counts.append(len([x for x in locus_annotation.annotated_peaks if
-                                 x['probability'] >= self.probability_threshold]))
+                                        x['probability'] >= self.probability_threshold]))
             else:
                 peak_counts.append(0)
         peak_counts.sort()
@@ -1361,9 +1386,11 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
             moi = 0
         return moi
 
-    def initialize_probabilities(self, locus_annotations):
+    @staticmethod
+    def initialize_probability_annotations(locus_annotations):
+        print "Initializing Probabilities"
         for locus_annotation in locus_annotations:
-            if locus_annotation.annotated_peaks and not locus_annotation.get_flag('failure'):
+            if locus_annotation.annotated_peaks:
                 for peak in locus_annotation.annotated_peaks:
                     if peak.get('in_bin') and not any(peak['flags'].values()):
                         peak['probability'] = 1
@@ -1435,24 +1462,17 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
         locus_sample_annotations = SampleLocusAnnotation.query.join(ProjectSampleAnnotations).filter(
             ProjectSampleAnnotations.project_id == self.id).filter(SampleLocusAnnotation.locus_id == locus_id).all()
 
-        # q = Bin.query.join(LocusBinSet).join(BinEstimatorProject).filter(
-        #     BinEstimatorProject.id == self.bin_estimator_id).filter(
-        #     LocusBinSet.locus_id == locus_id)
-
-        print self.bin_estimator_id
-        print locus_id
-
         bin_ids = Bin.query.join(LocusBinSet).join(BinEstimatorProject).filter(
             BinEstimatorProject.id == self.bin_estimator_id).filter(
             LocusBinSet.locus_id == locus_id).values(Bin.id)
 
-        bin_ids = list(bin_ids)
+        bin_ids = [_[0] for _ in bin_ids]
 
         for annotation in locus_sample_annotations:
             assert isinstance(annotation, SampleLocusAnnotation)
             annotation.alleles = {}
-            for id in bin_ids:
-                annotation.alleles[str(id[0])] = False
+            for bin_id in bin_ids:
+                annotation.alleles[str(bin_id)] = False
         return self
 
 
@@ -1699,6 +1719,10 @@ class SampleLocusAnnotation(TimeStamped, Flaggable, db.Model):
     reference_run_id = db.Column(db.Integer, db.ForeignKey('project_channel_annotations.id'), index=True)
     reference_run = db.relationship('ProjectChannelAnnotations', lazy='select')
     alleles = db.Column(MutableDict.as_mutable(JSONEncodedData))
+
+    def __init__(self, locus_id, project_id):
+        self.locus_id = locus_id
+        self.project_id = project_id
 
     def serialize(self):
         res = {
@@ -2065,23 +2089,6 @@ class Channel(ChannelExtractor, TimeStamped, Colored, Flaggable, db.Model):
     @reconstructor
     def init_on_load(self):
         super(Channel, self).__init__(color=self.color, wavelength=self.wavelength)
-
-    def annotate_base_sizes(self):
-        base_size_annotator = self.well.base_size_annotator()
-        self.pre_annotate_peak_indices(base_size_annotator)
-        return self
-
-    def annotate_bleedthrough(self, idx_dist=1):
-        bleedthrough_annotator = self.well.bleedthrough_annotator(color=self.color, idx_dist=idx_dist)
-        self.pre_annotate_peak_indices(bleedthrough_annotator)
-        return self
-
-    def annotate_crosstalk(self, max_capillary_distance=2, idx_dist=1):
-        crosstalk_annotator = self.well.plate.crosstalk_annotator(well_label=self.well.well_label, color=self.color,
-                                                                  max_capillary_distance=max_capillary_distance,
-                                                                  idx_dist=idx_dist)
-        self.pre_annotate_peak_indices(crosstalk_annotator)
-        return self
 
     def filter_to_locus_range(self):
         self.filter_annotated_peaks(

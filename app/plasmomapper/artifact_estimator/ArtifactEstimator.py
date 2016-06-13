@@ -1,8 +1,9 @@
+# coding=utf-8
 import numpy as np
 from sklearn.linear_model import TheilSenRegressor, LinearRegression, RANSACRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 
-from app.plasmomapper.cluster.ClusterModel import find_clusters
+from app.plasmomapper.cluster.FeatureCluster import find_clusters
 
 
 class ArtifactEstimatorSet(object):
@@ -15,14 +16,25 @@ class ArtifactEstimatorSet(object):
     @classmethod
     def from_peaks(cls, peak_sets, start_size, end_size, min_artifact_peak_frequency=10, nucleotide_repeat_length=3):
         """
-        Given a list of dicts of annotated peaks, will identify potential artifact relationships and generate a set of
-        estimators. List of peaks should be from single strain samples.
+        Given a list of sets of peaks, will identify potential artifact relationships and generate a set of
+        estimators.
+
+        peak_set = peak[]
+
+        peak = {
+            'peak_height': int,
+            'peak_size': int
+        }
+
         :rtype: ArtifactEstimatorSet
-        :type peak_sets: list
-        :type start_size: float
-        :type end_size: float
-        :type min_artifact_peak_frequency: int
-        :type nucleotide_repeat_length: int
+        :type peak_sets: list of sets of peaks. Each set is drawn from exactly one run and indicates all peaks
+        identified for that given run
+        :type start_size: starting base size range
+        :type end_size: ending base size range
+        :type min_artifact_peak_frequency: minimum number of artifact peaks to establish potential relationship
+        :type nucleotide_repeat_length: length of microsatellite repeat and expected distance (or common multiple of) of
+        artifact due to PCR error.
+        :return ArtifactEstimatorSet containing artifact estimators for clustered artifact distances
         """
         generator_params = [{'start_size': start_size,
                              'end_size': end_size,
@@ -32,7 +44,7 @@ class ArtifactEstimatorSet(object):
         cluster_set = []
         for peak_set in peak_sets:
             if peak_set:
-                max_peak = max(peak_set, key=lambda x: x['peak_height'])
+                max_peak = max(peak_set, key=lambda _: _['peak_height'])
                 for peak in peak_set:
                     peak['dist_from_max_peak'] = peak['peak_size'] - max_peak['peak_size']
                 cluster_set += peak_set
@@ -58,14 +70,33 @@ class ArtifactEstimatorSet(object):
                     artifact_estimators.append(artifact_estimator)
         return cls(artifact_estimators=artifact_estimators)
 
-    def annotate_artifact(self, annotated_peaks):
-        for peak in annotated_peaks:
+    def annotate_artifact(self, peak_set):
+        """
+        Annotate peak artifact contribution and estimated error for given set of annotated peaks. Error is defined as 1
+        standard deviation from the estimate based on artifact estimator model.
+
+        peak = {
+            peak_size: int,
+            peak_height: int
+        }
+
+        :param peak_set: list of annotated peaks
+        :return: list of peaks with artifact annotation.
+
+        peak = {
+            peak_size: int,
+            peak_height: int,
+            artifact_contribution: int,
+            artifact_error: float
+        }
+        """
+        for peak in peak_set:
             peak['artifact_contribution'] = peak.get('artifact_contribution', 0)
             peak['artifact_error'] = peak.get('artifact_error', 0)
         for estimator in self.artifact_estimators:
             assert isinstance(estimator, ArtifactEstimator)
-            estimator.annotate_artifact(annotated_peaks)
-        return annotated_peaks
+            estimator.annotate_artifact(peak_set)
+        return peak_set
 
 
 class ArtifactEstimator(object):
@@ -73,9 +104,9 @@ class ArtifactEstimator(object):
         """
         ArtifactEstimator estimates the artifact contribution to a peak falling a relative distance of artifact_distance
         +/- the artifact_distance_buffer from another peak
-        :param artifact_distance:
-        :param artifact_distance_buffer:
-        :return:
+        :type artifact_distance: float
+        :type artifact_distance_buffer: float
+        :return: An Artifact Estimator
         """
         if peak_data is None:
             peak_data = []
@@ -87,23 +118,65 @@ class ArtifactEstimator(object):
         self.peak_data = peak_data
         self.artifact_equations = artifact_equations
 
-    def generate_estimating_equations(self, parameter_sets):
+    def generate_estimating_equations(self, parameter_sets, peak_data=None):
+        """
+        Generates artifact estimating equations for given sets of parameters
+        :param parameter_sets: dict
+
+        parameter_set = {
+            start_size: float,
+            end_size: float,
+            method: string ϵ ['LSR', 'TSR', 'RANSAC', 'no_slope']
+        }
+
+        method provided determines the regression model used.
+        LSR -> Least Squares Regression
+        TSR -> Theil-Sen Regression
+        RANSAC -> Random sample consensus using LSR
+        no_slope -> mean of artifact as estimate
+        :param peak_data: list of peaks
+
+        peak = {
+            peak_size: int
+        }
+        :return: ArtifactEquation[]
+        """
+        if peak_data:
+            self.peak_data = peak_data
         artifact_equations = []
         for parameter_set in parameter_sets:
             start_size = parameter_set['start_size']
             end_size = parameter_set['end_size']
-            method = parameter_set['method']
+            method = parameter_set.get('method', None)
             peak_subset = [peak for peak in self.peak_data if start_size < peak['peak_size'] <= end_size]
             if peak_subset:
                 artifact_equation = ArtifactEquation.from_peaks(peak_subset, start_size, end_size, method)
                 artifact_equations.append(artifact_equation)
         return artifact_equations
 
-    def annotate_artifact(self, annotated_peaks):
-        annotated_peaks.sort(key=lambda x: x['peak_size'])
+    def annotate_artifact(self, peaks):
+        """
+        Iterates over set of peaks and for each peak, annotates all surrounding peaks that fall within artifact
+        estimator distance + buffer.
 
-        for main_peak in annotated_peaks:
-            for artifact_peak in annotated_peaks:
+        :param peaks: peaks to be annotated
+
+        peak = {
+            peak_size: int,
+            peak_height: int
+        }
+
+        :return: Annotated Peaks
+
+        annotated_peak = {
+            peak_size: int,
+            peak_height: int,
+            peak
+        }
+        """
+        peaks.sort(key=lambda x: x['peak_size'])
+        for main_peak in peaks:
+            for artifact_peak in peaks:
                 peak_distance = artifact_peak['peak_size'] - main_peak['peak_size']
                 if peak_distance > (self.artifact_distance + self.artifact_distance_buffer):
                     break
