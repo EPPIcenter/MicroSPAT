@@ -5,7 +5,6 @@ from datetime import datetime
 from itertools import groupby
 
 # from sklearn.externals import joblib
-import scipy.stats as st
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import validates, deferred, reconstructor, joinedload
 from sqlalchemy import event
@@ -18,14 +17,14 @@ from config import Config
 from flask import current_app as app
 
 from fsa_extractor.PlateExtractor import PlateExtractor, WellExtractor, ChannelExtractor
-from .statistics.utils import calculate_allele_frequencies, calculate_moi, calculate_peak_probability
+from .statistics.Utils import calculate_allele_frequencies, calculate_moi, calculate_peak_probability
 import bin_finder.BinFinder as BF
 import artifact_estimator.ArtifactEstimator as AE
 
 import eventlet
 
-from app.custom_sql_types.custom_types import JSONEncodedData, MutableDict, MutableList
-from app.plasmomapper.peak_annotator.PeakFilters import base_size_filter, bleedthrough_filter, crosstalk_filter, \
+from ..custom_sql_types.custom_types import JSONEncodedData, MutableDict, MutableList
+from peak_annotator.PeakFilters import base_size_filter, bleedthrough_filter, crosstalk_filter, \
     peak_height_filter, peak_proximity_filter, relative_peak_height_filter, probability_filter, compose_filters, \
     bin_filter, flags_filter, artifact_filter, peak_annotations_diff
 
@@ -265,9 +264,11 @@ class Project(LocusSetAssociatedMixin, TimeStamped, db.Model):
     date = db.Column(db.DateTime, default=datetime.utcnow)
     creator = db.Column(db.String(255))
     description = db.Column(db.Text, nullable=True)
-
     channel_annotations = db.relationship('ProjectChannelAnnotations', backref=db.backref('project'), lazy='dynamic',
                                           cascade='save-update, merge, delete, delete-orphan')
+    discriminator = db.Column('type', db.String(255))
+    __mapper_args__ = {'polymorphic_on': discriminator,
+                       'polymorphic_identity': 'base_project'}
 
     @property
     def locus_parameters(self):
@@ -276,10 +277,6 @@ class Project(LocusSetAssociatedMixin, TimeStamped, db.Model):
     @reconstructor
     def init_on_load(self):
         self._locus_param_cache = {}
-
-    discriminator = db.Column('type', db.String(255))
-    __mapper_args__ = {'polymorphic_on': discriminator,
-                       'polymorphic_identity': 'base_project'}
 
     def __init__(self, locus_set_id, **kwargs):
         super(Project, self).__init__(**kwargs)
@@ -1213,9 +1210,6 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
             locus_sample_annotation.alleles = dict([(str(bin_id[0]), False) for bin_id in bin_ids])
             sample_annotation.locus_annotations.append(locus_sample_annotation)
 
-    def annotate_peak_probability(self):
-        pass
-
     def analyze_locus(self, locus_id, block_commit=False):
         super(GenotypingProject, self).analyze_locus(locus_id, block_commit)
         self.analyze_samples(locus_id)
@@ -1367,26 +1361,6 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
                         recalculated_probabilities = calculate_peak_probability(possible_artifact_peaks,
                                                                                 sample_annotation.moi,
                                                                                 locus_allele_frequencies)
-                        #
-                        # for peak in possible_artifact_peaks:
-                        #     other_peaks = [x for x in all_peaks if x['peak_index'] != peak['peak_index']]
-                        #
-                        #     # CDF weighted implementation
-                        #     # this_peak_freq = cdf_weighted(peak)
-                        #     # other_peak_freqs = [cdf_weighted(_) for _ in other_peaks]
-                        #
-                        #     # Allele Frequency weighted implementation
-                        #     this_peak_freq = allele_frequency_weighted(peak)
-                        #     other_peak_freqs = [allele_frequency_weighted(_) for _ in other_peaks]
-                        #
-                        #     # Allele Frequency and CDF weighted implementation
-                        #     # this_peak_freq = combo_weighted(peak)
-                        #     # other_peak_freqs = [combo_weighted(_) for _ in other_peaks]
-                        #
-                        #     total_probability = (sum(other_peak_freqs) + this_peak_freq) ** sample_annotation.moi
-                        #
-                        #     recalculated_probabilities[peak['peak_index']] = (total_probability - (
-                        #         sum(other_peak_freqs) ** sample_annotation.moi)) / total_probability
 
                         for peak in possible_artifact_peaks:
                             if recalculated_probabilities[peak['peak_index']] < self.probability_threshold:
@@ -1702,34 +1676,6 @@ class ProjectSampleAnnotations(TimeStamped, db.Model):
     sample = db.relationship('Sample', lazy='select')
     moi = db.Column(db.Integer)
     __table_args__ = (db.UniqueConstraint('project_id', 'sample_id', name='_project_sample_uc'),)
-
-    # def get_best_run(self, locus_id):
-    #     """
-    #     Return the best set of annotations for a sample at a given locus
-    #     :type locus_id: int
-    #     :rtype: ProjectChannelAnnotations
-    #     """
-    #     locus_parameters = self.project.get_locus_parameters(locus_id)
-    #     channel_annotations = ProjectChannelAnnotations.query.join(Channel).join(Well).filter(
-    #         ProjectChannelAnnotations.project_id == self.project_id).filter(
-    #         Channel.sample_id == self.sample_id).filter(Well.sizing_quality < 15).all()
-    #
-    #     best_annotation = None
-    #     for annotation in channel_annotations:
-    #         assert isinstance(annotation, ProjectChannelAnnotations)
-    #         if not best_annotation:
-    #             best_annotation = annotation
-    #         else:
-    #             if not annotation.channel.get_flag('contamination', False):
-    #                 max_best_peak = max(lambda x: x['peak_height'],
-    #                                     filter(lambda y: y['peak_height'] < locus_parameters.offscale_threshold,
-    #                                            best_annotation.annotated_peaks))
-    #                 max_curr_peak = max(lambda x: x['peak_height'],
-    #                                     filter(lambda y: y['peak_height'] < locus_parameters.offscale_threshold,
-    #                                            annotation.annotated_peaks))
-    #                 if max_curr_peak['peak_height'] > max_best_peak['peak_height']:
-    #                     best_annotation = annotation
-    #     return best_annotation
 
     def serialize(self):
         res = {
