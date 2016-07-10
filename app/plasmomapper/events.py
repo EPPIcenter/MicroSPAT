@@ -3,7 +3,7 @@ from flask import Blueprint, jsonify, request
 from flask_socketio import emit
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
-from app.utils.Utils import CaseInsensitiveDictReader
+from app.utils import CaseInsensitiveDictReader
 from models import *
 
 plasmomapper = Blueprint('plasmomapper', import_name=__name__, template_folder='templates',

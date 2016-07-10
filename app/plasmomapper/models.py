@@ -1,8 +1,9 @@
 import csv
-# import os
 from collections import defaultdict
 from datetime import datetime
 from itertools import groupby
+
+from config import Config
 
 # from sklearn.externals import joblib
 from sqlalchemy.ext.declarative import declared_attr
@@ -12,21 +13,21 @@ from sqlalchemy.orm.util import object_state
 from sqlalchemy.orm.session import attributes
 
 from app import db, socketio
-from config import Config
-
 from flask import current_app as app
 
 from fsa_extractor.PlateExtractor import PlateExtractor, WellExtractor, ChannelExtractor
-from .statistics.Utils import calculate_allele_frequencies, calculate_moi, calculate_peak_probability
+from statistics import calculate_allele_frequencies, calculate_peak_probability
 import bin_finder.BinFinder as BF
 import artifact_estimator.ArtifactEstimator as AE
 
 import eventlet
 
 from ..custom_sql_types.custom_types import JSONEncodedData, MutableDict, MutableList
-from peak_annotator.PeakFilters import base_size_filter, bleedthrough_filter, crosstalk_filter, \
-    peak_height_filter, peak_proximity_filter, relative_peak_height_filter, probability_filter, compose_filters, \
-    bin_filter, flags_filter, artifact_filter, peak_annotations_diff
+# from peak_annotator.PeakFilters import base_size_filter, bleedthrough_filter, crosstalk_filter, \
+#     peak_height_filter, peak_proximity_filter, relative_peak_height_filter, probability_filter, compose_filters, \
+#     bin_filter, flags_filter, artifact_filter, peak_annotations_diff
+
+from peak_annotator.PeakFilters import *
 
 
 @event.listens_for(db.Model, 'after_update', propagate=True)

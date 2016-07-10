@@ -28,6 +28,7 @@ def calculate_beta(peak_sets):
         y_i = np.log(peak_one['peak_height'] / float(peak_two['peak_height'])) - np.log(
             peak_one['true_proportion'] / float(peak_two['true_proportion'])
         )
+
         x_i = peak_one['peak_size'] - peak_two['peak_size']
 
         y.append(y_i)
