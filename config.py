@@ -11,7 +11,6 @@ CSRF_ENABLED = True
 class Config:
     DEBUG = False
     SECRET_KEY = os.environ.get('SECRET_KEY') or "secret"
-    # CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672//'
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     SQLALCHEMY_RECORD_QUERIES = True
 

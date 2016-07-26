@@ -62,7 +62,7 @@ class BinFinder(object):
         }
         """
         peaks = [] or peaks
-        peaks = sorted(peaks, key=lambda _: _['peak_size'])
+        peaks = sorted(peaks, key=lambda _: _['peak_height'])
 
         if peaks:
             map(lambda _: _.setdefault('in_bin', False), peaks)
@@ -82,6 +82,8 @@ class BinFinder(object):
                             peak['bin_id'] = b.id
                         if b.base_size - b.bin_buffer <= peak['peak_size'] <= b.base_size + b.bin_buffer:
                             peak['in_bin'] = True
+                    else:
+                        bins.insert(min_peak_dist_idx, b)
         return peaks
 
 

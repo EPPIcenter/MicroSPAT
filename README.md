@@ -1,4 +1,4 @@
-# plasmotrack-sockets
+# MicroSPAT
 
 #To Do
 1. Add in controls for probabilistic allele identification at the project level

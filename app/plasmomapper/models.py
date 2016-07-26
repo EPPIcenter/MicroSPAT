@@ -50,6 +50,7 @@ def broadcast_delete(mapper, connection, target):
 
 def params_changed(target, params):
     state = object_state(target)
+
     if not state.modified:
         return False
 
@@ -425,7 +426,6 @@ class Project(LocusSetAssociatedMixin, TimeStamped, db.Model):
         app.logger.debug("Scanning Parameters Stale: {}".format(locus_parameters.scanning_parameters_stale))
         app.logger.debug("Filter Parameters Stale: {}".format(locus_parameters.filter_parameters_stale))
         channel_annotations = self.get_locus_channel_annotations(locus_id)
-
         if locus_parameters.scanning_parameters_stale:
             channel_annotations = self.recalculate_channels(channel_annotations=channel_annotations,
                                                             rescan_peaks=True, block_commit=True)
@@ -656,11 +656,14 @@ class BinEstimatorProject(Project):
 
     def analyze_locus(self, locus_id, block_commit=False):
         super(BinEstimatorProject, self).analyze_locus(locus_id, block_commit)
-        self.calculate_locus_bin_set(locus_id)
-        projects = GenotypingProject.query.filter(GenotypingProject.bin_estimator_id == self.id).all()
-        for project in projects:
-            assert isinstance(project, GenotypingProject)
-            project.bin_estimator_changed(locus_id)
+        locus_params = self.get_locus_parameters(locus_id)
+        if locus_params.bin_estimator_parameters_stale:
+            self.calculate_locus_bin_set(locus_id)
+            projects = GenotypingProject.query.filter(GenotypingProject.bin_estimator_id == self.id).all()
+            for project in projects:
+                assert isinstance(project, GenotypingProject)
+                project.bin_estimator_changed(locus_id)
+            locus_params.bin_estimator_parameters_stale = False
         return self
 
     def initialize_project(self):
@@ -883,11 +886,14 @@ class ArtifactEstimatorProject(Project):
 
     def analyze_locus(self, locus_id, block_commit=False):
         super(ArtifactEstimatorProject, self).analyze_locus(locus_id, block_commit)
-        self.calculate_locus_artifact_estimator(locus_id)
-        projects = GenotypingProject.query.filter(GenotypingProject.artifact_estimator_id == self.id).all()
-        for project in projects:
-            assert isinstance(project, GenotypingProject)
-            project.artifact_estimator_changed(locus_id)
+        locus_parameters = self.get_locus_parameters(locus_id)
+        if locus_parameters.artifact_estimator_parameters_stale:
+            self.calculate_locus_artifact_estimator(locus_id)
+            projects = GenotypingProject.query.filter(GenotypingProject.artifact_estimator_id == self.id).all()
+            for project in projects:
+                assert isinstance(project, GenotypingProject)
+                project.artifact_estimator_changed(locus_id)
+            locus_parameters.artifact_estimator_parameters_stale = False
         return self
 
     def initialize_project(self):
@@ -1212,8 +1218,15 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
             sample_annotation.locus_annotations.append(locus_sample_annotation)
 
     def analyze_locus(self, locus_id, block_commit=False):
+        locus_params = self.get_locus_parameters(locus_id)
+        if locus_params.scanning_parameters_stale or locus_params.filter_parameters_stale:
+            locus_params.genotyping_parameters_stale = True
+
         super(GenotypingProject, self).analyze_locus(locus_id, block_commit)
-        self.analyze_samples(locus_id)
+
+        if locus_params.genotyping_parameters_stale:
+            self.analyze_samples(locus_id)
+            locus_params.genotyping_parameters_stale = False
         return self
 
     def get_sample_locus_annotations(self, locus_id):
@@ -1341,7 +1354,7 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
             for sample_annotation in sample_annotations:
 
                 assert isinstance(sample_annotation, ProjectSampleAnnotations)
-                sample_annotation.moi = 0
+                # sample_annotation.moi = 0
                 locus_annotations = locus_annotation_dict[sample_annotation.id]
                 moi = self.calculate_moi(locus_annotations)
                 sample_annotation.moi = moi
@@ -1359,8 +1372,11 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
 
                         locus_allele_frequencies = allele_frequencies[locus_annotation.locus.label]
 
+                        true_peak_count = len([peak for peak in peaks_copy if
+                                               peak['probability'] > self.probability_threshold])
+
                         recalculated_probabilities = calculate_peak_probability(possible_artifact_peaks,
-                                                                                sample_annotation.moi,
+                                                                                sample_annotation.moi - true_peak_count,
                                                                                 locus_allele_frequencies)
 
                         for peak in possible_artifact_peaks:
@@ -1395,8 +1411,12 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
             else:
                 peak_counts.append(0)
         peak_counts.sort()
-        if len(peak_counts) > 2:
-            moi = peak_counts[-2]
+        # if len(peak_counts) > 2:
+        #     moi = peak_counts[-2]
+        # else:
+        #     moi = 0
+        if len(peak_counts) > 0:
+            moi = peak_counts[-1]
         else:
             moi = 0
         return moi
@@ -1531,15 +1551,13 @@ class ProjectLocusParams(PeakScanner, db.Model):
         scanning_params = target.scanning_parameters.keys()
 
         if params_changed(target, filter_params):
-            app.logger.debug("Filter Parameters Stale")
-            print target
-            print target.filter_parameters_stale
             target.filter_parameters_stale = True
-            print target.filter_parameters_stale
 
         if params_changed(target, scanning_params):
-            app.logger.debug("Scanning Parameters Stale")
             target.scanning_parameters_stale = True
+
+        app.logger.debug("Filter Parameters Stale: {}".format(target.filter_parameters_stale))
+        app.logger.debug("Scanning Parameters Stale: {}".format(target.scanning_parameters_stale))
 
     @classmethod
     def __declare_last__(cls):
@@ -1565,6 +1583,14 @@ class ArtifactEstimatorLocusParams(ProjectLocusParams):
     id = db.Column(db.Integer, db.ForeignKey('project_locus_params.id'), primary_key=True)
     max_secondary_relative_peak_height = db.Column(db.Float, default=.4, nullable=False)
     min_artifact_peak_frequency = db.Column(db.Integer, default=10, nullable=False)
+    artifact_estimator_parameters_stale = db.Column(db.Boolean, default=True, nullable=False)
+
+    @property
+    def artifact_estimator_parameters(self):
+        return {
+            'max_secondary_relative_peak_height': self.max_secondary_relative_peak_height,
+            'min_artifact_peak_frequency': self.min_artifact_peak_frequency
+        }
 
     __mapper_args__ = {
         'polymorphic_identity': 'artifact_estimator_locus_params',
@@ -1572,11 +1598,19 @@ class ArtifactEstimatorLocusParams(ProjectLocusParams):
 
     def serialize(self):
         res = super(ArtifactEstimatorLocusParams, self).serialize()
-        res.update({
-            'max_secondary_relative_peak_height': self.max_secondary_relative_peak_height,
-            'min_artifact_peak_frequency': self.min_artifact_peak_frequency
-        })
+        res.update(self.artifact_estimator_parameters)
         return res
+
+    @staticmethod
+    def stale_parameters(mapper, connection, target):
+        super(ArtifactEstimatorLocusParams, target).stale_parameters(mapper, connection, target)
+        artifact_estimator_parameters = target.artifact_estimator_parameters.keys()
+
+        if params_changed(target, artifact_estimator_parameters):
+            target.artifact_estimator_parameters_stale = True
+
+        app.logger.debug("Artifact Estimator Parameters Stale: {}".format(target.artifact_estimator_parameters_stale))
+
 
     @classmethod
     def __declare_last__(cls):
@@ -1594,13 +1628,11 @@ class GenotypingLocusParams(ProjectLocusParams):
     absolute_peak_height_limit = db.Column(db.Integer, default=50, nullable=False)
     failure_threshold = db.Column(db.Integer, default=500, nullable=False)
 
-    __mapper_args__ = {
-        'polymorphic_identity': 'genotyping_locus_params',
-    }
+    genotyping_parameters_stale = db.Column(db.Boolean, default=True, nullable=False)
 
-    def serialize(self):
-        res = super(GenotypingLocusParams, self).serialize()
-        res.update({
+    @property
+    def genotyping_parameters(self):
+        return {
             'soft_artifact_sd_limit': self.soft_artifact_sd_limit,
             'hard_artifact_sd_limit': self.hard_artifact_sd_limit,
             'offscale_threshold': self.offscale_threshold,
@@ -1609,8 +1641,27 @@ class GenotypingLocusParams(ProjectLocusParams):
             'relative_peak_height_limit': self.relative_peak_height_limit,
             'absolute_peak_height_limit': self.absolute_peak_height_limit,
             'failure_threshold': self.failure_threshold
-        })
+        }
+
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'genotyping_locus_params',
+    }
+
+    def serialize(self):
+        res = super(GenotypingLocusParams, self).serialize()
+        res.update(self.genotyping_parameters)
         return res
+
+    @staticmethod
+    def stale_parameters(mapper, connection, target):
+        super(GenotypingLocusParams, target).stale_parameters(mapper, connection, target)
+        genotyping_parameters = target.genotyping_parameters.keys()
+
+        if params_changed(target, genotyping_parameters):
+            target.genotyping_parameters_stale = True
+
+        app.logger.debug("Genotyping Parameters Stale: {}".format(target.genotyping_parameters_stale))
 
     @classmethod
     def __declare_last__(cls):
@@ -1621,6 +1672,14 @@ class BinEstimatorLocusParams(ProjectLocusParams):
     id = db.Column(db.Integer, db.ForeignKey('project_locus_params.id'), primary_key=True)
     min_peak_frequency = db.Column(db.Integer, default=10, nullable=False)
     default_bin_buffer = db.Column(db.Float, default=.75, nullable=False)
+    bin_estimator_parameters_stale = db.Column(db.Boolean, default=True, nullable=False)
+
+    @property
+    def bin_estimator_parameters(self):
+        return {
+            'min_peak_frequency': self.min_peak_frequency,
+            'default_bin_buffer': self.default_bin_buffer
+        }
 
     __mapper_args__ = {
         'polymorphic_identity': 'bin_estimator_locus_params'
@@ -1628,11 +1687,18 @@ class BinEstimatorLocusParams(ProjectLocusParams):
 
     def serialize(self):
         res = super(BinEstimatorLocusParams, self).serialize()
-        res.update({
-            'min_peak_frequency': self.min_peak_frequency,
-            'default_bin_buffer': self.default_bin_buffer
-        })
+        res.update(self.bin_estimator_parameters)
         return res
+
+    @staticmethod
+    def stale_parameters(mapper, connection, target):
+        super(BinEstimatorLocusParams, target).stale_parameters(mapper, connection, target)
+        bin_estimator_parameters = target.bin_estimator_parameters.keys()
+
+        if params_changed(target, bin_estimator_parameters):
+            target.bin_estimator_parameters_stale = True
+
+        app.logger.debug("Bin Estimator Parameters Stale: {}".format(target.bin_estimator_parameters_stale))
 
     @classmethod
     def __declare_last__(cls):
