@@ -4,7 +4,7 @@ from itertools import groupby
 import scipy.stats as st
 
 
-__FREQUENCIES_REQUIRED = ValueError("Locus Allele Frequencies must be provided.")
+_FREQUENCIES_REQUIRED = ValueError("Locus Allele Frequencies must be provided.")
 
 
 def calculate_allele_frequencies(locus_annotations):
@@ -61,7 +61,7 @@ def cdf_weighted_probability(p, _):
 
 def allele_frequency_weighted_probability(p, locus_allele_frequencies):
     if not locus_allele_frequencies:
-        raise __FREQUENCIES_REQUIRED
+        raise _FREQUENCIES_REQUIRED
     probability = p['probability']
     allele_frequency = locus_allele_frequencies[p['bin']]
     return allele_frequency * probability
@@ -69,22 +69,23 @@ def allele_frequency_weighted_probability(p, locus_allele_frequencies):
 
 def combo_weighted_probability(p, locus_allele_frequencies):
     if not locus_allele_frequencies:
-        raise __FREQUENCIES_REQUIRED
+        raise _FREQUENCIES_REQUIRED
     probability, peak_height, artifact, error = __extract_features(p)
     cdf_val = st.norm.cdf((peak_height - artifact) / error)
     allele_frequency = locus_allele_frequencies[p['bin']]
     return cdf_val * allele_frequency * probability
 
 
-def calculate_peak_probability(peak_set, moi, locus_allele_frequencies=None, method='allele_frequency_weighted'):
+def calculate_peak_probability(peak_set, num_possible, locus_allele_frequencies=None, method='allele_frequency_weighted'):
     """
     Calculate the probability of a peak for a given MOI and set of allele frequencies.  3 different weighting methods
     available.  Allele_frequency_weighted weights peaks by allele frequency.  CDF_weighted weights peaks by how far they
-    exceed the artifact contribution estimate, based on the error associated with the estimate.  Combo_weighted weights
-    peaks on both values.
+    deviate from the artifact contribution estimate, based on the error associated with the estimate.  Combo_weighted
+    weights peaks by combining the two methods.
+
     :param peak_set: Set of peaks to compare
     :param locus_allele_frequencies: Frequency distribution of alleles for a given locus from which peaks originate
-    :param moi: Proposed MOI of sample
+    :param num_possible: number of peaks which are possible
     :param method: Weighting method to be used.
     :return:
     """
@@ -101,12 +102,12 @@ def calculate_peak_probability(peak_set, moi, locus_allele_frequencies=None, met
 
     recalculated_probabilities = {}
 
-    total_probability = (sum([method(_, locus_allele_frequencies) for _ in peak_set])) ** moi
+    total_probability = (sum([method(_, locus_allele_frequencies) for _ in peak_set])) ** num_possible
 
     for peak in peak_set:
         other_peaks = [_ for _ in peak_set if _['peak_index'] != peak['peak_index']]
         other_peak_freqs = [method(_, locus_allele_frequencies) for _ in other_peaks]
-        recalculated_probability = (total_probability - (sum(other_peak_freqs) ** moi)) / float(total_probability)
+        recalculated_probability = (total_probability - (sum(other_peak_freqs) ** num_possible)) / float(total_probability)
         print recalculated_probability
         recalculated_probabilities[peak['peak_index']] = recalculated_probability
 
@@ -115,7 +116,8 @@ def calculate_peak_probability(peak_set, moi, locus_allele_frequencies=None, met
 
 def calculate_moi(locus_annotations, offset=1):
     """
-    Given a set of locus annotations (All calls from a sample), calculate the MOI of the sample
+    Given a set of locus annotations (All calls from a sample), calculate the MOI of the sample.  If the offset is
+    greater than the number of markers under consideration, returns 0.
     :param locus_annotations: (locus_label, annotated_peaks[])
     :param offset: distance from largest MOI value
     :return:

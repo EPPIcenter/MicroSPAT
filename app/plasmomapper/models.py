@@ -1,11 +1,11 @@
 import csv
-# import os
 from collections import defaultdict
 from datetime import datetime
 from itertools import groupby
 
+from config import Config
+
 # from sklearn.externals import joblib
-import scipy.stats as st
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import validates, deferred, reconstructor, joinedload
 from sqlalchemy import event
@@ -13,21 +13,21 @@ from sqlalchemy.orm.util import object_state
 from sqlalchemy.orm.session import attributes
 
 from app import db, socketio
-from config import Config
-
 from flask import current_app as app
 
 from fsa_extractor.PlateExtractor import PlateExtractor, WellExtractor, ChannelExtractor
-from .statistics.utils import calculate_allele_frequencies, calculate_moi, calculate_peak_probability
+from statistics import calculate_allele_frequencies, calculate_peak_probability
 import bin_finder.BinFinder as BF
 import artifact_estimator.ArtifactEstimator as AE
 
 import eventlet
 
-from app.custom_sql_types.custom_types import JSONEncodedData, MutableDict, MutableList
-from app.plasmomapper.peak_annotator.PeakFilters import base_size_filter, bleedthrough_filter, crosstalk_filter, \
-    peak_height_filter, peak_proximity_filter, relative_peak_height_filter, probability_filter, compose_filters, \
-    bin_filter, flags_filter, artifact_filter, peak_annotations_diff
+from ..custom_sql_types.custom_types import JSONEncodedData, MutableDict, MutableList
+# from peak_annotator.PeakFilters import base_size_filter, bleedthrough_filter, crosstalk_filter, \
+#     peak_height_filter, peak_proximity_filter, relative_peak_height_filter, probability_filter, compose_filters, \
+#     bin_filter, flags_filter, artifact_filter, peak_annotations_diff
+
+from peak_annotator.PeakFilters import *
 
 
 @event.listens_for(db.Model, 'after_update', propagate=True)
@@ -50,6 +50,7 @@ def broadcast_delete(mapper, connection, target):
 
 def params_changed(target, params):
     state = object_state(target)
+
     if not state.modified:
         return False
 
@@ -265,9 +266,11 @@ class Project(LocusSetAssociatedMixin, TimeStamped, db.Model):
     date = db.Column(db.DateTime, default=datetime.utcnow)
     creator = db.Column(db.String(255))
     description = db.Column(db.Text, nullable=True)
-
     channel_annotations = db.relationship('ProjectChannelAnnotations', backref=db.backref('project'), lazy='dynamic',
                                           cascade='save-update, merge, delete, delete-orphan')
+    discriminator = db.Column('type', db.String(255))
+    __mapper_args__ = {'polymorphic_on': discriminator,
+                       'polymorphic_identity': 'base_project'}
 
     @property
     def locus_parameters(self):
@@ -276,10 +279,6 @@ class Project(LocusSetAssociatedMixin, TimeStamped, db.Model):
     @reconstructor
     def init_on_load(self):
         self._locus_param_cache = {}
-
-    discriminator = db.Column('type', db.String(255))
-    __mapper_args__ = {'polymorphic_on': discriminator,
-                       'polymorphic_identity': 'base_project'}
 
     def __init__(self, locus_set_id, **kwargs):
         super(Project, self).__init__(**kwargs)
@@ -427,7 +426,6 @@ class Project(LocusSetAssociatedMixin, TimeStamped, db.Model):
         app.logger.debug("Scanning Parameters Stale: {}".format(locus_parameters.scanning_parameters_stale))
         app.logger.debug("Filter Parameters Stale: {}".format(locus_parameters.filter_parameters_stale))
         channel_annotations = self.get_locus_channel_annotations(locus_id)
-
         if locus_parameters.scanning_parameters_stale:
             channel_annotations = self.recalculate_channels(channel_annotations=channel_annotations,
                                                             rescan_peaks=True, block_commit=True)
@@ -658,11 +656,14 @@ class BinEstimatorProject(Project):
 
     def analyze_locus(self, locus_id, block_commit=False):
         super(BinEstimatorProject, self).analyze_locus(locus_id, block_commit)
-        self.calculate_locus_bin_set(locus_id)
-        projects = GenotypingProject.query.filter(GenotypingProject.bin_estimator_id == self.id).all()
-        for project in projects:
-            assert isinstance(project, GenotypingProject)
-            project.bin_estimator_changed(locus_id)
+        locus_params = self.get_locus_parameters(locus_id)
+        if locus_params.bin_estimator_parameters_stale:
+            self.calculate_locus_bin_set(locus_id)
+            projects = GenotypingProject.query.filter(GenotypingProject.bin_estimator_id == self.id).all()
+            for project in projects:
+                assert isinstance(project, GenotypingProject)
+                project.bin_estimator_changed(locus_id)
+            locus_params.bin_estimator_parameters_stale = False
         return self
 
     def initialize_project(self):
@@ -885,11 +886,14 @@ class ArtifactEstimatorProject(Project):
 
     def analyze_locus(self, locus_id, block_commit=False):
         super(ArtifactEstimatorProject, self).analyze_locus(locus_id, block_commit)
-        self.calculate_locus_artifact_estimator(locus_id)
-        projects = GenotypingProject.query.filter(GenotypingProject.artifact_estimator_id == self.id).all()
-        for project in projects:
-            assert isinstance(project, GenotypingProject)
-            project.artifact_estimator_changed(locus_id)
+        locus_parameters = self.get_locus_parameters(locus_id)
+        if locus_parameters.artifact_estimator_parameters_stale:
+            self.calculate_locus_artifact_estimator(locus_id)
+            projects = GenotypingProject.query.filter(GenotypingProject.artifact_estimator_id == self.id).all()
+            for project in projects:
+                assert isinstance(project, GenotypingProject)
+                project.artifact_estimator_changed(locus_id)
+            locus_parameters.artifact_estimator_parameters_stale = False
         return self
 
     def initialize_project(self):
@@ -1213,12 +1217,16 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
             locus_sample_annotation.alleles = dict([(str(bin_id[0]), False) for bin_id in bin_ids])
             sample_annotation.locus_annotations.append(locus_sample_annotation)
 
-    def annotate_peak_probability(self):
-        pass
-
     def analyze_locus(self, locus_id, block_commit=False):
+        locus_params = self.get_locus_parameters(locus_id)
+        if locus_params.scanning_parameters_stale or locus_params.filter_parameters_stale:
+            locus_params.genotyping_parameters_stale = True
+
         super(GenotypingProject, self).analyze_locus(locus_id, block_commit)
-        self.analyze_samples(locus_id)
+
+        if locus_params.genotyping_parameters_stale:
+            self.analyze_samples(locus_id)
+            locus_params.genotyping_parameters_stale = False
         return self
 
     def get_sample_locus_annotations(self, locus_id):
@@ -1346,7 +1354,7 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
             for sample_annotation in sample_annotations:
 
                 assert isinstance(sample_annotation, ProjectSampleAnnotations)
-                sample_annotation.moi = 0
+                # sample_annotation.moi = 0
                 locus_annotations = locus_annotation_dict[sample_annotation.id]
                 moi = self.calculate_moi(locus_annotations)
                 sample_annotation.moi = moi
@@ -1364,29 +1372,12 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
 
                         locus_allele_frequencies = allele_frequencies[locus_annotation.locus.label]
 
+                        true_peak_count = len([peak for peak in peaks_copy if
+                                               peak['probability'] > self.probability_threshold])
+
                         recalculated_probabilities = calculate_peak_probability(possible_artifact_peaks,
-                                                                                sample_annotation.moi,
+                                                                                sample_annotation.moi - true_peak_count,
                                                                                 locus_allele_frequencies)
-                        #
-                        # for peak in possible_artifact_peaks:
-                        #     other_peaks = [x for x in all_peaks if x['peak_index'] != peak['peak_index']]
-                        #
-                        #     # CDF weighted implementation
-                        #     # this_peak_freq = cdf_weighted(peak)
-                        #     # other_peak_freqs = [cdf_weighted(_) for _ in other_peaks]
-                        #
-                        #     # Allele Frequency weighted implementation
-                        #     this_peak_freq = allele_frequency_weighted(peak)
-                        #     other_peak_freqs = [allele_frequency_weighted(_) for _ in other_peaks]
-                        #
-                        #     # Allele Frequency and CDF weighted implementation
-                        #     # this_peak_freq = combo_weighted(peak)
-                        #     # other_peak_freqs = [combo_weighted(_) for _ in other_peaks]
-                        #
-                        #     total_probability = (sum(other_peak_freqs) + this_peak_freq) ** sample_annotation.moi
-                        #
-                        #     recalculated_probabilities[peak['peak_index']] = (total_probability - (
-                        #         sum(other_peak_freqs) ** sample_annotation.moi)) / total_probability
 
                         for peak in possible_artifact_peaks:
                             if recalculated_probabilities[peak['peak_index']] < self.probability_threshold:
@@ -1420,8 +1411,12 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
             else:
                 peak_counts.append(0)
         peak_counts.sort()
-        if len(peak_counts) > 2:
-            moi = peak_counts[-2]
+        # if len(peak_counts) > 2:
+        #     moi = peak_counts[-2]
+        # else:
+        #     moi = 0
+        if len(peak_counts) > 0:
+            moi = peak_counts[-1]
         else:
             moi = 0
         return moi
@@ -1556,15 +1551,13 @@ class ProjectLocusParams(PeakScanner, db.Model):
         scanning_params = target.scanning_parameters.keys()
 
         if params_changed(target, filter_params):
-            app.logger.debug("Filter Parameters Stale")
-            print target
-            print target.filter_parameters_stale
             target.filter_parameters_stale = True
-            print target.filter_parameters_stale
 
         if params_changed(target, scanning_params):
-            app.logger.debug("Scanning Parameters Stale")
             target.scanning_parameters_stale = True
+
+        app.logger.debug("Filter Parameters Stale: {}".format(target.filter_parameters_stale))
+        app.logger.debug("Scanning Parameters Stale: {}".format(target.scanning_parameters_stale))
 
     @classmethod
     def __declare_last__(cls):
@@ -1590,6 +1583,14 @@ class ArtifactEstimatorLocusParams(ProjectLocusParams):
     id = db.Column(db.Integer, db.ForeignKey('project_locus_params.id'), primary_key=True)
     max_secondary_relative_peak_height = db.Column(db.Float, default=.4, nullable=False)
     min_artifact_peak_frequency = db.Column(db.Integer, default=10, nullable=False)
+    artifact_estimator_parameters_stale = db.Column(db.Boolean, default=True, nullable=False)
+
+    @property
+    def artifact_estimator_parameters(self):
+        return {
+            'max_secondary_relative_peak_height': self.max_secondary_relative_peak_height,
+            'min_artifact_peak_frequency': self.min_artifact_peak_frequency
+        }
 
     __mapper_args__ = {
         'polymorphic_identity': 'artifact_estimator_locus_params',
@@ -1597,11 +1598,19 @@ class ArtifactEstimatorLocusParams(ProjectLocusParams):
 
     def serialize(self):
         res = super(ArtifactEstimatorLocusParams, self).serialize()
-        res.update({
-            'max_secondary_relative_peak_height': self.max_secondary_relative_peak_height,
-            'min_artifact_peak_frequency': self.min_artifact_peak_frequency
-        })
+        res.update(self.artifact_estimator_parameters)
         return res
+
+    @staticmethod
+    def stale_parameters(mapper, connection, target):
+        super(ArtifactEstimatorLocusParams, target).stale_parameters(mapper, connection, target)
+        artifact_estimator_parameters = target.artifact_estimator_parameters.keys()
+
+        if params_changed(target, artifact_estimator_parameters):
+            target.artifact_estimator_parameters_stale = True
+
+        app.logger.debug("Artifact Estimator Parameters Stale: {}".format(target.artifact_estimator_parameters_stale))
+
 
     @classmethod
     def __declare_last__(cls):
@@ -1619,13 +1628,11 @@ class GenotypingLocusParams(ProjectLocusParams):
     absolute_peak_height_limit = db.Column(db.Integer, default=50, nullable=False)
     failure_threshold = db.Column(db.Integer, default=500, nullable=False)
 
-    __mapper_args__ = {
-        'polymorphic_identity': 'genotyping_locus_params',
-    }
+    genotyping_parameters_stale = db.Column(db.Boolean, default=True, nullable=False)
 
-    def serialize(self):
-        res = super(GenotypingLocusParams, self).serialize()
-        res.update({
+    @property
+    def genotyping_parameters(self):
+        return {
             'soft_artifact_sd_limit': self.soft_artifact_sd_limit,
             'hard_artifact_sd_limit': self.hard_artifact_sd_limit,
             'offscale_threshold': self.offscale_threshold,
@@ -1634,8 +1641,27 @@ class GenotypingLocusParams(ProjectLocusParams):
             'relative_peak_height_limit': self.relative_peak_height_limit,
             'absolute_peak_height_limit': self.absolute_peak_height_limit,
             'failure_threshold': self.failure_threshold
-        })
+        }
+
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'genotyping_locus_params',
+    }
+
+    def serialize(self):
+        res = super(GenotypingLocusParams, self).serialize()
+        res.update(self.genotyping_parameters)
         return res
+
+    @staticmethod
+    def stale_parameters(mapper, connection, target):
+        super(GenotypingLocusParams, target).stale_parameters(mapper, connection, target)
+        genotyping_parameters = target.genotyping_parameters.keys()
+
+        if params_changed(target, genotyping_parameters):
+            target.genotyping_parameters_stale = True
+
+        app.logger.debug("Genotyping Parameters Stale: {}".format(target.genotyping_parameters_stale))
 
     @classmethod
     def __declare_last__(cls):
@@ -1646,6 +1672,14 @@ class BinEstimatorLocusParams(ProjectLocusParams):
     id = db.Column(db.Integer, db.ForeignKey('project_locus_params.id'), primary_key=True)
     min_peak_frequency = db.Column(db.Integer, default=10, nullable=False)
     default_bin_buffer = db.Column(db.Float, default=.75, nullable=False)
+    bin_estimator_parameters_stale = db.Column(db.Boolean, default=True, nullable=False)
+
+    @property
+    def bin_estimator_parameters(self):
+        return {
+            'min_peak_frequency': self.min_peak_frequency,
+            'default_bin_buffer': self.default_bin_buffer
+        }
 
     __mapper_args__ = {
         'polymorphic_identity': 'bin_estimator_locus_params'
@@ -1653,11 +1687,18 @@ class BinEstimatorLocusParams(ProjectLocusParams):
 
     def serialize(self):
         res = super(BinEstimatorLocusParams, self).serialize()
-        res.update({
-            'min_peak_frequency': self.min_peak_frequency,
-            'default_bin_buffer': self.default_bin_buffer
-        })
+        res.update(self.bin_estimator_parameters)
         return res
+
+    @staticmethod
+    def stale_parameters(mapper, connection, target):
+        super(BinEstimatorLocusParams, target).stale_parameters(mapper, connection, target)
+        bin_estimator_parameters = target.bin_estimator_parameters.keys()
+
+        if params_changed(target, bin_estimator_parameters):
+            target.bin_estimator_parameters_stale = True
+
+        app.logger.debug("Bin Estimator Parameters Stale: {}".format(target.bin_estimator_parameters_stale))
 
     @classmethod
     def __declare_last__(cls):
@@ -1702,34 +1743,6 @@ class ProjectSampleAnnotations(TimeStamped, db.Model):
     sample = db.relationship('Sample', lazy='select')
     moi = db.Column(db.Integer)
     __table_args__ = (db.UniqueConstraint('project_id', 'sample_id', name='_project_sample_uc'),)
-
-    # def get_best_run(self, locus_id):
-    #     """
-    #     Return the best set of annotations for a sample at a given locus
-    #     :type locus_id: int
-    #     :rtype: ProjectChannelAnnotations
-    #     """
-    #     locus_parameters = self.project.get_locus_parameters(locus_id)
-    #     channel_annotations = ProjectChannelAnnotations.query.join(Channel).join(Well).filter(
-    #         ProjectChannelAnnotations.project_id == self.project_id).filter(
-    #         Channel.sample_id == self.sample_id).filter(Well.sizing_quality < 15).all()
-    #
-    #     best_annotation = None
-    #     for annotation in channel_annotations:
-    #         assert isinstance(annotation, ProjectChannelAnnotations)
-    #         if not best_annotation:
-    #             best_annotation = annotation
-    #         else:
-    #             if not annotation.channel.get_flag('contamination', False):
-    #                 max_best_peak = max(lambda x: x['peak_height'],
-    #                                     filter(lambda y: y['peak_height'] < locus_parameters.offscale_threshold,
-    #                                            best_annotation.annotated_peaks))
-    #                 max_curr_peak = max(lambda x: x['peak_height'],
-    #                                     filter(lambda y: y['peak_height'] < locus_parameters.offscale_threshold,
-    #                                            annotation.annotated_peaks))
-    #                 if max_curr_peak['peak_height'] > max_best_peak['peak_height']:
-    #                     best_annotation = annotation
-    #     return best_annotation
 
     def serialize(self):
         res = {

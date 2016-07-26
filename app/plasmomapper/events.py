@@ -1,11 +1,10 @@
-from flask_socketio import emit
-from app import socketio
-from models import *
-from flask import Blueprint, render_template, jsonify, request, Response
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from utils import CaseInsensitiveDictReader, CaseInsensitiveDict
 import eventlet
+from flask import Blueprint, jsonify, request
+from flask_socketio import emit
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
+from app.utils import CaseInsensitiveDictReader
+from models import *
 
 plasmomapper = Blueprint('plasmomapper', import_name=__name__, template_folder='templates',
                          url_prefix='/plasmomapper/api/v1')
@@ -390,10 +389,6 @@ def delete_estimator(id):
         assert isinstance(estimator, ArtifactEstimator)
         genotyping_projects = GenotypingProject.query.filter(
             GenotypingProject.artifact_estimator_id == estimator.locus_artifact_estimator.project.id).all()
-        # if genotyping_projects:
-        #     return handle_error(
-        #         "Artifact estimator is used in Genotyping Project {}. Cannot Delete.".format(genotyping_project.title)
-        #     )
         locus_id = estimator.locus_artifact_estimator.locus_id
         print locus_id
         for project in genotyping_projects:
