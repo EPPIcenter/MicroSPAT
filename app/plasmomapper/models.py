@@ -95,6 +95,7 @@ def select_best_run(channel_annotations, offscale_threshold):
     :param offscale_threshold: int
     :return: ProjectChannelAnnotation
     """
+    channel_annotations = channel_annotations or []
     channel_annotations = [x for x in channel_annotations if not x.get_flag('poor_sizing_quality')]
 
     best_annotation = None
@@ -1243,14 +1244,13 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
         all_runs = self.get_runs(locus_id)
         for locus_annotation in locus_annotations:
             eventlet.sleep()
-
             try:
                 locus_annotation.alleles.pop('None')
             except KeyError:
                 pass
 
             assert isinstance(locus_annotation, SampleLocusAnnotation)
-            channel_annotation = select_best_run(all_runs[locus_annotation.sample_annotation.sample_id],
+            channel_annotation = select_best_run(all_runs.get(locus_annotation.sample_annotation.sample_id),
                                                  locus_params.offscale_threshold)
             if channel_annotation:
                 locus_annotation.reference_run = channel_annotation
