@@ -7,22 +7,15 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 # Enable protection agains *Cross-site Request Forgery (CSRF)*
 CSRF_ENABLED = True
 
-# Use a secure, unique and absolutely secret key for
-# signing the data.
-
 
 class Config:
     DEBUG = False
     SECRET_KEY = os.environ.get('SECRET_KEY') or "secret"
-    CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672//'
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     SQLALCHEMY_RECORD_QUERIES = True
 
-    UPLOADED_PLATES_DEST = os.path.join(basedir, "plate_zips")
-    UPLOADED_FSAFILES_DEST = os.path.join(basedir, "temp_fsa_files")
-    PICKLED_MODELS = os.path.join(basedir, "pickled_models")
-
-    LOGGING_LOCATION = "plasmotrack.log"
+    # Logging
+    LOGGING_LOCATION = "app.log"
     LOGGING_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 
     @staticmethod
@@ -56,24 +49,6 @@ class ProductionConfig(Config):
     def init_app(cls, app):
         Config.init_app(app)
 
-        # email errors to the administrators
-        # import logging
-        # from logging.handlers import SMTPHandler
-        # credentials = None
-        # secure = None
-        # if getattr(cls, 'MAIL_USERNAME', None) is not None:
-        #     credentials = (cls.MAIL_USERNAME, cls.MAIL_PASSWORD)
-        #     if getattr(cls, 'MAIL_USE_TLS', None):
-        #         secure = ()
-        # mail_handler = SMTPHandler(
-        #     mailhost=(cls.MAIL_SERVER, cls.MAIL_PORT),
-        #     fromaddr=cls.FLASKY_MAIL_SENDER,
-        #     toaddrs=[cls.FLASKY_ADMIN],
-        #     subject=cls.FLASKY_MAIL_SUBJECT_PREFIX + ' Application Error',
-        #     credentials=credentials,
-        #     secure=secure)
-        # mail_handler.setLevel(logging.ERROR)
-        # app.logger.addHandler(mail_handler)
 
 config = {
     'production': ProductionConfig,
