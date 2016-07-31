@@ -16,4 +16,3 @@ def catch_all(path):
 @plasmotrack.route('/')
 def index():
     return plasmotrack.send_static_file('index.html')
-

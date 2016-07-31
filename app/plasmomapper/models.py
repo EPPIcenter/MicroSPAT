@@ -1250,8 +1250,20 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
                 pass
 
             assert isinstance(locus_annotation, SampleLocusAnnotation)
+<<<<<<< HEAD
+
+            runs = all_runs.get(locus_annotation.sample_annotation.sample_id, [])
+
+            if runs:
+                channel_annotation = self.select_best_run(all_runs[locus_annotation.sample_annotation.sample_id],
+                                                          locus_params.offscale_threshold)
+            else:
+                channel_annotation = None
+
+=======
             channel_annotation = select_best_run(all_runs.get(locus_annotation.sample_annotation.sample_id),
                                                  locus_params.offscale_threshold)
+>>>>>>> master
             if channel_annotation:
                 locus_annotation.reference_run = channel_annotation
                 peaks = channel_annotation.annotated_peaks[:]
@@ -1401,6 +1413,26 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
         db.session.flush()
         app.logger.debug("Cycles Completed: {}".format(cycles))
         return self
+
+    def calculate_allele_frequencies(self, locus_annotations):
+        allele_counts = defaultdict(lambda: defaultdict(int))
+        locus_totals = defaultdict(int)
+        allele_frequencies = defaultdict(dict)
+
+        for locus_annotation in locus_annotations:
+            assert isinstance(locus_annotation, SampleLocusAnnotation)
+            if locus_annotation.annotated_peaks and not locus_annotation.get_flag('failure'):
+                locus_totals[locus_annotation.locus_id] += 1
+                for peak in locus_annotation.annotated_peaks:
+                    if peak['in_bin'] and not any(peak['flags'].values()) and \
+                                    peak['probability'] >= self.probability_threshold:
+                        allele_counts[locus_annotation.locus_id][peak['bin_id']] += 1
+
+        for locus in allele_counts.keys():
+            for allele in allele_counts[locus].keys():
+                allele_frequencies[locus][allele] = allele_counts[locus][allele] / float(locus_totals[locus])
+
+        return allele_frequencies
 
     def calculate_moi(self, locus_annotations):
         peak_counts = []
