@@ -1250,7 +1250,6 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
                 pass
 
             assert isinstance(locus_annotation, SampleLocusAnnotation)
-<<<<<<< HEAD
 
             runs = all_runs.get(locus_annotation.sample_annotation.sample_id, [])
 
@@ -1260,10 +1259,7 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
             else:
                 channel_annotation = None
 
-=======
-            channel_annotation = select_best_run(all_runs.get(locus_annotation.sample_annotation.sample_id),
-                                                 locus_params.offscale_threshold)
->>>>>>> master
+
             if channel_annotation:
                 locus_annotation.reference_run = channel_annotation
                 peaks = channel_annotation.annotated_peaks[:]
