@@ -3,6 +3,7 @@ from collections import defaultdict
 from datetime import datetime
 from itertools import groupby
 
+from quantification_bias.BiasCalculator import correct_peak_proportion, calculate_beta
 from config import Config
 
 # from sklearn.externals import joblib
@@ -246,6 +247,9 @@ class Sample(TimeStamped, Flaggable, db.Model):
     designation = db.Column(db.String(255), nullable=False, default='sample', index=True)
     channels = db.relationship('Channel', backref=db.backref('sample'), lazy='dynamic')
 
+    __mapper_args__ = {'polymorphic_on': designation,
+                       'polymorphic_identity': 'sample'}
+
     @validates('designation')
     def validate_designation(self, key, designation):
         assert designation in ['sample', 'positive_control', 'negative_control']
@@ -285,6 +289,7 @@ class Project(LocusSetAssociatedMixin, TimeStamped, db.Model):
         super(Project, self).__init__(**kwargs)
         locus_set = LocusSet.query.get(locus_set_id)
         self.locus_set = locus_set
+        self._locus_param_cache = {}
         assert isinstance(locus_set, LocusSet)
         for locus in locus_set.loci:
             assert isinstance(locus, Locus)
@@ -490,7 +495,7 @@ class BinEstimating(object):
     def bin_estimator(self):
         return db.relationship('BinEstimatorProject', lazy='select', foreign_keys=[self.bin_estimator_id])
 
-    def bin_estimator_changed(self):
+    def bin_estimator_changed(self, locus_id):
         raise NotImplementedError()
 
     def clear_bin_annotations(self, channel_annotations):
@@ -513,7 +518,7 @@ class ArtifactEstimating(object):
     def artifact_estimator(self):
         return db.relationship('ArtifactEstimatorProject', lazy='select', foreign_keys=[self.artifact_estimator_id])
 
-    def artifact_estimator_changed(self):
+    def artifact_estimator_changed(self, locus_id):
         raise NotImplementedError()
 
     def clear_artifact_annotations(self, channel_annotations):
@@ -523,6 +528,29 @@ class ArtifactEstimating(object):
                 for peak in annotation.annotated_peaks:
                     peak['artifact_contribution'] = 0
                     peak['artifact_error'] = 0
+        return self
+
+
+class QuantificationBiasEstimating(object):
+    @declared_attr
+    def quantification_bias_estimator_id(self):
+        return db.Column(db.Integer, db.ForeignKey('quantification_bias_estimator_project.id'), index=True)
+
+    @declared_attr
+    def quantification_bias_estimator(self):
+        return db.relationship('QuantificationBiasEstimatorProject', lazy='select',
+                               foreign_keys=[self.quantification_bias_estimator_id])
+
+    def quantification_bias_estimator_changed(self, locus_id):
+        raise NotImplementedError()
+
+    def clear_quantification_bias_annotations(self, locus_annotations):
+        for annotation in locus_annotations:
+            assert isinstance(annotation, SampleLocusAnnotation)
+            if annotation.annotated_peaks:
+                for peak in annotation.annotated_peaks:
+                    peak['relative_quantification'] = None
+                    peak['corrected_relative_quantification'] = None
         return self
 
 
@@ -589,8 +617,12 @@ class SampleBasedProject(Project):
         })
         return res
 
-    def get_locus_sample_annotations(self, locus_id):
-        pass
+    def get_sample_locus_annotations(self, locus_id):
+        q = SampleLocusAnnotation.query.filter(
+            SampleLocusAnnotation.project_id == self.id).filter(SampleLocusAnnotation.locus_id == locus_id).options(
+            joinedload(SampleLocusAnnotation.sample_annotation)
+        )
+        return q.all()
 
     def serialize_details(self):
         res = super(SampleBasedProject, self).serialize_details()
@@ -644,7 +676,7 @@ class BinEstimatorProject(Project):
         for s in old_sets:
             db.session.delete(s)
 
-    def annotate_bins(self, peaks, locus_id):
+    def annotate_bins(self, locus_id, peaks):
         lbs = self.get_locus_bin_set(locus_id)
         assert isinstance(lbs, LocusBinSet)
         if peaks:
@@ -781,7 +813,7 @@ class ArtifactEstimatorProject(Project):
     def add_channel(self, channel_id, block_commit=False):
         channel_annotation = super(ArtifactEstimatorProject, self).add_channel(channel_id, block_commit)
         assert isinstance(self.bin_estimator, BinEstimatorProject)
-        self.bin_estimator.annotate_bins(channel_annotation.annotated_peaks, channel_annotation.channel.locus_id)
+        self.bin_estimator.annotate_bins(channel_annotation.channel.locus_id, channel_annotation.annotated_peaks)
         return channel_annotation
 
     def add_channels(self, channel_ids, block_commit=False):
@@ -800,8 +832,7 @@ class ArtifactEstimatorProject(Project):
         if channel_annotation.annotated_peaks:
             if self.bin_estimator:
                 channel_annotation.annotated_peaks = self.bin_estimator.annotate_bins(
-                    channel_annotation.annotated_peaks,
-                    channel_annotation.channel.locus_id)
+                    channel_annotation.channel.locus_id, channel_annotation.annotated_peaks)
 
     def recalculate_channel(self, channel_annotation, rescan_peaks, block_commit=False):
         channel_annotation = super(ArtifactEstimatorProject, self).recalculate_channel(channel_annotation,
@@ -873,7 +904,7 @@ class ArtifactEstimatorProject(Project):
             self.calculate_locus_artifact_estimator(locus.id)
         return self
 
-    def annotate_artifact(self, annotated_peaks, locus_id):
+    def annotate_artifact(self, locus_id, annotated_peaks):
         if annotated_peaks:
             for peak in annotated_peaks:
                 peak['artifact_contribution'] = 0
@@ -1092,7 +1123,45 @@ class ArtifactEquation(Flaggable, AE.ArtifactEquation, db.Model):
         return res
 
 
-class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
+class QuantificationBiasEstimatorProject(SampleBasedProject):
+    id = db.Column(db.Integer, primary_key=True)
+    locus_parameters = db.relationship('QuantificationBiasLocusParams',
+                                       backref=db.backref('quantification_bias_estimator_project'),
+                                       lazy='dynamic', cascade='save-update, merge, delete, delete-orphan')
+
+    def annotate_quantification_bias(self, locus_id, peak_set):
+        peak_set = correct_peak_proportion(self.get_beta(locus_id), peak_set)
+        return peak_set
+
+    def get_beta(self, locus_id):
+        return self.get_locus_parameters(locus_id).beta
+
+    def calculate_beta(self, locus_id):
+        lp = self.get_locus_parameters(locus_id)
+        if lp:
+            locus_annotations = self.get_sample_locus_annotations(locus_id)
+            peak_sets = [filter(lambda _: 'true_proportion' in _, locus_annotation.annotated_peaks) for locus_annotation
+                         in locus_annotations]
+            if peak_sets and all(map(lambda _: len(_) == 2, peak_sets)):  # Algorithm currently only supports 2 peaks
+                lp.beta = calculate_beta(peak_sets)
+            else:
+                lp.beta = None
+        return self
+
+    def update_true_proportion(self, locus_annotation_id, peaks):
+        locus_annotation = SampleLocusAnnotation.query.filter(SampleLocusAnnotation.id == locus_annotation_id,
+                                                              SampleLocusAnnotation.project_id == self.id).first()
+        if locus_annotation:
+            while peaks:
+                updated_peak = peaks.pop()
+                for peak in locus_annotation.annotated_peaks:
+                    if peak['index'] == updated_peak['index']:
+                        peak.update(updated_peak)
+        locus_annotation.annotated_peaks.changed()
+        return self
+
+
+class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating, QuantificationBiasEstimating):
     # Collection of methods to annotate peaks with artifact, bin in which a peak falls, probabilistic estimate of peak
     id = db.Column(db.Integer, db.ForeignKey('project.id'), primary_key=True)
     locus_parameters = db.relationship('GenotypingLocusParams', backref=db.backref('genotyping_project'),
@@ -1117,30 +1186,42 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
             sample_annotation.reference_run_id = None
             sample_annotation.clear_flags()
 
-    def clear_bin_annotations(self, locus_id):
+    def clear_locus_bin_annotations(self, locus_id):
         channel_annotations = self.get_locus_channel_annotations(locus_id)
-        super(GenotypingProject, self).clear_bin_annotations(channel_annotations)
+        self.clear_bin_annotations(channel_annotations)
         self.clear_sample_annotations(locus_id)
         return self
 
-    def clear_artifact_annotations(self, locus_id):
+    def clear_locus_artifact_annotations(self, locus_id):
         channel_annotations = self.get_locus_channel_annotations(locus_id)
-        super(GenotypingProject, self).clear_artifact_annotations(channel_annotations)
+        self.clear_artifact_annotations(channel_annotations)
         self.clear_sample_annotations(locus_id)
+        return self
+
+    def clear_locus_quantification_bias_annotations(self, locus_id):
+        locus_annotations = self.get_sample_locus_annotations(locus_id)
+        self.clear_quantification_bias_annotations(locus_annotations)
         return self
 
     def bin_estimator_changed(self, locus_id):
-        self.clear_bin_annotations(locus_id)
+        self.clear_locus_bin_annotations(locus_id)
         self.initialize_alleles(locus_id)
         lp = self.get_locus_parameters(locus_id)
         lp.filter_parameters_stale = True
         return self
 
     def artifact_estimator_changed(self, locus_id):
-        self.clear_artifact_annotations(locus_id)
+        self.clear_locus_artifact_annotations(locus_id)
         self.initialize_alleles(locus_id)
         lp = self.get_locus_parameters(locus_id)
         lp.filter_parameters_stale = True
+        return self
+
+    def quantification_bias_estimator_changed(self, locus_id):
+        self.clear_locus_quantification_bias_annotations(locus_id)
+        locus_annotations = self.get_sample_locus_annotations(locus_id)
+        for locus_annotation in locus_annotations:
+            self.recalculate_alleles(locus_annotation)
         return self
 
     def annotate_channel(self, channel_annotation):
@@ -1153,16 +1234,16 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
                     peak['bin'] = ""
                     peak['bin_id'] = None
                 channel_annotation.annotated_peaks = self.bin_estimator.annotate_bins(
-                    channel_annotation.annotated_peaks,
-                    channel_annotation.channel.locus_id)
+                    channel_annotation.channel.locus_id,
+                    channel_annotation.annotated_peaks)
 
             if self.artifact_estimator:
                 for peak in channel_annotation.annotated_peaks:
                     peak['artifact_contribution'] = 0
                     peak['artifact_error'] = 0
                 channel_annotation.annotated_peaks = self.artifact_estimator.annotate_artifact(
-                    channel_annotation.annotated_peaks, channel_annotation.channel.locus_id)
-
+                    channel_annotation.channel.locus_id,
+                    channel_annotation.annotated_peaks)
             channel_annotation.annotated_peaks.changed()
 
     def recalculate_channel(self, channel_annotation, rescan_peaks, block_commit=False):
@@ -1230,13 +1311,6 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
             locus_params.genotyping_parameters_stale = False
         return self
 
-    def get_sample_locus_annotations(self, locus_id):
-        q = SampleLocusAnnotation.query.filter(
-            SampleLocusAnnotation.project_id == self.id).filter(SampleLocusAnnotation.locus_id == locus_id).options(
-            joinedload(SampleLocusAnnotation.sample_annotation)
-        )
-        return q.all()
-
     def analyze_samples(self, locus_id):
         locus_params = self.get_locus_parameters(locus_id)
         assert isinstance(locus_params, GenotypingLocusParams)
@@ -1258,7 +1332,6 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
                                                           locus_params.offscale_threshold)
             else:
                 channel_annotation = None
-
 
             if channel_annotation:
                 locus_annotation.reference_run = channel_annotation
@@ -1291,10 +1364,11 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
                     for peak in locus_annotation.annotated_peaks:
                         if not any(peak['flags'].values()) and peak['bin_id']:
                             locus_annotation.alleles[peak['bin_id']] = True
-                    print locus_annotation.alleles
             else:
                 locus_annotation.reference_run = None
                 locus_annotation.annotated_peaks = []
+                locus_annotation.alleles = dict.fromkeys(self.bin_estimator.get_alleles_dict(locus_id), False)
+                locus_annotation.set_flag('manual_curation', False)
         return self
 
     @staticmethod
@@ -1362,7 +1436,6 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
             for sample_annotation in sample_annotations:
 
                 assert isinstance(sample_annotation, ProjectSampleAnnotations)
-                # sample_annotation.moi = 0
                 locus_annotations = locus_annotation_dict[sample_annotation.id]
                 moi = self.calculate_moi(locus_annotations)
                 sample_annotation.moi = moi
@@ -1398,39 +1471,33 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
 
         for sample_annotation in sample_annotations:
             for locus_annotation in locus_annotation_dict[sample_annotation.id]:
-                locus_annotation.alleles = dict.fromkeys(locus_annotation.alleles, False)
-                locus_annotation.alleles.changed()
-                if locus_annotation.annotated_peaks and not locus_annotation.get_flag('failure'):
-                    for peak in locus_annotation.annotated_peaks:
-                        if peak['probability'] >= self.probability_threshold:
-                            locus_annotation.alleles[str(peak['bin_id'])] = True
-                            locus_annotation.alleles.changed()
+                self.recalculate_alleles(locus_annotation)
 
         db.session.flush()
         app.logger.debug("Cycles Completed: {}".format(cycles))
         return self
 
-    def calculate_allele_frequencies(self, locus_annotations):
-        allele_counts = defaultdict(lambda: defaultdict(int))
-        locus_totals = defaultdict(int)
-        allele_frequencies = defaultdict(dict)
+    def recalculate_alleles(self, locus_annotation):
+        locus_annotation.alleles = dict.fromkeys(locus_annotation.alleles, False)
 
-        for locus_annotation in locus_annotations:
-            assert isinstance(locus_annotation, SampleLocusAnnotation)
-            if locus_annotation.annotated_peaks and not locus_annotation.get_flag('failure'):
-                locus_totals[locus_annotation.locus_id] += 1
-                for peak in locus_annotation.annotated_peaks:
-                    if peak['in_bin'] and not any(peak['flags'].values()) and \
-                                    peak['probability'] >= self.probability_threshold:
-                        allele_counts[locus_annotation.locus_id][peak['bin_id']] += 1
-
-        for locus in allele_counts.keys():
-            for allele in allele_counts[locus].keys():
-                allele_frequencies[locus][allele] = allele_counts[locus][allele] / float(locus_totals[locus])
-
-        return allele_frequencies
+        locus_annotation.alleles.changed()
+        if locus_annotation.annotated_peaks and not locus_annotation.get_flag('failure'):
+            true_peaks = []
+            for peak in locus_annotation.annotated_peaks:
+                if peak['probability'] >= self.probability_threshold:
+                    true_peaks.append(peak)
+                    locus_annotation.alleles[str(peak['bin_id'])] = True
+                    locus_annotation.alleles.changed()
+            self.annotate_quantification_bias(locus_annotation.locus_id, true_peaks)
+            if self.quantification_bias_estimator:
+                self.quantification_bias_estimator.annotate_quantification_bias(locus_annotation.locus_id, true_peaks)
 
     def calculate_moi(self, locus_annotations):
+        """
+        Calculate MOI by returning the largest number of alleles
+        :param locus_annotations:
+        :return:
+        """
         peak_counts = []
         for locus_annotation in locus_annotations:
             if locus_annotation.annotated_peaks and not locus_annotation.get_flag('failure'):
@@ -1523,6 +1590,9 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating):
         return best_annotation
 
     def initialize_alleles(self, locus_id):
+        """
+        Clear all allele calls for a given locus
+        """
         locus_sample_annotations = SampleLocusAnnotation.query.join(ProjectSampleAnnotations).filter(
             ProjectSampleAnnotations.project_id == self.id).filter(SampleLocusAnnotation.locus_id == locus_id).all()
 
@@ -1639,7 +1709,6 @@ class ArtifactEstimatorLocusParams(ProjectLocusParams):
 
         app.logger.debug("Artifact Estimator Parameters Stale: {}".format(target.artifact_estimator_parameters_stale))
 
-
     @classmethod
     def __declare_last__(cls):
         event.listen(cls, 'before_update', cls.stale_parameters)
@@ -1670,7 +1739,6 @@ class GenotypingLocusParams(ProjectLocusParams):
             'absolute_peak_height_limit': self.absolute_peak_height_limit,
             'failure_threshold': self.failure_threshold
         }
-
 
     __mapper_args__ = {
         'polymorphic_identity': 'genotyping_locus_params',
@@ -1727,6 +1795,42 @@ class BinEstimatorLocusParams(ProjectLocusParams):
             target.bin_estimator_parameters_stale = True
 
         app.logger.debug("Bin Estimator Parameters Stale: {}".format(target.bin_estimator_parameters_stale))
+
+    @classmethod
+    def __declare_last__(cls):
+        event.listen(cls, 'before_update', cls.stale_parameters)
+
+
+class QuantificationBiasLocusParams(ProjectLocusParams):
+    id = db.Column(db.Integer, db.ForeignKey('project_locus_params.id'), primary_key=True)
+    beta = db.Column(db.Float, nullable=False)
+    quantification_bias_parameters_stale = db.Column(db.Boolean, default=True, nullable=False)
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'quantification_bias_locus_params'
+    }
+
+    @property
+    def quantification_bias_parameters(self):
+        return {
+            'beta': self.beta
+        }
+
+    def serialize(self):
+        res = super(QuantificationBiasLocusParams, self).serialize()
+        res.update(self.quantification_bias_parameters)
+        return res
+
+    @staticmethod
+    def stale_parameters(mapper, connection, target):
+        super(QuantificationBiasLocusParams, target).stale_parameters(mapper, connection, target)
+        quantification_bias_parameters = target.quantification_bias_parameters.keys()
+
+        if params_changed(target, quantification_bias_parameters):
+            target.quantification_bias_parameters_stale = True
+
+        app.logger.debug(
+            "Quantification Bias Parameteres Stale: {}".format(target.quantification_bias_parameters_stale))
 
     @classmethod
     def __declare_last__(cls):
