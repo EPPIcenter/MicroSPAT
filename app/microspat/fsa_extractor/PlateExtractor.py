@@ -1,7 +1,7 @@
 import hashlib
 import zipfile
 
-from app.plasmomapper.peak_annotator.PeakAnnotators import *
+from app.microspat.peak_annotator.PeakAnnotators import *
 from ..signal_processor.TraceProcessor import LadderProcessor, MicrosatelliteProcessor, NoLadderException
 from fsa_extractor.FSAExtractor import FSAFile
 
@@ -166,19 +166,15 @@ class PlateExtractor(object):
 
     @classmethod
     def from_zip(cls, zip_file, creator=None, comments=None):
-        print "Running From Zip"
         label = ''
         wells = []
         well_arrangement = 0
         date_run = None
         ce_machine = None
         with zipfile.ZipFile(zip_file) as f:
-            print "Opening Zip File"
             for member in f.namelist():
                 if member.endswith('.fsa'):
                     with f.open(member) as fsa:
-                        print member
-                        print "Parsing FSAFile"
                         fsa = FSAFile(fsa.read())
                         well = WellExtractor.from_fsa(fsa)
                         wells.append(well)

@@ -1,5 +1,4 @@
 import numpy as np
-from math import factorial
 from scipy import ndimage
 from scipy.signal import savgol_filter
 

@@ -121,12 +121,13 @@ class LadderProcessor(GenericChannelProcessor):
     def find_peaks(self):
         if not self._peak_indices:
             peak_indices = self.find_peak_indices()
+            peak_indices = self.remove_size_outliers(peak_indices)
+
             peak_indices = self.find_peak_local_maxima(peak_indices)
 
             if not self.allow_bleedthrough:
                 peak_indices = self.remove_bleedthrough(peak_indices)
 
-            peak_indices = self.remove_size_outliers(peak_indices)
             peak_indices = self.remove_time_outliers(peak_indices)
 
             if self.remove_outliers:

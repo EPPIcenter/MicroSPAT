@@ -1,4 +1,6 @@
+import bz2
 import json
+
 import sqlalchemy.types as types
 from sqlalchemy.ext.mutable import Mutable
 
@@ -14,6 +16,20 @@ class JSONEncodedData(types.TypeDecorator):
     def process_result_value(self, value, dialect):
         if value is not None:
             value = json.loads(value)
+        return value
+
+
+class CompressedJSONEncodedData(types.TypeDecorator):
+    impl = types.LargeBinary
+
+    def process_bind_param(self, value, dialect):
+        if value is not None:
+            value = bz2.compress(json.dumps(value))
+        return value
+
+    def process_result_value(self, value, dialect):
+        if value is not None:
+            value = json.loads(bz2.decompress(value))
         return value
 
 
