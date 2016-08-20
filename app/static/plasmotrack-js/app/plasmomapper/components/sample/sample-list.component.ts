@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router-deprecated';
 
 import { SectionHeaderComponent } from '../layout/section-header.component';
+import { ProgressBarComponent } from '../layout/progress-bar.component';
 
 import { Sample } from '../../services/sample/sample.model';
 import { SampleService } from '../../services/sample/sample.service';
@@ -11,23 +12,32 @@ import { SampleService } from '../../services/sample/sample.service';
     template: `
     <pm-section-header [header]="'Samples'"></pm-section-header>
     <div class="row main-container">
-        <div class="table-repsonsive list-panel col-sm-6">
-            <table class="table table-striped table-hover table-sm">
-                <thead>
-                    <tr>
-                        <th (click)="sortingParam='barcode'; reversed=!reversed; sortSamples()">Barcode</th>
-                        <th (click)="sortingParam='designation'; reversed=!reversed; sortSamples()">Designation</th>
-                        <th (click)="sortingParam='last_updated'; reversed=!reversed; sortSamples()">Last Updated</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr *ngFor="#sample of samples" (click)="selectSample(sample.id)">
-                        <td>{{sample.barcode}}</td>
-                        <td>{{sample.designation}}</td>
-                        <td>{{sample.last_updated | date: "shortDate"}}</td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="col-sm-6">
+            <div class="panel panel-default">
+                <div class="panel-body">
+                    <div *ngIf="loadingSamples">
+                        <pm-progress-bar [label]="'Samples'"></pm-progress-bar>
+                    </div>
+                    <div *ngIf="!loadingSamples" class="table-repsonsive list-panel">
+                        <table class="table table-striped table-hover table-condensed">
+                            <thead>
+                                <tr>
+                                    <th (click)="sortingParam='barcode'; reversed=!reversed; sortSamples()">Barcode</th>
+                                    <th (click)="sortingParam='designation'; reversed=!reversed; sortSamples()">Designation</th>
+                                    <th (click)="sortingParam='last_updated'; reversed=!reversed; sortSamples()">Last Updated</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let sample of samples" (click)="selectSample(sample.id)">
+                                    <td>{{sample.barcode}}</td>
+                                    <td>{{sample.designation}}</td>
+                                    <td>{{sample.last_updated | date: "shortDate"}}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="col-sm-6">
             <div class="row">
@@ -51,7 +61,7 @@ import { SampleService } from '../../services/sample/sample.service';
         </div>
     </div>
     `,
-    directives: [SectionHeaderComponent]
+    directives: [SectionHeaderComponent, ProgressBarComponent]
 })
 export class SampleListComponent implements OnInit {
     public samples: Sample[] = [];
@@ -65,6 +75,8 @@ export class SampleListComponent implements OnInit {
     
     private sortingParam = 'barcode';
     private reversed = false;
+
+    private loadingSamples = false;
     
     constructor(
         private _sampleService: SampleService,
@@ -87,9 +99,11 @@ export class SampleListComponent implements OnInit {
     }
     
     getSamples() {
+        this.loadingSamples = true;
         this._sampleService.getSamples()
             .subscribe(
                 samples => {
+                    this.loadingSamples = false;
                     this.samples = samples;
                     this.sortSamples();
                 },

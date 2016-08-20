@@ -1,4 +1,4 @@
-import eventlet
+# import eventlet
 from flask import Blueprint, jsonify, request
 from flask_socketio import emit
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -6,11 +6,18 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from app.utils import CaseInsensitiveDictReader
 from models import *
 
-plasmomapper = Blueprint('plasmomapper', import_name=__name__, template_folder='templates',
-                         url_prefix='/plasmomapper/api/v1')
+microspat = Blueprint('microspat', import_name=__name__, template_folder='templates',
+                      url_prefix='/microspat/api/v1')
 
 
-@plasmomapper.after_request
+class StaleParametersError(Exception):
+
+    def __init__(self, project, locus):
+        self.project = project
+        self.locus = locus
+
+
+@microspat.after_request
 def after_request(response):
     response.headers.add('Access-Control-Allow-Origin', '*')
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
@@ -29,16 +36,14 @@ def handle_integrity_error(e):
     """
     :type e: IntegrityError
     """
-    print "Handling Integrity Error"
     res = jsonify(error=e.orig.args[0])
     res.status_code = 400
     return res
 
 
 def handle_error(e):
+    app.logger.debug("ERROR: {}".format(e))
     db.session.rollback()
-    print "Exception Happened"
-    print e
     if isinstance(e, IntegrityError):
         return handle_integrity_error(e)
     else:
@@ -120,6 +125,14 @@ def update_artifact_locus_params(target, update_dict):
     """
     :type target: ArtifactEstimatorLocusParams
     """
+
+    if target.project.bin_estimator_id:
+        bin_estimator = target.project.bin_estimator
+        lp = bin_estimator.get_locus_parameters(target.locus_id)
+        assert isinstance(lp, BinEstimatorLocusParams)
+        if lp.filter_parameters_stale or lp.scanning_parameters_stale or lp.bin_estimator_parameters_stale:
+            raise StaleParametersError(bin_estimator, target.locus)
+
     update_locus_params(target, update_dict)
     target.max_secondary_relative_peak_height = update_dict['max_secondary_relative_peak_height']
     target.min_artifact_peak_frequency = update_dict['min_artifact_peak_frequency']
@@ -130,6 +143,21 @@ def update_genotyping_locus_params(target, update_dict):
     """
     :type target: GenotypingLocusParams
     """
+
+    if target.project.bin_estimator_id:
+        bin_estimator = target.project.bin_estimator
+        lp = bin_estimator.get_locus_parameters(target.locus_id)
+        assert isinstance(lp, BinEstimatorLocusParams)
+        if lp.filter_parameters_stale or lp.scanning_parameters_stale or lp.bin_estimator_parameters_stale:
+            raise StaleParametersError(bin_estimator, target.locus)
+
+    if target.project.artifact_estimator_id:
+        artifact_estimator = target.project.artifact_estimator
+        lp = artifact_estimator.get_locus_parameters(target.locus_id)
+        assert isinstance(lp, ArtifactEstimatorLocusParams)
+        if lp.filter_parameters_stale or lp.scanning_parameters_stale or lp.artifact_estimator_parameters_stale:
+            raise StaleParametersError(artifact_estimator, target.locus)
+
     update_locus_params(target, update_dict)
     target.soft_artifact_sd_limit = update_dict['soft_artifact_sd_limit']
     target.hard_artifact_sd_limit = update_dict['hard_artifact_sd_limit']
@@ -190,16 +218,6 @@ def load_plate_map(plate_map_file, plate):
 
 
 def clear_channel_annotations(plate_id):
-    sample_locus_annotations = SampleLocusAnnotation.query.join(ProjectChannelAnnotations).join(Channel).join(Well).join(Plate).filter(Plate.id == plate_id).all()
-    print str(len(sample_locus_annotations)) + " Reference Runs"
-    for sample_locus_annotation in sample_locus_annotations:
-        eventlet.sleep()
-        assert isinstance(sample_locus_annotation, SampleLocusAnnotation)
-        sample_locus_annotation.reference_run = None
-        sample_locus_annotation.flags = {}
-        sample_locus_annotation.annotated_peaks = []
-        sample_locus_annotation.alleles = dict.fromkeys(sample_locus_annotation.alleles, False)
-    # db.session.flush()
     channel_annotations = ProjectChannelAnnotations.query.join(Channel).join(Well).join(Plate).filter(Plate.id == plate_id).all()
     for annotation in channel_annotations:
         db.session.delete(annotation)
@@ -210,8 +228,8 @@ def send_message(msg):
     socketio.emit('message', {'message': msg}, namespace='/')
 
 
-@plasmomapper.route('/', defaults={'path': ''})
-@plasmomapper.route('/<path:path>')
+@microspat.route('/', defaults={'path': ''})
+@microspat.route('/<path:path>')
 def catch_all(path):
     res = jsonify(error='Not Found')
     res.status_code = 404
@@ -240,7 +258,6 @@ def socket_get_or_post_projects():
     send_message('GETTING/POSTING PROJECTS')
     projects = GenotypingProject.query.all()
     emit('list_all', [x.serialize() for x in projects])
-    print "Done Listing Projects"
 
 
 @socketio.on('list')
@@ -248,7 +265,7 @@ def list_items():
     print "List without namespace pinged"
 
 
-@plasmomapper.route('/genotyping-project/', methods=['GET', 'POST'])
+@microspat.route('/genotyping-project/', methods=['GET', 'POST'])
 def get_or_post_projects():
     if request.method == 'GET':
         return table_list_all(GenotypingProject)
@@ -256,7 +273,6 @@ def get_or_post_projects():
         project_params = request.json
         print project_params
         try:
-            print "Adding a new project"
             project = GenotypingProject(**project_params)
             db.session.add(project)
             db.session.flush()
@@ -265,7 +281,7 @@ def get_or_post_projects():
             return handle_error(e)
 
 
-@plasmomapper.route('/genotyping-project/calculate-probability/', methods=['POST'])
+@microspat.route('/genotyping-project/calculate-probability/', methods=['POST'])
 def calculate_probability():
     project_json = request.json
     project = GenotypingProject.query.get(project_json['id'])
@@ -276,23 +292,17 @@ def calculate_probability():
     return jsonify(wrap_data(project.serialize_details()))
 
 
-@plasmomapper.route('/genotyping-project/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
+@microspat.route('/genotyping-project/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
 def get_or_update_project(id):
     if request.method == 'GET':
         return table_get_details(GenotypingProject, id)
     elif request.method == 'PUT':
-        print "Updating Project"
         project_update_dict = request.json
         project = GenotypingProject.query.get(id)
         if project:
             try:
                 project = update_project(project, project_update_dict)
-                print project
-                print project_update_dict
-                print "Putting Project in DB"
                 db.session.commit()
-                print project
-                print project_update_dict
                 return jsonify(wrap_data(project.serialize_details()))
             except Exception as e:
                 return handle_error(e)
@@ -308,7 +318,7 @@ def get_or_update_project(id):
             return handle_error(e)
 
 
-@plasmomapper.route('/genotyping-project/<int:id>/add-samples/', methods=['POST'])
+@microspat.route('/genotyping-project/<int:id>/add-samples/', methods=['POST'])
 def genotyping_project_add_samples(id):
     gp = GenotypingProject.query.get(id)
     assert isinstance(gp, GenotypingProject)
@@ -334,7 +344,7 @@ def genotyping_project_add_samples(id):
     return jsonify(wrap_data(gp.serialize_details()))
 
 
-@plasmomapper.route('/artifact-estimator-project/', methods=['GET', 'POST'])
+@microspat.route('/artifact-estimator-project/', methods=['GET', 'POST'])
 def get_or_create_artifact_estimators():
     if request.method == 'GET':
         return table_list_all(ArtifactEstimatorProject)
@@ -350,7 +360,7 @@ def get_or_create_artifact_estimators():
             return handle_error(e)
 
 
-@plasmomapper.route('/artifact-estimator-project/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
+@microspat.route('/artifact-estimator-project/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
 def get_or_update_artifact_estimator(id):
     if request.method == 'GET':
         return table_get_details(ArtifactEstimatorProject, id)
@@ -382,7 +392,7 @@ def get_or_update_artifact_estimator(id):
             return handle_error(e)
 
 
-@plasmomapper.route('/artifact-estimator/<int:id>/', methods=['DELETE'])
+@microspat.route('/artifact-estimator/<int:id>/', methods=['DELETE'])
 def delete_estimator(id):
     try:
         estimator = ArtifactEstimator.query.get(id)
@@ -390,7 +400,6 @@ def delete_estimator(id):
         genotyping_projects = GenotypingProject.query.filter(
             GenotypingProject.artifact_estimator_id == estimator.locus_artifact_estimator.project.id).all()
         locus_id = estimator.locus_artifact_estimator.locus_id
-        print locus_id
         for project in genotyping_projects:
             project.artifact_estimator_changed(locus_id)
         db.session.delete(estimator)
@@ -399,13 +408,12 @@ def delete_estimator(id):
         return handle_error(e)
 
 
-@plasmomapper.route('/artifact-estimator/<int:id>/', methods=['POST'])
+@microspat.route('/artifact-estimator/<int:id>/', methods=['POST'])
 def add_breakpoint(id):
     try:
         estimator = ArtifactEstimator.query.get(id)
         assert isinstance(estimator, ArtifactEstimator)
         breakpoint = float(request.json['breakpoint'])
-        print breakpoint
         estimator.add_breakpoint(breakpoint)
 
         return jsonify(wrap_data(estimator.serialize()))
@@ -413,7 +421,7 @@ def add_breakpoint(id):
         return handle_error(e)
 
 
-@plasmomapper.route('/artifact-estimator/<int:id>/clear-breakpoints/', methods=['GET'])
+@microspat.route('/artifact-estimator/<int:id>/clear-breakpoints/', methods=['GET'])
 def clear_breakpoints(id):
     try:
         estimator = ArtifactEstimator.query.get(id)
@@ -424,13 +432,12 @@ def clear_breakpoints(id):
         return handle_error(e)
 
 
-@plasmomapper.route('/bin-estimator/', methods=['GET', 'POST'])
+@microspat.route('/bin-estimator/', methods=['GET', 'POST'])
 def get_or_create_bin_estimators():
     if request.method == 'GET':
         return table_list_all(BinEstimatorProject)
     elif request.method == 'POST':
         project_params = request.json
-        print project_params
         try:
             print "Adding a new project"
             project = BinEstimatorProject(**project_params)
@@ -442,12 +449,11 @@ def get_or_create_bin_estimators():
             return handle_error(e)
 
 
-@plasmomapper.route('/bin-estimator/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
+@microspat.route('/bin-estimator/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
 def get_or_update_bin_estimator(id):
     if request.method == 'GET':
         return table_get_details(BinEstimatorProject, id)
     elif request.method == 'PUT':
-        print "Updating Project"
         project_update_dict = request.json
         project = BinEstimatorProject.query.get(id)
         if project:
@@ -478,7 +484,7 @@ def get_or_update_bin_estimator(id):
             return handle_error(e)
 
 
-@plasmomapper.route('/locus-parameters/<int:id>/', methods=['GET', 'PUT'])
+@microspat.route('/locus-parameters/<int:id>/', methods=['GET', 'PUT'])
 def get_or_update_locus_parameters(id):
     update_fns = {
         'artifact_estimator_locus_params': update_artifact_locus_params,
@@ -489,7 +495,6 @@ def get_or_update_locus_parameters(id):
     if request.method == 'GET':
         return table_get_details(ProjectLocusParams, id)
     elif request.method == 'PUT':
-        print request.json
         locus_params_update_dict = request.json
         locus_params = ProjectLocusParams.query.get(id)
         assert isinstance(locus_params, ProjectLocusParams)
@@ -497,10 +502,13 @@ def get_or_update_locus_parameters(id):
         if locus_params:
             try:
                 updater = update_fns.get(locus_params.discriminator, update_locus_params)
-                locus_params = updater(locus_params, locus_params_update_dict)
+                try:
+                    locus_params = updater(locus_params, locus_params_update_dict)
+                except StaleParametersError as e:
+                    print "STALE PARAMETER ERROR"
+                    return handle_error("{} is stale at locus {}, analyze that first!".format(e.project, e.locus))
                 db.session.flush()
                 project.analyze_locus(locus_params.locus_id)
-                print locus_params.serialize()
                 return jsonify(wrap_data(locus_params.serialize()))
             except SQLAlchemyError as e:
                 return handle_error(e)
@@ -508,7 +516,7 @@ def get_or_update_locus_parameters(id):
             return jsonify(error="No Record Found", status=404)
 
 
-@plasmomapper.route('/locus/', methods=['GET', 'POST'])
+@microspat.route('/locus/', methods=['GET', 'POST'])
 def get_loci():
     if request.method == 'GET':
         return table_list_all(Locus)
@@ -523,7 +531,7 @@ def get_loci():
             return handle_error(e)
 
 
-@plasmomapper.route('/locus/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
+@microspat.route('/locus/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
 def get_locus(id):
     if request.method == 'GET':
         return table_get_details(Locus, id)
@@ -541,7 +549,7 @@ def get_locus(id):
                 return handle_error(e)
 
 
-@plasmomapper.route('/locus-set/', methods=['GET', 'POST'])
+@microspat.route('/locus-set/', methods=['GET', 'POST'])
 def get_or_post_locus_sets():
     if request.method == 'GET':
         return table_list_all(LocusSet)
@@ -550,7 +558,6 @@ def get_or_post_locus_sets():
         locus_ids = request.json['locus_ids']
         try:
             locus_set = LocusSet(**locus_set_params)
-            print locus_ids
             for locus_id in locus_ids:
                 locus = Locus.query.get(int(locus_id))
                 locus_set.loci.append(locus)
@@ -561,7 +568,7 @@ def get_or_post_locus_sets():
             return handle_error(e)
 
 
-@plasmomapper.route('/locus-set/<int:id>/', methods=['GET', 'DELETE'])
+@microspat.route('/locus-set/<int:id>/', methods=['GET', 'DELETE'])
 def get_locus_set(id):
     if request.method == 'GET':
         return table_get_details(LocusSet, id)
@@ -579,22 +586,51 @@ def get_locus_set(id):
                 return handle_error(e)
 
 
-@plasmomapper.route('/ladder/')
-def get_ladders():
-    return table_list_all(Ladder)
+@microspat.route('/ladder/', methods=['GET', 'POST'])
+def get_or_post_ladders():
+    if request.method == 'GET':
+        return table_list_all(Ladder)
+    elif request.method == 'POST':
+        ladder_params = request.json
+        try:
+            if ladder_params['id']:
+                l = Ladder.query.get(ladder_params['id'])
+            else:
+                l = Ladder()
+            for attr in ladder_params.keys():
+                if hasattr(l, attr):
+                    setattr(l, attr, ladder_params[attr])
+            db.session.add(l)
+            db.session.flush()
+            return jsonify(wrap_data(l.serialize()))
+        except Exception as e:
+            return handle_error(e)
 
 
-@plasmomapper.route('/ladder/<int:id>')
+@microspat.route('/ladder/<int:id>/', methods=['GET', 'PUT'])
 def get_ladder(id):
-    return table_get_details(Ladder, id)
+    if request.method == 'GET':
+        return table_get_details(Ladder, id)
+    elif request.method == 'PUT':
+        ladder_params = request.json
+        try:
+            l = Ladder.query.get(ladder_params.pop('id'))
+            for attr in ladder_params.keys():
+                if hasattr(l, attr):
+                    setattr(l, attr, ladder_params[attr])
+            db.session.add(l)
+            db.session.flush()
+            return jsonify(wrap_data(l.serialize()))
+        except Exception as e:
+            return handle_error(e)
 
 
-@plasmomapper.route('/sample/', methods=['GET'])
+@microspat.route('/sample/', methods=['GET'])
 def get_samples():
     return table_list_all(Sample)
 
 
-@plasmomapper.route('/sample/', methods=['POST'])
+@microspat.route('/sample/', methods=['POST'])
 def post_sample_csv():
     sample_csvs = request.files.getlist('files')
 
@@ -637,30 +673,26 @@ def post_sample_csv():
                 samples.append(sample)
         db.session.flush()
     except Exception as e:
-        print "Error Hit"
         return handle_error(e)
 
     return jsonify(wrap_data([sample.serialize() for sample in samples]))
 
 
-@plasmomapper.route('/sample/<int:id>/')
+@microspat.route('/sample/<int:id>/')
 def get_sample(id):
     return table_get_details(Sample, id)
 
 
-@plasmomapper.route('/plate/', methods=['GET'])
+@microspat.route('/plate/', methods=['GET'])
 def get_plates():
     return jsonify(wrap_data(Plate.get_serialized_list()))
 
 
-@plasmomapper.route('/plate/', methods=['POST'])
+@microspat.route('/plate/', methods=['POST'])
 def save_plate():
-    print "POSTING PLATE"
-    print request.files
     plate_zips = request.files.getlist('files')
     ladder_id = request.form['ladder_id']
     if ladder_id == 'undefined':
-        print "Ladder ID is undefined"
         res = jsonify(error="Please Select a Ladder")
         res.status_code = 404
         return res
@@ -668,7 +700,6 @@ def save_plate():
         try:
             plate_ids = []
             for plate_zip in plate_zips:
-                print "Unpacking Plate"
                 p_id = Plate.from_zip(plate_zip, ladder_id)
                 plate_ids.append(p_id)
             db.session.expire_all()
@@ -681,12 +712,11 @@ def save_plate():
         return res
 
 
-@plasmomapper.route('/plate/<int:id>/', methods=['GET', 'POST'])
-def get_plate(id):
+@microspat.route('/plate/<int:id>/', methods=['GET', 'POST'])
+def get_plate_or_post_plate_map(id):
     if request.method == 'GET':
         return table_get_details(Plate, id)
     elif request.method == 'POST':
-        print "Loading Plate Map"
         plate_map_list = request.files.getlist('files')
         if plate_map_list:
             try:
@@ -699,22 +729,21 @@ def get_plate(id):
             return handle_error("Nothing Submitted")
 
 
-@plasmomapper.route('/plate/locus/<int:id>/', methods=['GET'])
+@microspat.route('/plate/locus/<int:id>/', methods=['GET'])
 def get_plates_with_locus(id):
     plate_ids = set(Plate.query.join(Well).join(Channel).filter(Channel.locus_id == 196).values(Plate.id))
     return jsonify(wrap_data({"ids": plate_ids}))
 
 
-@plasmomapper.route('/well/<int:id>/')
+@microspat.route('/well/<int:id>/')
 def get_well(id):
     return table_get_details(Well, id)
 
 
-@plasmomapper.route('/well/<int:id>/recalculate-ladder/', methods=['POST'])
+@microspat.route('/well/<int:id>/recalculate-ladder/', methods=['POST'])
 def recalculate_ladder(id):
     well = Well.query.get(id)
     peak_indices = request.json['peak_indices']
-    print peak_indices
     if well and isinstance(peak_indices, list):
         try:
             well.calculate_base_sizes(peak_indices)
@@ -727,40 +756,40 @@ def recalculate_ladder(id):
         return res
 
 
-@plasmomapper.route('/channel/<int:id>/')
+@microspat.route('/channel/<int:id>/')
 def get_channel(id):
     return table_get_details(Channel, id)
 
 
-@plasmomapper.route('/channel-annotations/<int:project_id>/locus/<int:locus_id>/')
+@microspat.route('/channel-annotations/<int:project_id>/locus/<int:locus_id>/')
 def get_project_locus_channel_annotations(project_id, locus_id):
     channel_annotations = ProjectChannelAnnotations.query.filter(
         ProjectChannelAnnotations.project_id == project_id).join(Channel).filter(Channel.locus_id == locus_id).all()
     return jsonify(wrap_data([x.serialize() for x in channel_annotations]))
 
 
-@plasmomapper.route('/channel-annotations/<int:project_id>/sample/<int:sample_id>/')
+@microspat.route('/channel-annotations/<int:project_id>/sample/<int:sample_id>/')
 def get_project_sample_channel_annotations(project_id, sample_id):
     channel_annotations = ProjectChannelAnnotations.query.filter(
         ProjectChannelAnnotations.project_id == project_id).join(Channel).filter(Channel.sample_id == sample_id).all()
     return jsonify(wrap_data([x.serialize() for x in channel_annotations]))
 
 
-@plasmomapper.route('/locus-annotations/<int:project_id>/locus/<int:locus_id>/')
+@microspat.route('/locus-annotations/<int:project_id>/locus/<int:locus_id>/')
 def get_project_sample_locus_annotations_by_locus(project_id, locus_id):
     annotations = SampleLocusAnnotation.query.filter(
         SampleLocusAnnotation.project_id == project_id).filter(SampleLocusAnnotation.locus_id == locus_id).all()
     return jsonify(wrap_data([x.serialize() for x in annotations]))
 
 
-@plasmomapper.route('/locus-annotations/<int:project_id>/sample/<int:sample_id>/')
+@microspat.route('/locus-annotations/<int:project_id>/sample/<int:sample_id>/')
 def get_project_sample_locus_annotations_by_sample(project_id, sample_id):
     annotations = SampleLocusAnnotation.query.join(ProjectSampleAnnotations).filter(
         SampleLocusAnnotation.project_id == project_id).filter(ProjectSampleAnnotations.sample_id == sample_id).all()
     return jsonify(wrap_data([x.serialize() for x in annotations]))
 
 
-@plasmomapper.route('/locus-annotations/', methods=['POST'])
+@microspat.route('/locus-annotations/', methods=['POST'])
 def update_locus_annotations():
     annotations = request.json
     try:

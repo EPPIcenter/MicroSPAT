@@ -3,4 +3,5 @@ import { LocusParameters } from '../../project/locus-parameters/locus-parameters
 export class BinEstimatorLocusParameters extends LocusParameters {
     min_peak_frequency: number;
     default_bin_buffer: number;
+    bin_estimator_parameters_stale: boolean;
 }

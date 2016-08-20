@@ -50,7 +50,7 @@ export class CommonServerMethods {
     };
     
     public getDetails<T extends DatabaseItem>(id: number, type: { new(): T ;}, url: string, cache?: LRUCache<T>) : Observable<T> {
-        if(cache != null && cache.has(id)) {
+        if(cache != null && cache.find(id)) {
             let item = [cache.get(id)];
             return Observable.from(item, i => <T> i);             
         } else {
@@ -65,7 +65,7 @@ export class CommonServerMethods {
                         .catch(this.handleError);
         }
     }
-    
+
     public getUrl(url) : Observable<any> {
         return this.http.get(url)
                     .map(res => <Object> res.json().data)
@@ -109,7 +109,6 @@ export class CommonServerMethods {
     }
     
     public deleteItem<T extends DatabaseItem>(id: number, url: string, cache?: LRUCache<T>): Observable<T> {
-        console.log("Deleting item on server");
         return this.http.delete(url + id + '/')
                     .map(res => <Object> res.json().data)
                     .do(data => {

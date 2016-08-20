@@ -16,7 +16,7 @@ import { SampleAnnotation } from '../../services/sample-based-project/sample-ann
                 <tr>
             </thead>
             <tbody>
-                <tr *ngFor="#sample_annotation of sample_annotations" (click)="clickBinding(sample_annotation)">
+                <tr *ngFor="let sample_annotation of sample_annotations" (click)="clickBinding(sample_annotation)">
                     <td>{{sample_annotation.sample.barcode}}</td>
                     <td>{{sample_annotation.sample.designation}}</td>
                     <td>{{sample_annotation.moi}}</td>
@@ -31,7 +31,5 @@ export class SampleListComponent {
     public sample_annotations: SampleAnnotation[];
     public clickBinding: (SampleAnnotation);
     
-    constructor(){
-        console.log("Creating SampleListComponent");
-    }
+    constructor(){}
 }

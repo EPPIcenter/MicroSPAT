@@ -1,7 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router-deprecated';
 
-import { SectionHeaderComponent } from '../layout/section-header.component'
+import { SectionHeaderComponent } from '../layout/section-header.component';
+import { ProgressBarComponent } from '../layout/progress-bar.component';
 
 import { GenotypingProjectService } from '../../services/genotyping-project/genotyping-project.service'
 import { LocusSetService } from '../../services/locus-set/locus-set.service';
@@ -20,7 +21,7 @@ import { BinEstimatorProject } from '../../services/bin-estimator-project/bin-es
         <pm-section-header [header]="'Genotyping Projects'"></pm-section-header>
     </div>
     <div class="row">
-        <div *ngFor="#err of constructorErrors">
+        <div *ngFor="let err of constructorErrors">
             <span class="label label-danger">{{err}}</span>
             <br/>
         </div>
@@ -30,7 +31,10 @@ import { BinEstimatorProject } from '../../services/bin-estimator-project/bin-es
         <div class="col-sm-6">
             <div class="panel panel-default">
                 <div class="panel-body">
-                    <div class="table-responsive list-panel">
+                    <div *ngIf="loadingProjects">
+                        <pm-progress-bar [label]="'Projects'"></pm-progress-bar>
+                    </div>
+                    <div *ngIf="!loadingProjects" class="table-responsive list-panel">
                         <table class="table table-striped table-hover table-condensed">
                             <thead>
                                 <tr>
@@ -41,7 +45,7 @@ import { BinEstimatorProject } from '../../services/bin-estimator-project/bin-es
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr *ngFor="#project of genotypingProjects" (click)="gotoDetail(project.id)">
+                                <tr *ngFor="let project of genotypingProjects" (click)="gotoDetail(project.id)">
                                     <td>{{project.title}}</td>
                                     <td>{{project.creator}}</td>
                                     <td>{{project.description}}</td>
@@ -70,24 +74,24 @@ import { BinEstimatorProject } from '../../services/bin-estimator-project/bin-es
                         </div>
                         <div class="form-group">
                             <label>Description</label>
-                            <input type="text" class="form-control" required [(ngModel)]="newProject.description">
+                            <input type="text" class="form-control" [(ngModel)]="newProject.description">
                         </div>
                         <div class="form-group">
                             <label>Locus Set</label>
-                            <select (change)="locusSetChange($event)" [(ngModel)]="newProject.locus_set_id" required class="form-control">
-                                <option *ngFor="#locusSet of locusSets" value={{locusSet.id}}>{{locusSet.label}}</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Artifact Estimator</label>
-                            <select [(ngModel)]="newProject.artifact_estimator_id" required class="form-control" [disabled]="artifactEstimatorsDisabled">
-                                <option *ngFor="#artifactEstimator of validArtifactEstimators" value={{artifactEstimator.id}}>{{artifactEstimator.title}}</option>
+                            <select (change)="locusSetChange($event)" [(ngModel)]="newProject.locus_set_id" required class="form-control" [disabled]="loadingArtifactEstimators || loadingBinEstimators">
+                                <option *ngFor="let locusSet of locusSets" value={{locusSet.id}}>{{locusSet.label}}</option>
                             </select>
                         </div>
                         <div class="form-group">
                             <label>Bin Set</label>
                             <select [(ngModel)]="newProject.bin_estimator_id" required class="form-control" [disabled]="binEstimatorsDisabled">
-                                <option *ngFor="#binEstimator of validBinEstimators" value={{binEstimator.id}}>{{binEstimator.title}}</option>
+                                <option *ngFor="let binEstimator of validBinEstimators" value={{binEstimator.id}}>{{binEstimator.title}}</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Artifact Estimator (Optional)</label>
+                            <select [(ngModel)]="newProject.artifact_estimator_id" class="form-control" [disabled]="artifactEstimatorsDisabled">
+                                <option *ngFor="let artifactEstimator of validArtifactEstimators" value={{artifactEstimator.id}}>{{artifactEstimator.title}}</option>
                             </select>
                         </div>
                         
@@ -99,7 +103,7 @@ import { BinEstimatorProject } from '../../services/bin-estimator-project/bin-es
         </div>
     </div>
     `,
-    directives: [SectionHeaderComponent]
+    directives: [SectionHeaderComponent, ProgressBarComponent]
 })
 export class GenotypingProjectListComponent implements OnInit {
     private genotypingProjects: GenotypingProject[] = [];
@@ -118,6 +122,10 @@ export class GenotypingProjectListComponent implements OnInit {
     private reversed = false;
     private isSubmitting = false;
     
+    private loadingProjects = false;
+    private loadingArtifactEstimators = false;
+    private loadingBinEstimators = false;
+    
     constructor(
         private _genotypingProjectService: GenotypingProjectService,
         private _locusSetService: LocusSetService,
@@ -129,9 +137,31 @@ export class GenotypingProjectListComponent implements OnInit {
         }
     
     getProjects() {
+        this.loadingProjects = true;
+        this._locusSetService.getLocusSets().subscribe(
+                (locus_sets) => this.locusSets = locus_sets,
+                (err) => this.constructorErrors.push(err)
+            )
+        this.loadingArtifactEstimators = true;
+        this._artifactEstimatorService.getArtifactEstimatorProjects().subscribe(
+            (artifact_estimators) => {
+                this.loadingArtifactEstimators = false;
+                this.artifactEstimators = artifact_estimators
+            },
+            (err) => this.constructorErrors.push(err)
+        )
+        this.loadingBinEstimators = true
+        this._binEstimatorService.getBinEstimatorProjects().subscribe(
+            (bin_estimators) => {
+                this.loadingBinEstimators = false;
+                this.binEstimators = bin_estimators;
+            },
+            (err) => this.constructorErrors.push(err)
+        )
         this._genotypingProjectService.getProjects()
             .subscribe(
                 projects => {
+                    this.loadingProjects = false;
                     this.genotypingProjects = projects;
                     this.sortProjects();
                 },
@@ -174,6 +204,7 @@ export class GenotypingProjectListComponent implements OnInit {
         this._genotypingProjectService.createProject(this.newProject).subscribe(
             () => {
                 this.isSubmitting = false;
+                this.newProject = new GenotypingProject();
                 this.getProjects()
             },
             (err) => {
@@ -194,17 +225,29 @@ export class GenotypingProjectListComponent implements OnInit {
         
         this.artifactEstimators.forEach((artifactEstimator) => {            
             if(artifactEstimator.locus_set_id == locus_set_id) {
-                console.log(artifactEstimator);
-                console.log(locus_set_id);
-                this.validArtifactEstimators.push(artifactEstimator)
+                let all_clean = true;
+                artifactEstimator.locus_parameters.forEach((lp) => {
+                    if(lp.filter_parameters_stale || lp.scanning_parameters_stale) {
+                        all_clean = false;
+                    }
+                })
+                if(all_clean) {
+                    this.validArtifactEstimators.push(artifactEstimator)
+                }
             }
         });
         
         this.binEstimators.forEach((binEstimator) => {
-            console.log(binEstimator);
-            console.log(locus_set_id);
             if(binEstimator.locus_set_id == locus_set_id) {
-                this.validBinEstimators.push(binEstimator)
+                let all_clean = true;
+                binEstimator.locus_parameters.forEach((lp) => {
+                    if(lp.filter_parameters_stale || lp.scanning_parameters_stale) {
+                        all_clean = false;
+                    }
+                })
+                if(all_clean) {
+                    this.validBinEstimators.push(binEstimator)
+                }
             }
         });
         
@@ -219,18 +262,6 @@ export class GenotypingProjectListComponent implements OnInit {
     }
     
     ngOnInit() {
-        this._locusSetService.getLocusSets().subscribe(
-                (locus_sets) => this.locusSets = locus_sets,
-                (err) => this.constructorErrors.push(err)
-            )
-        this._artifactEstimatorService.getArtifactEstimatorProjects().subscribe(
-            (artifact_estimators) => this.artifactEstimators = artifact_estimators,
-            (err) => this.constructorErrors.push(err)
-        )
-        this._binEstimatorService.getBinEstimatorProjects().subscribe(
-            (bin_estimators) => this.binEstimators = bin_estimators,
-            (err) => this.constructorErrors.push(err)
-        )
         this.getProjects();
     }
 }

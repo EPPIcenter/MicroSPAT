@@ -9,4 +9,5 @@ export class GenotypingLocusParameters extends LocusParameters {
     relative_peak_height_limit: number;
     absolute_peak_height_limit: number;
     failure_threshold: number;
+    genotyping_parameters_stale: boolean;
 }

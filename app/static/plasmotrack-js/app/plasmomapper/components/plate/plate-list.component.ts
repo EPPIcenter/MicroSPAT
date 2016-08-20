@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router-deprecated';
 
 import { SectionHeaderComponent } from '../layout/section-header.component'
+import { ProgressBarComponent } from '../layout/progress-bar.component';
 
 import { Plate } from '../../services/plate/plate.model';
 import { PlateService } from '../../services/plate/plate.service';
@@ -34,22 +35,27 @@ import { PlateDetailComponent } from './d3-plate-detail.component';
                                 <div class="form-group">
                                     <label>Ladder</label>
                                     <select required [(ngModel)]="ladder_id" class="form-control">
-                                        <option *ngFor="#ladder of ladders" value={{ladder.id}}>{{ladder.label}}</option>
+                                        <option *ngFor="let ladder of ladders" value={{ladder.id}}>{{ladder.label}}</option>
                                     </select>
                                 </div>
                                 <button class="btn btn-primary" type="button" (click)="upload()">Upload</button>
                             </form>
-                            <span *ngIf="uploading" class="label label-info">Uploading Files...</span>
-                            <span *ngIf="uploadComplete" class="label label-success">Upload Successful</span>
+                            <br>
+                            <div class="row" *ngIf="uploading">
+                                <pm-progress-bar [fullLabel]="'Uploading Plates'"></pm-progress-bar>
+                            </div>
                             <span class="label label-danger">{{newPlateError}}</span>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="row table-responsive list-panel">
-                <div class="col-sm-12">
-                    <div class="panel panel-default">
-                        <div class="panel-body">
+            <div class="panel panel-default">
+                <div class="panel-body">
+                    <div *ngIf="loadingPlates">
+                        <pm-progress-bar [label]="'Plates'"></pm-progress-bar>
+                    </div>
+                    <div *ngIf="!loadingPlates" class="">
+                        <div class="col-sm-12 table-responsive list-panel">
                             <table class="table table-striped table-hover table-condensed">
                                 <thead>
                                     <tr>
@@ -61,7 +67,7 @@ import { PlateDetailComponent } from './d3-plate-detail.component';
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr [ngClass]="{success: plate.id==selectedPlate?.id}" *ngFor="#plate of plates" (click)="selectPlate(plate.id)">
+                                    <tr [ngClass]="{success: plate.id==selectedPlate?.id}" *ngFor="let plate of plates" (click)="selectPlate(plate.id)">
                                         <td>{{plate.label}}</td>
                                         <td>{{plate.date_processed | date: "shortDate"}}</td>
                                         <td>{{plate.date_run | date: "shortDate"}}</td>
@@ -77,6 +83,9 @@ import { PlateDetailComponent } from './d3-plate-detail.component';
         </div>
         <div class="col-sm-7">
             <div class="row">
+                <div *ngIf="loadingPlate">
+                    <pm-progress-bar [label]="'Plate'"></pm-progress-bar>
+                </div>
                 <div *ngIf="selectedPlate">
                     <pm-d3-plate-detail [plate]="selectedPlate"></pm-d3-plate-detail>
                 </div>  
@@ -84,7 +93,7 @@ import { PlateDetailComponent } from './d3-plate-detail.component';
         </div>
     </div>
     `,
-    directives: [SectionHeaderComponent, PlateDetailComponent]
+    directives: [SectionHeaderComponent, PlateDetailComponent, ProgressBarComponent]
 })
 export class PlateListComponent implements OnInit {
     public plates: Plate[] = [];
@@ -99,9 +108,11 @@ export class PlateListComponent implements OnInit {
     private sortingParam = 'label';
     private showNewPlate = true;
     private showSelectedPlate = true;
+    
+    private loadingPlates = false;
+    private loadingPlate = false;
 
     private uploading = false;
-    private uploadComplete = false;
     
      
     constructor(
@@ -111,12 +122,12 @@ export class PlateListComponent implements OnInit {
     ) {}
     
     getPlates() {
-        console.log("Getting Plates");
+        this.loadingPlates = true;
         this._plateService.getPlates()
             .subscribe(
                 plates => {
+                    this.loadingPlates = false;
                     this.plates = plates;
-                    console.log(plates);
                     this.sortPlates();
                 },
                 error => this.errorMessages.push(error)
@@ -147,11 +158,18 @@ export class PlateListComponent implements OnInit {
     }
     
     selectPlate(id: number) {
-        this.showNewPlate = false;
-        this._plateService.getPlate(id).subscribe(
-            plate => this.selectedPlate = plate,
-            err => this.errorMessages.push(err)
-        )
+        if(!this.uploading) {
+            this.showNewPlate = false;
+            this.loadingPlate = true;
+            this.selectedPlate = null;
+            this._plateService.getPlate(id).subscribe(
+                plate => {
+                    this.loadingPlate = false;
+                    this.selectedPlate = plate
+                },
+                err => this.errorMessages.push(err)
+            )
+        }
     }
     
     fileChangeEvent(fileInput: any){
@@ -159,26 +177,24 @@ export class PlateListComponent implements OnInit {
     }
     
     upload() {
-        this.newPlateError = null;
-        this.uploading = true;
-        this.uploadComplete = false
-        console.log(this.filesToUpload);
-        console.log(this.ladder_id);
-        this._plateService.postPlates(this.filesToUpload, {'ladder_id': this.ladder_id}).subscribe(
-            plates => {
-                console.log(plates);
-                this.selectedPlate = plates[0];
-            }, 
-            error => {
-                this.newPlateError = error
-                this.uploading = false;
-            },
-            () => {
-                this.getPlates();
-                this.uploading = false;
-                this.uploadComplete = true;
-            }
-        )
+        if(!this.uploading) {
+                    this.newPlateError = null;
+            this.uploading = true;
+            this._plateService.postPlates(this.filesToUpload, {'ladder_id': this.ladder_id}).subscribe(
+                plates => {
+                    this.selectedPlate = plates[0];
+                }, 
+                error => {
+                    this.newPlateError = error
+                    this.uploading = false;
+                },
+                () => {
+                    this.getPlates();
+                    this.uploading = false;
+                }
+            )
+        }
+
     }
     
     ngOnInit() {

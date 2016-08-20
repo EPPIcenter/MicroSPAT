@@ -84,6 +84,16 @@ def calculate_peak_probability(peak_set, num_possible, locus_allele_frequencies=
     weights peaks by combining the two methods.
 
     :param peak_set: Set of peaks to compare
+
+    peak = {
+        'peak_index': int,
+        'probability': float
+        'bin': string
+        'peak_height': int (needed for cdf_weighted methods),
+        'artifact_contribution': float (needed for cdf_weighted methods),
+        'artifact_error': float (needed for cdf_weighted methods)
+    }
+
     :param locus_allele_frequencies: Frequency distribution of alleles for a given locus from which peaks originate
     :param num_possible: number of peaks which are possible
     :param method: Weighting method to be used.
@@ -114,7 +124,7 @@ def calculate_peak_probability(peak_set, num_possible, locus_allele_frequencies=
     return recalculated_probabilities
 
 
-def calculate_moi(locus_annotations, offset=1):
+def calculate_moi(locus_annotations, offset=0):
     """
     Given a set of locus annotations (All calls from a sample), calculate the MOI of the sample.  If the offset is
     greater than the number of markers under consideration, returns 0.

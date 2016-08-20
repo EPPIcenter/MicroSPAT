@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.linear_model import TheilSenRegressor, LinearRegression, RANSACRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 
-from app.plasmomapper.cluster.FeatureCluster import find_clusters
+from app.microspat.cluster.FeatureCluster import find_clusters
 
 
 class ArtifactEstimatorSet(object):

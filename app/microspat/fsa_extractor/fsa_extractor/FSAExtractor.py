@@ -102,7 +102,6 @@ class FSAFile(object):
     SIGNATURE = "ABIF"
 
     def __init__(self, byte_stream, malform_check=True):
-        print "Creating FSA File"
         self._channels = {}
         self.raw = byte_stream
         self.signature = struct.unpack('>4s', byte_stream[0:4])[0]
@@ -239,6 +238,6 @@ class FSADir(object):
 
     def __repr__(self):
         if len(self.data) > 25:
-            return '<ABIF entry: %s, data: "%s">' % (self.name + str(self.number), str(self.data[0:25]) + "...")
+            return '<ABIF entry: {}, data: "{}">'.format(str(self.name) + str(self.number), str(self.data[0:25]) + "...")
         else:
-            return '<ABIF entry: %s, data: "%s">' % (self.name + str(self.number), str(self.data[0:25]))
+            return '<ABIF entry: {}, data: "{}">'.format(str(self.name) + str(self.number), str(self.data[0:25]))

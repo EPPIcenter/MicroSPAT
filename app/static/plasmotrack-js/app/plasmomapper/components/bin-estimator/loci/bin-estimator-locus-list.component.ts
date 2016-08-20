@@ -4,12 +4,16 @@ import { RouteParams, Router } from '@angular/router-deprecated';
 import { LocusPipe } from '../../../pipes/locus.pipe';
 
 import { SectionHeaderComponent } from '../../layout/section-header.component';
+import { ProgressBarComponent } from '../../layout/progress-bar.component';
 
 import { LocusParametersListComponent } from '../../project/locus-parameters-list.component';
 import { CommonLocusParametersDetailComponent } from '../../project/common-locus-parameters-detail.component';
 import { LocusParametersDetailComponent } from '../../project/locus-parameters-detail.component';
 
 import { D3BinEstimatorPlot } from '../locus-bin/d3-bin-plot.component';
+
+import { GenotypingProjectService } from '../../../services/genotyping-project/genotyping-project.service';
+import { ArtifactEstimatorProjectService } from '../../../services/artifact-estimator-project/artifact-estimator-project.service';
 
 import { Bin } from '../../../services/bin-estimator-project/locus-bin-set/bin/bin.model';
 import { Locus } from '../../../services/locus/locus.model';
@@ -59,25 +63,28 @@ import { BinEstimatorProjectService } from '../../../services/bin-estimator-proj
                                 </div>
                             </div>
                             <button type="submit" class="btn btn-default" [ngClass]="{disabled: isSubmitting}">Save and Analyze</button>
-                            <span *ngIf="isSubmitting" class="label label-info">Saving and Analyzing Locus...This May Take A While...</span>
                         </form>
+                        <br>
+                        <div>
+                            <pm-progress-bar *ngIf="isSubmitting" [fullLabel]="'Saving and Analyzing Locus... This May Take A While'"></pm-progress-bar>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div *ngIf="selectedLocusChannelAnnotations" class="col-sm-7" style="height: 35vh">
+        <div *ngIf="selectedLocusChannelAnnotations && selectedLocus" class="col-sm-7" style="height: 35vh">
             <pm-d3-bin-estimator-locus-plot [(bins)]="selectedBins" [(locus)]="selectedLocus" [(annotations)]="selectedLocusChannelAnnotations"></pm-d3-bin-estimator-locus-plot>
         </div>
     </div>
     `,
-    directives: [SectionHeaderComponent, LocusParametersListComponent, LocusParametersDetailComponent, D3BinEstimatorPlot, CommonLocusParametersDetailComponent]
+    directives: [SectionHeaderComponent, LocusParametersListComponent, LocusParametersDetailComponent, D3BinEstimatorPlot, CommonLocusParametersDetailComponent, ProgressBarComponent]
 })
 export class BinEstimatorLocusListComponent {
     private selectedProject: BinEstimatorProject;
     private locusParameters: BinEstimatorLocusParameters[] = [];
     private selectedLocusParameter: BinEstimatorLocusParameters;
     private selectedLocus: Locus;
-    private selectedLocusChannelAnnotations: ChannelAnnotation[];
+    private selectedLocusChannelAnnotations: ChannelAnnotation[] = [];
     private selectedBins: Bin[];
     private errorMessage: string;
     private isSubmitting: boolean = false;
@@ -89,6 +96,8 @@ export class BinEstimatorLocusListComponent {
     
     constructor(
         private _binEstimatorProjectService: BinEstimatorProjectService,
+        private _artifactEstimatorProjectService: ArtifactEstimatorProjectService,
+        private _genotypingProjectService: GenotypingProjectService,
         private _routeParams: RouteParams,
         private _router: Router,
         private _locusService: LocusService
@@ -99,13 +108,17 @@ export class BinEstimatorLocusListComponent {
         this._binEstimatorProjectService.getBinEstimatorProject(id)
             .subscribe(
                 proj => {
-                    console.log(proj);
-                    
                     this.selectedProject = proj;
                     this.loadLocusParameters();
+                    this.initNav();
                     
                     this.header = this.selectedProject.title + " Loci"
-                    this.navItems = [
+                }
+            )
+    }
+
+    private initNav() {
+        this.navItems = [
                         {
                             label: 'Details',
                             click: () => this.goToLink('BinEstimatorDetail', {project_id: this.selectedProject.id}),
@@ -117,8 +130,6 @@ export class BinEstimatorLocusListComponent {
                             active: true
                         }
                     ]
-                }
-            )
     }
     
     private loadLocusParameters() {
@@ -136,8 +147,7 @@ export class BinEstimatorLocusListComponent {
     private getLocusChannelAnnotations(){
         this._binEstimatorProjectService.getLocusChannelAnnotations(this.selectedLocusParameter.project_id, this.selectedLocusParameter.locus_id)
             .subscribe(
-                channel_annotations => {
-                    console.log(channel_annotations);                    
+                channel_annotations => {                    
                     this.selectedLocusChannelAnnotations = channel_annotations;
                 },
                 err => this.errorMessage = err
@@ -145,17 +155,19 @@ export class BinEstimatorLocusListComponent {
     }
     
     private selectLocus(locus_id: number) {
-        this.selectedLocus = null;
+        // this.selectedLocus = null;
         this.selectedLocusParameter = null;
-        this.selectedBins = null;
-        this.selectedLocusChannelAnnotations = null;
+        this.selectedLocusChannelAnnotations = [];
         if(!this.isSubmitting) {
             this._locusService.getLocus(locus_id).subscribe(
                 locus => {
+                    this.selectedBins = [];
                     this.selectedLocus = locus;
                     this.selectedLocusParameter = this.selectedProject.locus_parameters.get(locus_id);
                     if(this.selectedProject.locus_bin_sets.has(this.selectedLocus.id)){
-                        this.selectedBins = this.selectedProject.locus_bin_sets.get(this.selectedLocus.id).bins;
+                        this.selectedProject.locus_bin_sets.get(this.selectedLocus.id).bins.forEach((bin) => {
+                            this.selectedBins.push(bin);
+                        });
                     }
                     this.getLocusChannelAnnotations();
                 },
@@ -174,18 +186,44 @@ export class BinEstimatorLocusListComponent {
     }
     
     private saveLocusParams(id: number) {
-        let locusParameter = this.selectedProject.locus_parameters.get(id);
-        if(locusParameter.isDirty || locusParameter.filter_parameters_stale || locusParameter.scanning_parameters_stale) {
-            console.log(locusParameter);
+        if(!this.isSubmitting) {
+            let locusParameter = this.selectedProject.locus_parameters.get(id);
             this.isSubmitting = true;
             this._binEstimatorProjectService.saveLocusParameters(locusParameter).subscribe(
-            (locusParam) => {
-                this._binEstimatorProjectService.clearCache(locusParam.project_id);
-                this.getProject();
-                this.selectLocus(locusParam.locus_id);
-                this.isSubmitting = false;
-            },
-            (error) => this.errorMessage = error
+                (locusParam: BinEstimatorLocusParameters) => {
+                    this._binEstimatorProjectService.clearCache(locusParam.project_id);
+                    this._binEstimatorProjectService.getBinEstimatorProject(locusParam.project_id)
+                        .subscribe(
+                            proj => {
+                                this._genotypingProjectService.binEstimatorChanged(proj.id);
+                                this._artifactEstimatorProjectService.binEstimatorChanged(proj.id);
+                                this.selectedProject = proj;
+                                this.loadLocusParameters();
+                                this.selectedLocusParameter = locusParam;
+                                this.selectLocus(locusParam.locus_id);
+                            },
+                            err => {
+                                throw err;
+                            }
+                        )
+                    // this.selectedProject.locus_parameters[locusParam.locus_id] = locusParam;
+                    // this.selectedLocusParameter = locusParam;
+                    // let tmpLocusParams = [];
+                    // this.locusParameters.forEach((lp) => {
+                    //     if(lp.id === locusParam.id) {
+                    //         tmpLocusParams.push(locusParam);
+                    //     } else {
+                    //         tmpLocusParams.push(lp);
+                    //     }
+                    // })
+                    // this.locusParameters = tmpLocusParams;
+                },
+                (error) => {
+                    this.errorMessage = error
+                },
+                () => {
+                    this.isSubmitting = false;
+                }
             )
         }
     }

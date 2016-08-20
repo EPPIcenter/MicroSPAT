@@ -3,6 +3,8 @@ import { RouteParams, Router } from '@angular/router-deprecated';
 
 import { SectionHeaderComponent } from '../../layout/section-header.component'
 
+import { ProgressBarComponent } from '../../layout/progress-bar.component';
+
 import { GenotypingProject } from '../../../services/genotyping-project/genotyping-project.model';
 import { GenotypingProjectService } from '../../../services/genotyping-project/genotyping-project.service';
 
@@ -12,7 +14,7 @@ import { GenotypingProjectService } from '../../../services/genotyping-project/g
     <div *ngIf="selectedProject">
         <pm-section-header [header]="navHeader" [navItems]="navItems"></pm-section-header>
         <div class="row col-sm-6">
-            <form (ngSubmit)="saveProject()">
+            <form >
                 <div class="form-group">
                     <label>Title</label>
                     <input type="text" (keyup)="onChanged()" class="form-control" required
@@ -28,8 +30,10 @@ import { GenotypingProjectService } from '../../../services/genotyping-project/g
                     <input type="text" (keyup)="onChanged()" class="form-control"
                         [(ngModel)] = "selectedProject.description">
                 </div>
-                <button type="submit" class="btn btn-default" [ngClass]="{disabled: !selectedProject.isDirty}">Save</button>
+                <button type="submit" class="btn btn-default" [ngClass]="{disabled: !selectedProject.isDirty}" (click)="saveProject()">Save</button>
                 <button class="btn btn-warning" (click)="deleteProject()">Delete</button>
+                <pm-progress-bar *ngIf="savingProject" [fullLabel]="'Saving Project...'"></pm-progress-bar>
+                <pm-progress-bar *ngIf="deletingProject" [fullLabel]="'Deleting Project...'"></pm-progress-bar>
                 <span class="label label-danger">{{saveProjectError}}</span>
                 <span class="label label-danger">{{deleteProjectError}}</span>
             </form>
@@ -37,7 +41,7 @@ import { GenotypingProjectService } from '../../../services/genotyping-project/g
     </div>
     `,
     styleUrls:['app/plasmomapper/styles/forms.css'],
-    directives: [SectionHeaderComponent]
+    directives: [SectionHeaderComponent, ProgressBarComponent]
 })
 
 export class GenotypingProjectDetailComponent implements OnInit {
@@ -47,19 +51,19 @@ export class GenotypingProjectDetailComponent implements OnInit {
     private deleteProjectError: string
     
     public selectedProject: GenotypingProject;
+
+    private savingProject = false;
+    private deletingProject = false;
     
     constructor(
         private _genotypingProjectService: GenotypingProjectService,
         private _routeParams: RouteParams,
         private _router: Router
-        ){
-            console.log("Loading Project Details");
-        }
+        ){}
     
     getProject() {
         this._genotypingProjectService.getProject(+this._routeParams.get('project_id'))
                 .subscribe((project) => {
-                    console.log(project);
                     
                     this.selectedProject = project;
                     this.navHeader = this.selectedProject.title + " Details";
@@ -89,12 +93,13 @@ export class GenotypingProjectDetailComponent implements OnInit {
     }
     
     saveProject() {
-        this.saveProjectError = null;
         if(this.selectedProject.isDirty) {
+            this.saveProjectError = null;
+            this.savingProject = true;
             this._genotypingProjectService.updateProject(this.selectedProject).subscribe(
                 (project) => {
+                    this.savingProject = false;
                     this.selectedProject.copyFromObj(project);
-                    console.log(project);
                 },
                 (error) => this.saveProjectError = error
             )
@@ -103,6 +108,7 @@ export class GenotypingProjectDetailComponent implements OnInit {
     
     deleteProject() {
         this.deleteProjectError = null;
+        this.deletingProject = true;
         this._genotypingProjectService.deleteProject(this.selectedProject.id).subscribe(
             () => this.goToLink('GenotypingProjectList'),
             (err) => this.deleteProjectError = err
@@ -110,8 +116,6 @@ export class GenotypingProjectDetailComponent implements OnInit {
     }
     
     onChanged(e) {
-        console.log(this.selectedProject);
-        
         this.selectedProject.isDirty = true;
     }
     

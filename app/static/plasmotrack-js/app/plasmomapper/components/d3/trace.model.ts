@@ -1,5 +1,5 @@
 export interface Trace{
-    data: [number,number][];
+    data: number[][];
     color: string;
     display: boolean;
 }

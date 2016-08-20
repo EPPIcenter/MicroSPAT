@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { SectionHeaderComponent } from '../layout/section-header.component';
+import { ProgressBarComponent } from '../layout/progress-bar.component';
 
 import { CapitalizePipe } from '../../pipes/capitalize.pipe';
 
@@ -12,30 +13,39 @@ import { LocusDetailComponent } from './locus-detail.component';
     template: `
     <pm-section-header [header]="'Loci'"></pm-section-header>
     <div class="row main-container">
-        <div class="table-responsive list-panel col-sm-4">
-            <span class="label label-danger">{{locusListError}}</span>
-            <table class="table table-striped table-hover table-condensed">
-                <thead>
-                    <tr>
-                        <th (click)="sortingParam='label'; reversed=!reversed; sortLoci()">Label</th>
-                        <th (click)="sortingParam='min_base_length'; reversed=!reversed; sortLoci()">Min. Base Length</th>
-                        <th (click)="sortingParam='max_base_length'; reversed=!reversed; sortLoci()">Max. Base Length</th>
-                        <th (click)="sortingParam='nucleotide_repeat_length'; reversed=!reversed; sortLoci()">Nucleotide Repeat Length</th>
-                        <th (click)="sortingParam='color'; reversed=!reversed; sortLoci()">Color</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr *ngFor="#locus of loci">
-                        <td>{{locus.label}}</td>
-                        <td>{{locus.min_base_length}}</td>
-                        <td>{{locus.max_base_length}}</td>
-                        <td>{{locus.nucleotide_repeat_length}}</td>
-                        <td>{{locus.color | capitalize}}</td>
-                        <td><a><span (click)="removeLocus(locus.id)" class="glyphicon glyphicon-remove-circle"></span></a></td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="col-sm-6">
+            <div class="panel panel-default">
+                <div class="panel-body">
+                    <div *ngIf="loadingLoci">
+                        <pm-progress-bar [label]="'Loci'"></pm-progress-bar>
+                    </div>
+                    <div *ngIf="!loadingLoci" class="table-responsive list-panel">
+                        <span class="label label-danger">{{locusListError}}</span>
+                        <table class="table table-striped table-hover table-condensed">
+                            <thead>
+                                <tr>
+                                    <th (click)="sortingParam='label'; reversed=!reversed; sortLoci()">Label</th>
+                                    <th (click)="sortingParam='min_base_length'; reversed=!reversed; sortLoci()">Min. Base Length</th>
+                                    <th (click)="sortingParam='max_base_length'; reversed=!reversed; sortLoci()">Max. Base Length</th>
+                                    <th (click)="sortingParam='nucleotide_repeat_length'; reversed=!reversed; sortLoci()">Nucleotide Repeat Length</th>
+                                    <th (click)="sortingParam='color'; reversed=!reversed; sortLoci()">Color</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let locus of loci">
+                                    <td>{{locus.label}}</td>
+                                    <td>{{locus.min_base_length}}</td>
+                                    <td>{{locus.max_base_length}}</td>
+                                    <td>{{locus.nucleotide_repeat_length}}</td>
+                                    <td>{{locus.color | capitalize}}</td>
+                                    <td><a><span (click)="removeLocus(locus.id)" class="glyphicon glyphicon-remove-circle"></span></a></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="col-sm-6">
             <div class="panel panel-default">
@@ -80,7 +90,7 @@ import { LocusDetailComponent } from './locus-detail.component';
     </div>
     `,
     pipes: [CapitalizePipe],
-    directives: [SectionHeaderComponent]
+    directives: [SectionHeaderComponent, ProgressBarComponent]
 })
 export class LocusListComponent implements OnInit{
     private loci: Locus[];
@@ -94,6 +104,7 @@ export class LocusListComponent implements OnInit{
     
     private isSubmitting: boolean;
     
+    private loadingLoci = false;
     
     
     constructor(
@@ -104,8 +115,10 @@ export class LocusListComponent implements OnInit{
     
     
     getLoci() {
+        this.loadingLoci = true;
         this._locusService.getLoci().subscribe(
             loci => {
+                this.loadingLoci = false;
                 this.loci = loci;
                 this.sortLoci();
             },

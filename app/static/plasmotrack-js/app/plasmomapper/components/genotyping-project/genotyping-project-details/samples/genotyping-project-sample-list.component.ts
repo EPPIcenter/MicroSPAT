@@ -83,7 +83,7 @@ import { D3SampleAnnotationEditor } from '../../sample-annotation-editor.compone
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr *ngFor="#sample_annotation of _sampleAnnotations" (click)="selectSample(sample_annotation)" [ngClass]="{success:sample_annotation.sample.id==selectedSample?.id}">
+                                            <tr *ngFor="let sample_annotation of _sampleAnnotations" (click)="selectSample(sample_annotation)" [ngClass]="{success:sample_annotation.sample.id==selectedSample?.id}">
                                                 <td>{{sample_annotation.sample.barcode}}</td>
                                                 <td>{{sample_annotation.sample.designation}}</td>
                                                 <td>{{sample_annotation.moi}}</td>
@@ -108,7 +108,7 @@ import { D3SampleAnnotationEditor } from '../../sample-annotation-editor.compone
                             </div>
                             <div *ngIf="selectedLocusChannelAnnotations" class="panel-body">
                                 <div id="channel_plot" style="height: 30vh">
-                                    <div *ngFor="#channelAnnotation of selectedLocusChannelAnnotations">
+                                    <div *ngFor="let channelAnnotation of selectedLocusChannelAnnotations">
                                         <pm-d3-sample-annotation-editor [channelAnnotation]="channelAnnotation" [locusAnnotation]="selectedLocusAnnotation" [bins]="selectedBins"></pm-d3-sample-annotation-editor>
                                     </div>
                                 </div>
@@ -141,7 +141,7 @@ import { D3SampleAnnotationEditor } from '../../sample-annotation-editor.compone
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr *ngFor="#annotation of selectedSampleLocusAnnotations; #i = index" (click)="selectedLocusAnnotationIndex = i; selectLocusAnnotation()" [ngClass]="{success:annotation==selectedLocusAnnotation, danger:!annotation.reference_run_id, warning: annotation.isDirty}">
+                                            <tr *ngFor="let annotation of selectedSampleLocusAnnotations; let i = index" (click)="selectedLocusAnnotationIndex = i; selectLocusAnnotation()" [ngClass]="{success:annotation==selectedLocusAnnotation, danger:!annotation.reference_run_id, warning: annotation.isDirty}">
                                                 <td>{{annotation.locus_id | locus | async}}</td>
                                                 <td>{{countOf(annotation.alleles, true)}}</td>
                                                 <td>{{annotation.annotated_peaks?.length}}</td>
@@ -197,7 +197,6 @@ export class GenotypingProjectSampleList implements OnInit {
     ) {}
     
     private getBinEstimator = (proj: GenotypingProject) => {
-        console.log("Getting Bin Estimator");
         
         return this._binEstimatorProjectService.getBinEstimatorProject(proj.bin_estimator_id);
     }
@@ -298,7 +297,6 @@ export class GenotypingProjectSampleList implements OnInit {
     }
     
     private eventHandler(event: KeyboardEvent) {
-        console.log(event, event.keyCode);
         if(this.selectedSampleLocusAnnotations) {         
             if(event.keyCode == 38) {
                 if(this.selectedLocusAnnotationIndex > 0) {
@@ -333,8 +331,6 @@ export class GenotypingProjectSampleList implements OnInit {
                         });
                         this.selectedSampleLocusAnnotations = sampleLocusAnnotations;
                         this.sortAnnotations();
-                        console.log(sampleLocusAnnotations);
-                        console.log(this.channelAnnotations);
                     }
                 );
             })

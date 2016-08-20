@@ -27,7 +27,6 @@ export class PlateService {
         this.postPlates = (files: File[], params: Object) => {
             return this._commonServerMethods.postFiles(files, this._platesUrl, params)
                 .map(plates => {
-                    console.log(plates);
                     let plate_array = [];
                     for(let i = 0; i < plates.length; i++){
                         let t = new Plate();

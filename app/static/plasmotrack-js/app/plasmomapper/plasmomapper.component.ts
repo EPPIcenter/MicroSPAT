@@ -16,6 +16,7 @@ import { PlateComponent } from './components/plate/plate.component';
 import { SampleComponent } from './components/sample/sample.component';
 import { LocusComponent } from './components/locus/locus.component';
 import { LocusSetComponent } from './components/locus-set/locus-set.component';
+import { LadderComponent } from './components/ladder/ladder.component';
 
 import { GenotypingProjectService } from './services/genotyping-project/genotyping-project.service';
 import { ArtifactEstimatorProjectService } from './services/artifact-estimator-project/artifact-estimator-project.service';
@@ -78,6 +79,11 @@ import { NotificationService } from './services/notifications/notification.servi
         path: '/samples/...',
         name: 'Sample',
         component: SampleComponent
+    },
+    {
+        path: '/ladders/...',
+        name: 'Ladder',
+        component: LadderComponent
     }
     // {
     //     path: '/',
@@ -119,8 +125,6 @@ export class PlasmoMapperComponent implements OnInit {
     }
     
     ngOnInit() {
-        console.log("Initializing PlasmoMapper");
-        
         this.initServices();
     }
 }

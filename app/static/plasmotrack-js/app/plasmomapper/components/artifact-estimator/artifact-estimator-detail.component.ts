@@ -12,7 +12,7 @@ import { ArtifactEstimatorProjectService } from '../../services/artifact-estimat
     <div *ngIf="selectedProject">
         <pm-section-header [header]="navHeader" [navItems]="navItems"></pm-section-header>
         <div class="row col-sm-6">
-            <form (ngSubmit)="saveProject()">
+            <form>
                 <div class="form-group">
                     <label>Title</label>
                     <input type="text" (keyup)="onChanged()" class="form-control" required [(ngModel)]="selectedProject.title">
@@ -25,8 +25,10 @@ import { ArtifactEstimatorProjectService } from '../../services/artifact-estimat
                     <label>Description</label>
                     <input type="text" (keyup)="onChanged()" class="form-control" [(ngModel)]="selectedProject.description">
                 </div>
-                <button type="submit" class="btn btn-default" [ngClass]="{disabled: !selectedProject.isDirty}">Save</button>
+                <button class="btn btn-default" (click)="saveProject()" [ngClass]="{disabled: !selectedProject.isDirty}">Save</button>
                 <button class="btn btn-warning" (click)="deleteProject()">Delete</button>
+                <pm-progress-bar *ngIf="savingProject" [fullLabel]="'Saving Project...'"></pm-progress-bar>
+                <pm-progress-bar *ngIf="deletingProject" [fullLabel]="'Deleting Project...'"></pm-progress-bar>
                 <span class="label label-danger">{{saveProjectError}}</span>
                 <span class="label label-danger">{{deleteProjectError}}</span>
             </form>
@@ -41,6 +43,9 @@ export class ArtifactEstimatorDetailComponent implements OnInit {
     private navHeader
     private saveProjectError: string;
     private deleteProjectError: string;
+
+    private deletingProject = false;
+    private savingProject = false;
     
     public selectedProject: ArtifactEstimatorProject
     
@@ -53,8 +58,7 @@ export class ArtifactEstimatorDetailComponent implements OnInit {
     private getProject() {
         this._artifactEstimatorProjectService.getArtifactEstimatorProject(+this._routeParams.get('project_id'))
             .subscribe(
-                project => {
-                    console.log(project);                    
+                project => {                    
                     this.selectedProject = project;
                     this.navHeader = this.selectedProject.title + " Details";
                     this.navItems = [
@@ -78,25 +82,33 @@ export class ArtifactEstimatorDetailComponent implements OnInit {
     }
     
     private saveProject() {
-        this.saveProjectError = null;
-        if(this.selectedProject.isDirty) {
-            this._artifactEstimatorProjectService.updateArtifactEstimatorProject(this.selectedProject)
-                .subscribe(
-                    proj => {
-                        this.selectedProject.copyFromObj(proj);
-                    },
-                    err => this.saveProjectError = err
-                )
+        if(!this.savingProject && !this.deletingProject) {
+            this.saveProjectError = null;
+            this.savingProject = true;
+            if(this.selectedProject.isDirty) {
+                this._artifactEstimatorProjectService.updateArtifactEstimatorProject(this.selectedProject)
+                    .subscribe(
+                        proj => {
+                            this.savingProject = false
+                            this.selectedProject.copyFromObj(proj);
+                        },
+                        err => this.saveProjectError = err
+                    )
+            }
         }
+        
     }
     
     private deleteProject() {
-        this.deleteProjectError = null;
-        this._artifactEstimatorProjectService.deleteArtifactEstimatorProject(this.selectedProject.id)
-            .subscribe(
-                () => this.goToLink('ArtifactEstimatorList'),
-                err => this.deleteProjectError = err
+        if(!this.savingProject && !this.deletingProject){
+            this.deleteProjectError = null;
+            this.deletingProject = true;
+            this._artifactEstimatorProjectService.deleteArtifactEstimatorProject(this.selectedProject.id)
+                .subscribe(
+                    () => this.goToLink('ArtifactEstimatorList'),
+                    err => this.deleteProjectError = err
             )
+        }
     }
     
     private onChanged(e) {

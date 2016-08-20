@@ -126,7 +126,6 @@ export class D3ArtifactEstimatorPanel implements OnInit, OnDestroy {
                 },
                 err => console.log(err)
             )
-        console.log("Adding Breakpoint at ", x_coord);
     }
     
     ngOnChanges() {

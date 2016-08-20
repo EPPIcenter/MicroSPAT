@@ -24,6 +24,9 @@ export class GenotypingProjectService extends SampleBasedProjectService {
     public saveAnnotations: (annotations: SampleLocusAnnotation[]) => Observable<any>;
     
     public addSamples: (files: File[], id: number) => Observable<GenotypingProject>;
+
+    public artifactEstimatorChanged: (artifact_estimator_id: number) => void;
+    public binEstimatorChanged: (bin_estimator_id: number) => void;
     
     public clearCache: (id: number) => void;
     
@@ -38,12 +41,9 @@ export class GenotypingProjectService extends SampleBasedProjectService {
         this._socket = io(SERVER_BASE + "/project")
         
         this._socket.on('list_all', (event) => {
-            console.log("Listing Projects Received");
-            console.log(event);
         })
         
         this.getProjects = () => {
-            console.log("Listing Projects");
             this._socket.emit('list');
             return this._commonServerMethods.getList(GenotypingProject, this._projectsUrl)  
         };
@@ -84,6 +84,35 @@ export class GenotypingProjectService extends SampleBasedProjectService {
         
         this.calculateProbability = (project: GenotypingProject) => {
             return this._commonServerMethods.postJSON(project, this._projectsUrl + "calculate-probability/")
+        }
+
+        this.artifactEstimatorChanged = (artifact_estimator_id: number) => {
+            let gps = [];
+            
+            this._projectCache.forEach((proj_id: number, proj: GenotypingProject) => {
+                if(proj.artifact_estimator_id === artifact_estimator_id) {
+                    gps.push(proj.id);
+                }
+            })
+
+            gps.forEach(id => {
+                this.clearCache(id);
+            })
+                
+        }
+
+        this.binEstimatorChanged = (bin_estimator_id: number) => {
+            let gps = [];
+            
+            this._projectCache.forEach((proj_id: number, proj: GenotypingProject) => {
+                if(proj.bin_estimator_id === bin_estimator_id) {
+                    gps.push(proj.id);
+                }
+            })
+
+            gps.forEach(id => {
+                this.clearCache(id);
+            })
         }
     }
 }

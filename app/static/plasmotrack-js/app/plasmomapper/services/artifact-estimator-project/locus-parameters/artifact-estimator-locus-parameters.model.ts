@@ -2,5 +2,6 @@ import { LocusParameters } from '../../project/locus-parameters/locus-parameters
 
 export class ArtifactEstimatorLocusParameters extends LocusParameters { 
     max_secondary_relative_peak_height: number;
-    min_artifact_peak_frequency: number
+    min_artifact_peak_frequency: number;
+    artifact_estimator_parameters_stale: boolean;
 }

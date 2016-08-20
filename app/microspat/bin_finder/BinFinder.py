@@ -1,4 +1,4 @@
-from app.plasmomapper.cluster.FeatureCluster import find_clusters
+from app.microspat.cluster.FeatureCluster import find_clusters
 import numpy as np
 
 
@@ -35,7 +35,7 @@ class BinFinder(object):
             if not bin_buffer:
                 bin_buffer = cluster['sd']
 
-            if peak_count > min_peak_frequency:
+            if peak_count >= min_peak_frequency:
                 bins.append(Bin(label=label, base_size=base_size, bin_buffer=bin_buffer, peak_count=peak_count))
 
         return cls(bins=bins)

@@ -3,7 +3,7 @@ from flask import Flask
 from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy
 
-from config import config, Config
+from config import config
 
 
 db = SQLAlchemy()
@@ -28,8 +28,8 @@ def create_app(config_name):
     app.register_blueprint(plasmotrack)
     app.logger.debug("PlasmoTrack Initialized")
 
-    from app.plasmomapper.events import plasmomapper
-    app.register_blueprint(plasmomapper)
+    from app.microspat.events import microspat
+    app.register_blueprint(microspat)
     app.logger.debug("PlasmoMapper Initialized")
 
     db.create_all()
