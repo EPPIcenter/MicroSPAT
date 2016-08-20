@@ -29,16 +29,14 @@ def handle_integrity_error(e):
     """
     :type e: IntegrityError
     """
-    print "Handling Integrity Error"
     res = jsonify(error=e.orig.args[0])
     res.status_code = 400
     return res
 
 
 def handle_error(e):
+    app.logger.debug("ERROR: {}".format(e))
     db.session.rollback()
-    print "Exception Happened"
-    print e
     if isinstance(e, IntegrityError):
         return handle_integrity_error(e)
     else:
@@ -390,7 +388,6 @@ def delete_estimator(id):
         genotyping_projects = GenotypingProject.query.filter(
             GenotypingProject.artifact_estimator_id == estimator.locus_artifact_estimator.project.id).all()
         locus_id = estimator.locus_artifact_estimator.locus_id
-        print locus_id
         for project in genotyping_projects:
             project.artifact_estimator_changed(locus_id)
         db.session.delete(estimator)
@@ -405,7 +402,6 @@ def add_breakpoint(id):
         estimator = ArtifactEstimator.query.get(id)
         assert isinstance(estimator, ArtifactEstimator)
         breakpoint = float(request.json['breakpoint'])
-        print breakpoint
         estimator.add_breakpoint(breakpoint)
 
         return jsonify(wrap_data(estimator.serialize()))
@@ -430,7 +426,6 @@ def get_or_create_bin_estimators():
         return table_list_all(BinEstimatorProject)
     elif request.method == 'POST':
         project_params = request.json
-        print project_params
         try:
             print "Adding a new project"
             project = BinEstimatorProject(**project_params)
@@ -447,7 +442,6 @@ def get_or_update_bin_estimator(id):
     if request.method == 'GET':
         return table_get_details(BinEstimatorProject, id)
     elif request.method == 'PUT':
-        print "Updating Project"
         project_update_dict = request.json
         project = BinEstimatorProject.query.get(id)
         if project:
@@ -489,7 +483,6 @@ def get_or_update_locus_parameters(id):
     if request.method == 'GET':
         return table_get_details(ProjectLocusParams, id)
     elif request.method == 'PUT':
-        print request.json
         locus_params_update_dict = request.json
         locus_params = ProjectLocusParams.query.get(id)
         assert isinstance(locus_params, ProjectLocusParams)
@@ -500,7 +493,6 @@ def get_or_update_locus_parameters(id):
                 locus_params = updater(locus_params, locus_params_update_dict)
                 db.session.flush()
                 project.analyze_locus(locus_params.locus_id)
-                print locus_params.serialize()
                 return jsonify(wrap_data(locus_params.serialize()))
             except SQLAlchemyError as e:
                 return handle_error(e)
@@ -550,7 +542,6 @@ def get_or_post_locus_sets():
         locus_ids = request.json['locus_ids']
         try:
             locus_set = LocusSet(**locus_set_params)
-            print locus_ids
             for locus_id in locus_ids:
                 locus = Locus.query.get(int(locus_id))
                 locus_set.loci.append(locus)
@@ -579,14 +570,43 @@ def get_locus_set(id):
                 return handle_error(e)
 
 
-@plasmomapper.route('/ladder/')
-def get_ladders():
-    return table_list_all(Ladder)
+@plasmomapper.route('/ladder/', methods=['GET','POST'])
+def get_or_post_ladders():
+    if request.method == 'GET':
+        return table_list_all(Ladder)
+    elif request.method == 'POST':
+        ladder_params = request.json
+        try:
+            if ladder_params['id']:
+                l = Ladder.query.get(ladder_params['id'])
+            else:
+                l = Ladder()
+            for attr in ladder_params.keys():
+                if hasattr(l, attr):
+                    setattr(l, attr, ladder_params[attr])
+            db.session.add(l)
+            db.session.flush()
+            return jsonify(wrap_data(l.serialize()))
+        except Exception as e:
+            return handle_error(e)
 
 
-@plasmomapper.route('/ladder/<int:id>')
+@plasmomapper.route('/ladder/<int:id>/', methods=['GET', 'PUT'])
 def get_ladder(id):
-    return table_get_details(Ladder, id)
+    if request.method == 'GET':
+        return table_get_details(Ladder, id)
+    elif request.method == 'PUT':
+        ladder_params = request.json
+        try:
+            l = Ladder.query.get(ladder_params.pop('id'))
+            for attr in ladder_params.keys():
+                if hasattr(l, attr):
+                    setattr(l, attr, ladder_params[attr])
+            db.session.add(l)
+            db.session.flush()
+            return jsonify(wrap_data(l.serialize()))
+        except Exception as e:
+            return handle_error(e)
 
 
 @plasmomapper.route('/sample/', methods=['GET'])
@@ -637,7 +657,6 @@ def post_sample_csv():
                 samples.append(sample)
         db.session.flush()
     except Exception as e:
-        print "Error Hit"
         return handle_error(e)
 
     return jsonify(wrap_data([sample.serialize() for sample in samples]))
@@ -655,12 +674,9 @@ def get_plates():
 
 @plasmomapper.route('/plate/', methods=['POST'])
 def save_plate():
-    print "POSTING PLATE"
-    print request.files
     plate_zips = request.files.getlist('files')
     ladder_id = request.form['ladder_id']
     if ladder_id == 'undefined':
-        print "Ladder ID is undefined"
         res = jsonify(error="Please Select a Ladder")
         res.status_code = 404
         return res
@@ -668,7 +684,6 @@ def save_plate():
         try:
             plate_ids = []
             for plate_zip in plate_zips:
-                print "Unpacking Plate"
                 p_id = Plate.from_zip(plate_zip, ladder_id)
                 plate_ids.append(p_id)
             db.session.expire_all()
@@ -686,7 +701,6 @@ def get_plate(id):
     if request.method == 'GET':
         return table_get_details(Plate, id)
     elif request.method == 'POST':
-        print "Loading Plate Map"
         plate_map_list = request.files.getlist('files')
         if plate_map_list:
             try:
@@ -714,7 +728,6 @@ def get_well(id):
 def recalculate_ladder(id):
     well = Well.query.get(id)
     peak_indices = request.json['peak_indices']
-    print peak_indices
     if well and isinstance(peak_indices, list):
         try:
             well.calculate_base_sizes(peak_indices)
