@@ -13,7 +13,7 @@ import { ArtifactEstimatorLocusListComponent } from './loci/artifact-estimator-l
 @RouteConfig([
     {
         path: '/',
-        name: 'ArtifactEtimatorList',
+        name: 'ArtifactEstimatorList',
         component: ArtifactEstimatorListComponent,
         useAsDefault: true
     },

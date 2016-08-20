@@ -6,6 +6,7 @@ export class Ladder extends DatabaseItem implements Colored, PeakScanner {
     label: string;
     base_sizes: number[];
     sq_limit: number;
+    unusable_sq_limit: number;
     base_size_precision: number;
     index_overlap: number;
     min_time: number;

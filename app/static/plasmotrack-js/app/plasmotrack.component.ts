@@ -18,7 +18,7 @@ import { SampleListComponent }                              from './plasmomapper
 })
 @RouteConfig([
     {
-        path: '/plasmomapper/...',
+        path: '/microspat/...',
         name: 'PlasmoMapper',
         component: PlasmoMapperComponent,
         useAsDefault: true

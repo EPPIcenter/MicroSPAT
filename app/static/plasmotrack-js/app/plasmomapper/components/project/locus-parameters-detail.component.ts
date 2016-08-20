@@ -118,9 +118,7 @@ export class LocusParametersDetailComponent {
     
     constructor(
         private _projectService: ProjectService
-    ){
-        console.log("Creating Detail Component");
-    }
+    ){}
     
     onChanged(e) {
         this.locusParameter.isDirty = true

@@ -7,6 +7,8 @@ import { PlateService } from '../../services/plate/plate.service';
 import { WellService } from '../../services/well/well.service';
 import { ChannelService } from '../../services/channel/channel.service';
 
+import { ProgressBarComponent } from '../layout/progress-bar.component';
+
 import { D3PlateLadderDetailComponent } from './d3-plate-ladder-detail.component';
 import { D3LadderEditorComponent } from './d3-ladder-editor.component';
 import { D3PlateChannelDetailComponent } from './d3-plate-channel-detail.component';
@@ -31,15 +33,18 @@ import { D3WellViewerComponent } from './d3-well-viewer.component';
                 <div class="col-sm-4" style="height:100%">
                     <pm-d3-plate-channel-detail [plate]="plate" [wellSelector]="selectWell"></pm-d3-plate-channel-detail>
                 </div>
-                <div class="col-sm-2">
+                <div class="col-sm-3">
                     <form>
                         <div class="form-group">
                             <input type="file" (change)="fileChangeEvent($event)" placeholder="Upload file..."/>
                         </div>
                         <button class="btn btn-primary" type="button" [ngClass]="{disabled: uploading}" (click)="upload()">Upload Plate Map</button>
                     </form>
+                    <br>
+                    <div *ngIf="uploading">
+                        <pm-progress-bar [fullLabel]="'Uploading Plate Map...'"></pm-progress-bar>
+                    </div>
                     <span class="label label-danger">{{plateMapError}}</span>
-                    <span *ngIf="uploading" class="label label-info">Uploading...</span>
                 </div>
             </div>
             <div *ngIf="selectedWell">
@@ -53,7 +58,7 @@ import { D3WellViewerComponent } from './d3-well-viewer.component';
         <div>
     </div>
     `,
-    directives: [D3PlateLadderDetailComponent, D3LadderEditorComponent, D3PlateChannelDetailComponent, D3WellViewerComponent]
+    directives: [D3PlateLadderDetailComponent, D3LadderEditorComponent, D3PlateChannelDetailComponent, D3WellViewerComponent, ProgressBarComponent]
 })
 export class PlateDetailComponent implements OnInit {
     public plate: Plate;
@@ -76,40 +81,36 @@ export class PlateDetailComponent implements OnInit {
     wellSelector(id: number) {
         this._wellService.getWell(id).subscribe(
             well => {
-                console.log(well);
                 this.selectedWell = well;
             }
         )
     }
     
-    fileChangeEvent(fileInput: any){
-        console.log(this.files);        
+    fileChangeEvent(fileInput: any){        
         this.filesToUpload = <Array<File>> fileInput.target.files;
     }
     
     upload(){
-        this.plateMapError = null;
-        this.uploading = true;
-        console.log(this.filesToUpload);
-        this._plateService.postPlateMap(this.filesToUpload, this.plate.id)
-            .subscribe(
-                plate => {
-                    this.plate = plate;
-                },
-                err => {
-                    this.uploading = false;
-                    this.plateMapError = err
-                },
-                () => {
-                    this.uploading = false;
-                }
-            )
-
+        if(!this.uploading) {
+            this.plateMapError = null;
+            this.uploading = true;
+            this._plateService.postPlateMap(this.filesToUpload, this.plate.id)
+                .subscribe(
+                    plate => {
+                        this.plate = plate;
+                    },
+                    err => {
+                        this.uploading = false;
+                        this.plateMapError = err
+                    },
+                    () => {
+                        this.uploading = false;
+                    }
+                );
+        }
     }
     
     recalculateLadder(well: Well) {
-        console.log("Recalculating Ladder Promise");
-        console.log(well);
         this._wellService.recalculateLadder(well.id, well.ladder_peak_indices)
         .subscribe(null,null,() => this._wellService.getWell(well.id).subscribe(
             new_well => {
@@ -134,8 +135,6 @@ export class PlateDetailComponent implements OnInit {
     }
     
     ladderRecalculated(well: Well) {
-        console.log(well);
-        console.log("Recalculating Ladder Event");
         this.recalculateLadder(well)
     }
 }

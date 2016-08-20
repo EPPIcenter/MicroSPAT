@@ -36,13 +36,13 @@ interface ZoomWindow {
                 <button (click)="zoomOut()" type="button" class="btn btn-info"><span class="glyphicon glyphicon-minus"></span></button>
             </div>
             <div class="btn-group">
-                <button type="button" class="btn btn-default btn-sm" *ngFor="#trace of traces" (click)="trace.display = !trace.display; render();">{{trace.color_label}}</button>
+                <button type="button" class="btn btn-default btn-sm" *ngFor="let trace of traces" (click)="trace.display = !trace.display; render();">{{trace.color_label}}</button>
             </div>
         </div>
         <div class="row">
             <div class="form-group">
                 <select (change)="setZoomWindow($event)" class="form-control">
-                    <option *ngFor="#zoomWindow of zoomWindows; #i = index" value={{i}}>{{zoomWindow.label}}</option>
+                    <option *ngFor="let zoomWindow of zoomWindows; let i = index" value={{i}}>{{zoomWindow.label}}</option>
                 </select>
             </div>
         </div>

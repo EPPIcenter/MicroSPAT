@@ -15,7 +15,7 @@ export class ChannelService {
     public getChannel: (id: number) => Observable<Channel>
     
     private _channelsUrl = API_BASE + '/channel/';
-    private _channelCache = new LRUCache<Channel>(385);
+    private _channelCache = new LRUCache<Channel>(600);
     
     constructor(private _commonServerMethods: CommonServerMethods) {
         this.getChannel = (id: number) => this._commonServerMethods.getDetails(id, Channel, this._channelsUrl, this._channelCache);

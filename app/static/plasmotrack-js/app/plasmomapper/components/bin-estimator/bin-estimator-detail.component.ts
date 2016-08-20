@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { RouteParams, Router } from '@angular/router-deprecated';
 
 import { SectionHeaderComponent } from '../layout/section-header.component';
+import { ProgressBarComponent } from '../layout/progress-bar.component';
 
 import { BinEstimatorProject } from '../../services/bin-estimator-project/bin-estimator-project.model';
 import { BinEstimatorProjectService } from '../../services/bin-estimator-project/bin-estimator-project.service';
@@ -25,6 +26,7 @@ import { BinEstimatorProjectService } from '../../services/bin-estimator-project
                     <label>Description</label>
                     <input type="text" (keyup)="onChanged()" class="form-control" [(ngModel)]="selectedProject.description">
                 </div>
+                <pm-progress-bar *ngIf="deletingProject" [fullLabel]="'Deleting Bin Estimator...'"></pm-progress-bar>
                 <button type="submit" class="btn btn-default" [ngClass]="{disabled: !selectedProject.isDirty}">Save</button>
                 <button class="btn btn-warning" (click)="deleteProject()">Delete</button>
                 <span class="label label-danger">{{saveProjectError}}</span>
@@ -34,15 +36,18 @@ import { BinEstimatorProjectService } from '../../services/bin-estimator-project
     </div>
     `,
     styleUrls:['app/plasmomapper/styles/forms.css'],
-    directives: [SectionHeaderComponent]
+    directives: [SectionHeaderComponent, ProgressBarComponent]
 })
 export class BinEstimatorDetailComponent implements OnInit{
     private navItems;
     private navHeader: string
     private saveProjectError: string;
     private deleteProjectError: string;
+
+    private deletingProject = false;
     
     public selectedProject: BinEstimatorProject;
+    
     
     constructor(
         private _binEstimatorProjectService: BinEstimatorProjectService,
@@ -92,6 +97,7 @@ export class BinEstimatorDetailComponent implements OnInit{
     
     private deleteProject() {
         this.deleteProjectError = null;
+        this.deletingProject = true;
         this._binEstimatorProjectService.deleteBinEstimatorProject(this.selectedProject.id)
             .subscribe(
                 () => this.goToLink('BinEstimatorList'),

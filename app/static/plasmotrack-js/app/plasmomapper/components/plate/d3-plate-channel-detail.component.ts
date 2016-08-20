@@ -16,7 +16,7 @@ import { D3WellPlotComponent } from './d3-well-plot.component';
     inputs: ['plate', 'wellSelector'],
     selector: 'pm-d3-plate-channel-detail',
     template:`
-    <pm-d3-well-plot style="height:50%; padding:1vh" class="col-sm-6" *ngFor="#channelSet of channelSets" (wellSelected) = "wellSelector($event)" [wellArrangement]="wellArrangement" [squares]="channelSet[1]" [label]="channelSet[0]"></pm-d3-well-plot>
+    <pm-d3-well-plot style="height:50%; padding:1vh" class="col-sm-6" *ngFor="let channelSet of channelSets" (wellSelected) = "wellSelector($event)" [wellArrangement]="wellArrangement" [squares]="channelSet[1]" [label]="channelSet[0]"></pm-d3-well-plot>
     `,
     directives: [D3WellPlotComponent]
 })
@@ -36,7 +36,6 @@ export class D3PlateChannelDetailComponent implements OnChanges {
                         .range(['#d9534f', '#5cb85c', '#4292D1']);
                         
     ngOnChanges() {
-        console.log("Changes Happened in channel detail component");
         this.channelSets = [];
         this.wellArrangement = this.plate.well_arrangement
         let channel_map = new Map<string, Square[]>();

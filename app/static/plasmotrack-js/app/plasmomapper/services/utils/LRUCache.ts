@@ -3,125 +3,144 @@ interface ForEachFn<T> {
 }
 
 class LRUNode<T> {
-    prev: LRUNode<T>
-    next: LRUNode<T>
+    newer: LRUNode<T>
+    older: LRUNode<T>
     
-    constructor(public key: number, public data: T){}
+    constructor(public key: number, public value: T){}
     
 }
 
 export class LRUCache<T> {
+    private size = 0;
+    private _map: {[s: string]: LRUNode<T>} = {};
     private head: LRUNode<T>;
     private tail: LRUNode<T>;
-    private size = 0;
-    private map = new Map<number, LRUNode<T>>();
-    
-    private lock = false;
-    
-    constructor(private limit: number = 100000) {
-        
-    }
-    
-    private setHead(node: LRUNode<T>) {
-        //node is already head
-        if(this.head === node) {
-            return;
-        }
-        //cache is empty
-        else if(this.head == null) {
-            this.head = node;
-            this.tail = node;
+
+
+    constructor(private limit: number = 10000){};
+
+    public put(key: number, value: T) {
+        let entry = new LRUNode(key, value);
+        this._map[key] = entry;
+        if(this.tail) {
+            this.tail.newer = entry;
+            entry.older = this.tail;
         } else {
-            //node is new
-            if(node.next == null && node.prev == null) {
-                //no-op
-            }
-            //node is at the end
-            else if(this.tail === node) {
-                this.tail = node.next;
-                this.tail.prev = null;
-            }
-            //node is somewhere in the middle 
-            else {
-                node.prev.next = node.next.prev;
-                node.next = null;
-            }
-            
-            let old_head = this.head;        
-            
-            node.prev = old_head;
-            old_head.next = node;
-            node.next = null;
-            this.head = node;
+            this.head = entry;
+        }
+
+        this.tail = entry;
+        if(this.size === this.limit) {
+            return this.shift();
+        } else {
+            this.size++;
         }
     }
- 
-    private purge() {
-        let node = this.head;        
-        let last_node = this.tail;
-        let next_to_last_node = this.tail.next;
-        this.tail = next_to_last_node;
-        next_to_last_node.prev = null
-        this.map.delete(last_node.key);
-        this.size--;
+
+    public shift() {
+        var entry = this.head;
+        if(entry) {
+            if(this.head.newer) {
+                this.head = this.head.newer;
+                this.head.older = undefined;
+            } else {
+                this.head = undefined;
+            }
+
+            entry.newer = entry.older = undefined;
+
+            delete this._map[entry.key];
+        }
+
+        return entry;
     }
-    
-    public has(key: number): boolean {
-        return this.map.has(key);
+
+    public get(key: number, returnEntry?: boolean) {
+        let entry = this._map[key];
+
+        if(entry === undefined) return;
+
+        if(entry === this.tail) {
+            return returnEntry ? entry : entry.value;
+        }
+
+        if(entry.newer) {
+            if(entry === this.head) {
+                this.head = entry.newer;
+            }
+            entry.newer.older = entry.older;
+        }
+        if (entry.older) {
+            entry.older.newer = entry.newer;
+        }
+        entry.newer = undefined;
+        entry.older = this.tail;
+        if(this.tail) {
+            this.tail.newer = entry;
+        } this.tail = entry;
+        return returnEntry ? entry : entry.value;
     }
-    
-    public get(key: number): T {
-        let node = this.map.get(key);
-        this.setHead(node);
-        return node.data
+
+    public find(key: number) {
+        return this._map[key];
     }
-    
+
     public set(key: number, value: T) {
-        let node = new LRUNode(key, value);
-        if (this.map.has(key)) {
-            this.remove(key);
+        let oldvalue, entry = <LRUNode<T>> this.get(key, true);
+        if(entry){
+            oldvalue = entry.value;
+            entry.value = value;
+        } else {
+            oldvalue = this.put(key, value);
+            if(oldvalue) {
+                oldvalue = oldvalue.value;
+            }
         }
-        this.map.set(node.key, node)
-        this.setHead(node);
-        this.size++
-        while(this.size >= this.limit) {
-            this.purge();
-        } 
+        return oldvalue;
     }
-    
+
     public remove(key: number) {
-        let node = this.map.get(key);
-        
-        //node is floating due to async calls
-        if(node.prev == null && node.next == null) {
-            //no-op
+        let entry = this._map[key];
+        if(!entry) return;
+
+        delete this._map[entry.key];
+
+        if(entry.newer && entry.older) {
+            entry.older.newer = entry.newer;
+            entry.newer.older
+        } else if (entry.newer) {
+            entry.newer.older = undefined;
+            this.head = entry.newer;
+        } else if (entry.older) {
+            entry.older.newer = undefined;
+            this.tail = entry.older;
+        } else {
+            this.head = this.tail = undefined;
         }
-        //node is only element
-        else if(this.head === node && this.tail === node) {
-            this.head = null;
-            this.tail = null;
-        }
-        //node is head
-        else if(this.head === node) {
-            this.head = node.prev;
-            node.prev.next = null;
-        }
-        //node is tail
-        else if(this.tail === node) {
-            this.tail = node.next;
-            node.next.prev = null;
-        }
-        //node is in middle
-        else {
-            node.prev.next = node.next;
-            node.next.prev = node.prev;
-            node.next = null;
-            node.prev = null;
-        }
-        
-        this.map.delete(key);
-        this.size--
-        
+
+        this.size--;
+        return entry.value;
     }
-        
+
+    public removeAll() {
+        this.head = this.tail = undefined;
+        this.size = 0;
+        this._map = {};
+    }
+
+    public forEach(fun: (number, T, LRUCache) => any, context?: Object) {
+        let entry = this.tail;
+
+        if(typeof context !== 'object') {
+            context = this;
+        }
+
+        while(entry) {
+            fun.call(context, entry.key, entry.value, this);
+            entry = entry.older;
+        }
+
+    }
+
+
 }

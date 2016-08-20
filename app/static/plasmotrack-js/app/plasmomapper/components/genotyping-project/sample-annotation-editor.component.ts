@@ -113,10 +113,7 @@ export class D3SampleAnnotationEditor implements OnChanges {
     
     private createBars(){
         this.bars = [];
-        console.log(this.locusAnnotation);
-        console.log(this.bins);
         let keys = this.bins.keys();
-        console.log(keys);
         
         while(true) {
             let e = keys.next();
@@ -124,10 +121,8 @@ export class D3SampleAnnotationEditor implements OnChanges {
                 break;
             } else {
                 let k = e.value;
-                console.log(k);
             
                 let b = this.bins.get(+k)
-                console.log(k, b);
                 let bar = {
                     opacity: .6,
                     center: b.base_size,
@@ -149,7 +144,6 @@ export class D3SampleAnnotationEditor implements OnChanges {
     }
     
     private barClicked(bar: Bar){
-        console.log(bar);
         this.locusAnnotation.alleles[bar.id] = !this.locusAnnotation.alleles[bar.id];
         this.locusAnnotation.isDirty = true;
         this.render();
@@ -157,7 +151,6 @@ export class D3SampleAnnotationEditor implements OnChanges {
     
     private createTrace(){
         this.trace = null;
-        console.log(this.well, this.channel);
         let data = d3.zip(this.well.base_sizes, this.channel.data);
         let trace = {
             data: data,
@@ -207,28 +200,24 @@ export class D3SampleAnnotationEditor implements OnChanges {
             domain: [this.locus.min_base_length, this.locus.max_base_length],
             range: [-100, this.max_height * 1.1]
         }
-        console.log(this.canvasConfig);
         this.canvas = new D3Canvas(this.canvasConfig);
         this.canvas.addBars(this.bars, this.barClicked.bind(this));
         this.canvas.addTrace(this.trace);
         if(this.locusAnnotation && this.locusAnnotation.reference_channel_id === this.channelAnnotation.channel_id) {
             this.canvas.addCircles(this.circles, this.selectPeak.bind(this));    
         };
-        console.log("CREATING CANVAS");
         
     }
     
     private getWell(channel: Channel) {
         return this._wellService.getWell(channel.well_id)
             .map(well => {
-                console.log("Getting Well");
                 this.well = well;
                 return channel;
             });
     }
     
     private getLocus(channel: Channel) {
-        console.log("Getting Locus");
         return this._locusService.getLocus(channel.locus_id)
             .map(locus => {
                 this.locus = locus;
@@ -258,7 +247,6 @@ export class D3SampleAnnotationEditor implements OnChanges {
         
         let wellObs = channelObs.concatMap(
             channel => {
-                console.log(channel);
                 return this._wellService.getWell(channel.well_id)
                     .map(well => {
                         this.well = well

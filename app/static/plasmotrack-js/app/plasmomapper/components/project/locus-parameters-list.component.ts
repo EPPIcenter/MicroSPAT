@@ -14,7 +14,7 @@ import { LocusPipe } from '../../pipes/locus.pipe';
             <div class="table-responsive">
                 <table class="table table-hover table-condensed">
                     <tbody>
-                        <tr *ngFor="#locusParameter of locusParameters" (click)="onLocusClick(locusParameter.locus_id)" [ngClass]="{warning: locusParameter.isDirty || locusParameter.scanning_parameters_stale || locusParameter.filter_parameters_stale}">
+                        <tr *ngFor="let locusParameter of locusParameters" (click)="onLocusClick(locusParameter.locus_id)" [ngClass]="{warning: locusParameter.isDirty || locusParameter.scanning_parameters_stale || locusParameter.filter_parameters_stale || locusParameter.artifact_estimator_parameters_stale || locusParameter.genotyping_parameters_stale || locusParameter.bin_estimator_parameters_stale}">
                             <td>{{locusParameter.locus_id | locus | async}}</td>
                         </tr>
                     </tbody>
@@ -31,10 +31,10 @@ export class LocusParametersListComponent {
     @Output() locusClicked = new EventEmitter();
     
     onLocusClick(locus_id: number) {
-        console.log(this.locusParameters);
-        this.locusClicked.emit(locus_id)
+        this.locusClicked.emit(locus_id);
     }
     
     constructor() {
     }
+
 }

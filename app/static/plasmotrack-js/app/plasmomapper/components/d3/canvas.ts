@@ -121,10 +121,6 @@ export class D3Canvas{
         let end_x = line.end
         let start_y = line.slope * start_x + line.intercept;
         let end_y = line.slope * end_x + line.intercept;
-        
-        console.log(start_x, end_x, start_y, end_y);
-        console.log(lineGenerator([[start_x, start_y], [end_x, end_y]]));
-        
         let c = this.canvas.append("svg:g")
                     .attr("class", "line")
         

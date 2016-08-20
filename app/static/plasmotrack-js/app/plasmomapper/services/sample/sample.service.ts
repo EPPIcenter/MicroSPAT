@@ -25,7 +25,6 @@ export class SampleService {
         this.postSamples = (files: File[]) => {
             return this._commonServerMethods.postFiles(files, this._samplesUrl, {})
                 .map(samples => {
-                    console.log(samples);
                     let sample_array = [];
                     for(let i = 0; i < samples.length; i++) {
                         let t = new Sample();

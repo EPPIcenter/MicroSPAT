@@ -14,7 +14,7 @@ import { Project } from '../../services/project/project.model';
             </div>
             <div *ngIf="navItems" class="panel-body">
                 <ul class="nav navbar-nav">
-                    <li *ngFor="#nav_item of navItems" (click)="nav_item.click()" [class.router-link-active]="nav_item.active">
+                    <li *ngFor="let nav_item of navItems" (click)="nav_item.click()" [class.router-link-active]="nav_item.active">
                         <a>{{nav_item.label}}</a>
                     </li>
                 </ul>

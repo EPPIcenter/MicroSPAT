@@ -57,8 +57,6 @@ export class D3BinEstimatorPlot implements OnInit, OnDestroy{
                 half_width: bin.bin_buffer,
                 height: 1
             }
-            console.log(bar);
-            
             this.bars.push(bar);
         })
         }
@@ -87,17 +85,17 @@ export class D3BinEstimatorPlot implements OnInit, OnDestroy{
     }
     
     render() {
-        this.canvasConfig = {
+        if(this.locus) {
+            this.canvasConfig = {
             container: d3.select(this._elementRef.nativeElement).select("#plot-container"),
             backgroundColor: '#252830',
             domain: [this.locus.min_base_length, this.locus.max_base_length],
             range: [-.1, 1.1]
+            }
+            this.canvas = new D3Canvas(this.canvasConfig);            
+            this.canvas.addBars(this.bars);
+            this.canvas.addCircles(this.circles);
         }
-        this.canvas = new D3Canvas(this.canvasConfig);
-        console.log(this.bars);
-        
-        this.canvas.addBars(this.bars);
-        this.canvas.addCircles(this.circles);
     }
     
     ngOnChanges() {

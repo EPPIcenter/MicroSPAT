@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router-deprecated';
 
 import { SectionHeaderComponent } from '../layout/section-header.component';
+import { ProgressBarComponent } from '../layout/progress-bar.component';
 
 import { BinEstimatorProjectService } from '../../services/bin-estimator-project/bin-estimator-project.service';
 import { BinEstimatorProject } from '../../services/bin-estimator-project/bin-estimator-project.model';
@@ -16,31 +17,40 @@ import { LocusSet } from '../../services/locus-set/locus-set.model';
         <pm-section-header [header]="'Bin Estimator Projects'"></pm-section-header>
     </div>
     <div class="row">
-        <div *ngFor="#err of consttructorErrors">
+        <div *ngFor="let err of constructorErrors">
             <span class="label label-danger">{{err}}</span>
             <br/>
         </div>
     </div>
     <div class="row main-container">
-        <div class="table-responsive list-panel col-sm-4">
-            <table class="table table-striped table-hover table-condensed">
-                <thead>
-                    <tr>
-                        <th (click)="sortingParam='title'; reversed=!reversed; sortProjects()">Title</th>
-                        <th>Creator</th>
-                        <th>Description</th>
-                        <th (click)="sortingParam='last_updated'; reversed=!reversed; sortProjects()">Last Updated</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr *ngFor="#project of binEstimatorProjects" (click)="gotoDetail(project.id)">
-                        <td>{{project.title}}</td>
-                        <td>{{project.creator}}</td>
-                        <td>{{project.description}}</td>
-                        <td>{{project.last_updated | date: "fullDate"}}</td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="col-sm-6">
+            <div class="panel panel-default">
+                <div class="panel-body">
+                    <div *ngIf="loadingProjects">
+                        <pm-progress-bar [label]="'Bin Estimators'"></pm-progress-bar>
+                    </div>
+                    <div *ngIf="!loadingProjects" class="table-responsive list-panel">
+                        <table class="table table-striped table-hover table-condensed">
+                            <thead>
+                                <tr>
+                                    <th (click)="sortingParam='title'; reversed=!reversed; sortProjects()">Title</th>
+                                    <th>Creator</th>
+                                    <th>Description</th>
+                                    <th (click)="sortingParam='last_updated'; reversed=!reversed; sortProjects()">Last Updated</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let project of binEstimatorProjects" (click)="gotoDetail(project.id)">
+                                    <td>{{project.title}}</td>
+                                    <td>{{project.creator}}</td>
+                                    <td>{{project.description}}</td>
+                                    <td>{{project.last_updated | date: "fullDate"}}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="col-sm-6">
             <div class="panel panel-default">
@@ -64,7 +74,7 @@ import { LocusSet } from '../../services/locus-set/locus-set.model';
                         <div class="form-group">
                             <label>Locus Set</label>
                             <select [(ngModel)]="newBinEstimatorProject.locus_set_id" required class="form-control">
-                                <option *ngFor="#locusSet of locusSets" value={{locusSet.id}}>{{locusSet.label}}</option>
+                                <option *ngFor="let locusSet of locusSets" value={{locusSet.id}}>{{locusSet.label}}</option>
                             </select>
                         </div>
                         <button type="submit" class="btn btn-default" [ngClass]="{disabled: isSubmitting}">Save</button>
@@ -77,7 +87,7 @@ import { LocusSet } from '../../services/locus-set/locus-set.model';
         </div>
     </div>
     `,
-    directives: [SectionHeaderComponent]
+    directives: [SectionHeaderComponent, ProgressBarComponent]
 })
 export class BinEstimatorListComponent implements OnInit {
     private binEstimatorProjects: BinEstimatorProject[];
@@ -90,6 +100,8 @@ export class BinEstimatorListComponent implements OnInit {
     private reversed = false;
     
     private isSubmitting = false;
+
+    private loadingProjects = false;
     
     constructor(
         private _binEstimatorProjectService: BinEstimatorProjectService,
@@ -103,9 +115,11 @@ export class BinEstimatorListComponent implements OnInit {
     }
     
     getProjects() {
+        this.loadingProjects = true;
         this._binEstimatorProjectService.getBinEstimatorProjects()
             .subscribe(
                 projects => {
+                    this.loadingProjects = false;
                     this.binEstimatorProjects = projects;
                     this.sortProjects()
                 },
@@ -128,18 +142,22 @@ export class BinEstimatorListComponent implements OnInit {
     }
     
     submitNewProject() {
-        this.newProjectError = null;
-        this.isSubmitting = true;
-        this._binEstimatorProjectService.createBinEstimatorProject(this.newBinEstimatorProject).subscribe(
-            () => {
-                this.isSubmitting = false;
-                this.getProjects();
-            },
-            err => {
-                this.isSubmitting = false;
-                this.newProjectError = err;
-            }
-        )
+        if(!this.isSubmitting) {
+            this.newProjectError = null;
+            this.isSubmitting = true;
+            this._binEstimatorProjectService.createBinEstimatorProject(this.newBinEstimatorProject).subscribe(
+                () => {
+                    this.getProjects();
+                },
+                err => {
+                    this.newProjectError = err;
+                },
+                () => {
+                    this.isSubmitting = false;
+                }
+            )
+        }
+        
     }
     
     sortProjects() {

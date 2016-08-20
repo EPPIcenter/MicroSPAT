@@ -98,9 +98,7 @@ export class CommonLocusParametersDetailComponent {
     // @Output() locusParamsSaved = new EventEmitter();
     
     constructor(
-    ){
-        console.log("Creating Detail Component");
-    }
+    ){}
     
     onChanged(e) {
         this.locusParameter.isDirty = true

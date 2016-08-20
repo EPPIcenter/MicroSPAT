@@ -25,7 +25,7 @@ import * as d3 from 'd3'
         <a [ngClass]="{disabled: !well.isDirty}" (click)="undo()" class="btn btn-info btn-block">Undo Changes</a>
         <h3 class="span12 label label-info">SQ: {{well.sizing_quality | number}}</h3>
         <h3 class="span12 label label-success">Well: {{well.well_label}}</h3>
-        <span class="label label-danger" *ngFor='#err of errorMessages'>{{err}}</span>
+        <span class="label label-danger" *ngFor='let err of errorMessages'>{{err}}</span>
     </div>
     `
 })
@@ -68,12 +68,11 @@ export class D3LadderEditorComponent implements OnChanges, OnDestroy{
     }
     
     ngOnDestroy(){
-        console.log("Destroying Ladder Editor Component");        
-        d3.select(this._elementRef.nativeElement).select("#ladder-container").select("*").remove()
+        d3.select(this._elementRef.nativeElement).select("#ladder-container").select("*").remove();
     }
     
     render() {        
-        d3.select(this._elementRef.nativeElement).select("#ladder-container").select("*").remove()
+        d3.select(this._elementRef.nativeElement).select("#ladder-container").select("*").remove();
         
         let max_i = null;
         let windowSize = 25;
@@ -84,12 +83,12 @@ export class D3LadderEditorComponent implements OnChanges, OnDestroy{
                         .attr("height", "100%")
                         .style("background-color", "#252830");
         
-        let fullWidth = parseInt(canvas.style("width"))
-        let fullHeight = parseInt(canvas.style("height"))
+        let fullWidth = parseInt(canvas.style("width"));
+        let fullHeight = parseInt(canvas.style("height"));
         
         let x = d3.scale.linear()
                     .domain([0, this.ladderChannel.data.length])
-                    .range([0, fullWidth])
+                    .range([0, fullWidth]);
         
         let y = d3.scale.linear()
                     .domain([-200, d3.max(this.ladderChannel.data) * 1.2 + 25])

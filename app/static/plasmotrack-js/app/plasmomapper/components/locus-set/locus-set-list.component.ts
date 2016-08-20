@@ -24,7 +24,7 @@ import { LocusSetService } from '../../services/locus-set/locus-set.service';
                     </tr>
                 </thead>
                 <tbody>
-                    <tr *ngFor="#locusSet of locusSets">
+                    <tr *ngFor="let locusSet of locusSets">
                         <td>{{locusSet.label}}</td>
                         <td><a><span (click)="removeLocusSet(locusSet.id)" class="glyphicon glyphicon-remove-circle"></span></a></td>
                     </tr>
@@ -54,7 +54,7 @@ import { LocusSetService } from '../../services/locus-set/locus-set.service';
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr *ngFor="#locus of loci" [ngClass]="{success: selectedLocusIds[locus.id]}" (click)="selectedLocusIds[locus.id] = !selectedLocusIds[locus.id]">
+                                    <tr *ngFor="let locus of loci" [ngClass]="{success: selectedLocusIds[locus.id]}" (click)="selectedLocusIds[locus.id] = !selectedLocusIds[locus.id]">
                                         <td>{{locus.label}}</td>
                                         <td>{{locus.min_base_length}}</td>
                                         <td>{{locus.max_base_length}}</td>
@@ -144,8 +144,7 @@ export class LocusSetListComponent implements OnInit{
     createLocusSet() {
         this.isSubmitting = true;
         this.newLocusSetError = null;
-        let locusIds = []
-        console.log(this.selectedLocusIds);
+        let locusIds = [];
         
         for(let id in this.selectedLocusIds) {
             if(this.selectedLocusIds[id]){
@@ -153,7 +152,6 @@ export class LocusSetListComponent implements OnInit{
             }
         }
         
-        console.log(locusIds);
         
         this._locusSetService.createLocusSet(this.newLocusSet, locusIds).subscribe(
             () => {

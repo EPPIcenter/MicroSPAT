@@ -6,7 +6,11 @@ export abstract class DatabaseItem {
     
     copyFromObj(obj: any) {
         for(let p in obj) {
-            this[p] = obj[p];
+            if (p === 'id'){
+                this[p] = +obj[p];
+            } else {
+                this[p] = obj[p];
+            }
         }
     }
 }
