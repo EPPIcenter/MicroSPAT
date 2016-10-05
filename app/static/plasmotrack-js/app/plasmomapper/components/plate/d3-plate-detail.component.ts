@@ -1,11 +1,14 @@
-import { Component, ElementRef, OnChanges, OnInit, SimpleChange } from '@angular/core';
+import { Component, ElementRef, OnChanges, OnInit, SimpleChange, ViewChild, Output, EventEmitter } from '@angular/core';
 import { Well } from '../../services/well/well.model';
 import { Plate } from '../../services/plate/plate.model';
 import { Channel } from '../../services/channel/channel.model';
+import { Ladder } from '../../services/ladder/ladder.model';
 import { LadderService } from '../../services/ladder/ladder.service';
 import { PlateService } from '../../services/plate/plate.service';
 import { WellService } from '../../services/well/well.service';
 import { ChannelService } from '../../services/channel/channel.service';
+
+import { Router } from '@angular/router-deprecated';
 
 import { ProgressBarComponent } from '../layout/progress-bar.component';
 
@@ -27,8 +30,8 @@ import { D3WellViewerComponent } from './d3-well-viewer.component';
         </div>
         <div *ngIf="showSelectedPlate" class="panel-body">
             <div class="row" style="height: 20vh; padding-bottom: 1vh">
-                <div class="col-sm-5" style="height: 100%">
-                    <pm-d3-plate-ladder-detail [plate]="plate" [wellSelector]="selectWell"></pm-d3-plate-ladder-detail>
+                <div class="col-sm-5" style="height:100%">
+                    <pm-d3-plate-ladder-detail [plate]="plate" [wellSelector]="selectWell" [selectedWell]="selectedWell"></pm-d3-plate-ladder-detail>
                 </div>
                 <div class="col-sm-4" style="height:100%">
                     <pm-d3-plate-channel-detail [plate]="plate" [wellSelector]="selectWell"></pm-d3-plate-channel-detail>
@@ -38,19 +41,39 @@ import { D3WellViewerComponent } from './d3-well-viewer.component';
                         <div class="form-group">
                             <input type="file" (change)="fileChangeEvent($event)" placeholder="Upload file..."/>
                         </div>
-                        <button class="btn btn-primary" type="button" [ngClass]="{disabled: uploading}" (click)="upload()">Upload Plate Map</button>
+                        <div class="checkbox">
+                            <label>
+                                <input type="checkbox" [(ngModel)]='createSamplesIfNotExists'>
+                                Create Samples If They Don't Exist
+                            </label>
+                        </div>
+                        <a class="btn btn-primary btn-block" [ngClass]="{disabled: recalculatingLadder || uploading}" (click)="upload()">Upload Plate Map</a>
+                        <div class="btn-group" style="width:100%">
+                            <button [ngClass]="{disabled: recalculatingLadder || uploading}" type="button" class="btn btn-info btn-block dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                Recalculate Ladder <span class="glyphicon glyphicon-chevron-down pull-right"></span>
+                            </button>
+                            <ul class="dropdown-menu" style="width:100%">
+                                <li *ngFor="let ladder of ladders"><a (click)="recalculatePlateLadder(plate.id, ladder.id)">{{ladder.label}}</a></li>
+                            </ul>
+                        </div>
+                        <a class="btn btn-warning btn-block" type="button" (click)="deletePlate.emit(plate.id)" [ngClass]="{disabled: uploading || recalculatingLadder}">Delete Plate</a>
                     </form>
                     <br>
                     <div *ngIf="uploading">
                         <pm-progress-bar [fullLabel]="'Uploading Plate Map...'"></pm-progress-bar>
                     </div>
+                    <div *ngIf="recalculatingLadder">
+                        <pm-progress-bar [fullLabel]="'Recalculating Ladder...'"></pm-progress-bar>
+                    </div>
                     <span class="label label-danger">{{plateMapError}}</span>
                 </div>
             </div>
             <div *ngIf="selectedWell">
+                <br>
                 <div class="row" style="padding-top: 1vh">
                     <pm-d3-ladder-editor (ladderRecalculated)="ladderRecalculated($event)" [well]="selectedWell"></pm-d3-ladder-editor>
                 </div>
+                <br>
                 <div class="row" style="padding-top: 1vh">
                     <pm-d3-well-viewer [well]="selectedWell"></pm-d3-well-viewer>
                 </div>
@@ -68,22 +91,33 @@ export class PlateDetailComponent implements OnInit {
     public filesToUpload: File[] = [];
     private showSelectedPlate = true;
     private uploading = false;
+    private recalculatingLadder = false;
     private plateMapError: string;
     private files: any
+    private ladders: Ladder[] = [];
+    private createSamplesIfNotExists = false;
+    
     
     constructor(
         private _plateService: PlateService,
         private _wellService: WellService,
         private _ladderService: LadderService,
-        private _channelService: ChannelService
+        private _channelService: ChannelService,
+        private _router: Router
     ){}
+
+    @ViewChild(D3PlateLadderDetailComponent) ladderDetail: D3PlateLadderDetailComponent;
+    @Output() deletePlate = new EventEmitter();
     
     wellSelector(id: number) {
-        this._wellService.getWell(id).subscribe(
-            well => {
-                this.selectedWell = well;
-            }
-        )
+        if(!this.recalculatingLadder){
+            this._wellService.getWell(id).subscribe(
+                well => {
+                    this.selectedWell = well;
+                    this.ladderDetail.render();
+                }
+            )
+        }
     }
     
     fileChangeEvent(fileInput: any){        
@@ -94,10 +128,11 @@ export class PlateDetailComponent implements OnInit {
         if(!this.uploading) {
             this.plateMapError = null;
             this.uploading = true;
-            this._plateService.postPlateMap(this.filesToUpload, this.plate.id)
+            this._plateService.postPlateMap(this.filesToUpload, this.plate.id, this.createSamplesIfNotExists)
                 .subscribe(
                     plate => {
                         this.plate = plate;
+                        toastr.success("Plate Map Uploaded");
                     },
                     err => {
                         this.uploading = false;
@@ -124,9 +159,37 @@ export class PlateDetailComponent implements OnInit {
             }
         ))
     }
+
+    recalculatePlateLadder(plate_id: number, ladder_id: number) {
+        if(!this.recalculatingLadder) {
+            this.recalculatingLadder = true;
+            this._plateService.recalculateLadder(plate_id, ladder_id)
+                .subscribe(
+                    plate => {
+                        this.plate = plate;
+                    },
+                    err => {
+                        console.log(err);
+                        this.plateMapError = err;
+                    },
+                    () => {
+                        this.recalculatingLadder = false;
+                    }
+                )
+        }
+        
+        console.log("Recalculate Plate Ladder", plate_id, ladder_id);
+    }
     
     ngOnInit() {
         this.selectWell = this.wellSelector.bind(this);
+        this._ladderService.getLadders().subscribe(
+            ladders => {
+                this.ladders = ladders;
+                console.log(this.ladders);
+            },
+            err => this.plateMapError = err
+        )
     }
     
     ngOnChanges() {

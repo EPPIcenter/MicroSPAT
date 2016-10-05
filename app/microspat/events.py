@@ -1,9 +1,15 @@
 # import eventlet
+import os
+
 from flask import Blueprint, jsonify, request
+from flask import json
 from flask_socketio import emit
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.orm.exc import NoResultFound
+from werkzeug.utils import secure_filename
 
 from app.utils import CaseInsensitiveDictReader
+from app.microspat.utils import load_loci_from_csv, LocusException, load_samples_from_csv, load_plate_zips
 from models import *
 
 microspat = Blueprint('microspat', import_name=__name__, template_folder='templates',
@@ -11,7 +17,6 @@ microspat = Blueprint('microspat', import_name=__name__, template_folder='templa
 
 
 class StaleParametersError(Exception):
-
     def __init__(self, project, locus):
         self.project = project
         self.locus = locus
@@ -79,6 +84,9 @@ def update_peak_scanner(target, update_dict):
     :type update_dict: dict
     :type target: PeakScanner
     """
+    print update_dict
+    print type(update_dict)
+    print update_dict['scanning_method']
     if update_dict['scanning_method'] == 'relmax':
         target.scanning_method = 'relmax'
         target.argrelmax_window = update_dict['argrelmax_window']
@@ -177,23 +185,30 @@ def update_project(target, update_dict):
     return target
 
 
-def load_plate_map(plate_map_file, plate):
+def load_plate_map(plate_map_file, plate, create_samples_if_not_exist=False):
     r = csv.DictReader(plate_map_file)
     locus_labels = r.fieldnames
     locus_labels = [x for x in locus_labels if x.lower() not in ['', 'well']]
     new_channels = defaultdict(list)
-    clear_channel_annotations(plate.id)
+    clear_plate_map(plate.id)
     for entry in r:
         eventlet.sleep()
         well_label = entry['Well']
         for locus_label in locus_labels:
             sample_barcode = entry[locus_label]
             if sample_barcode:
-                sample = Sample.query.filter(Sample.barcode == sample_barcode).one()
+                sample = Sample.query.filter(Sample.barcode == sample_barcode).one_or_none()
+                if not sample and create_samples_if_not_exist:
+                    if 'ntc' in sample_barcode.lower():
+                        sample = Sample(barcode=sample_barcode, designation='negative_control')
+                    else:
+                        sample = Sample(barcode=sample_barcode, designation='sample')
+                    db.session.add(sample)
                 if not sample:
                     return handle_error("Sample with barcode {} does not exist".format(sample_barcode))
-                locus = Locus.query.filter(Locus.label == locus_label).one()
-                if not locus:
+                try:
+                    locus = Locus.query.filter(Locus.label == locus_label).one()
+                except NoResultFound:
                     return handle_error("Locus with label {} does not exist".format(locus_label))
                 projects = list(
                     GenotypingProject.query.join(LocusSet).join(locus_set_association_table).join(Locus).join(
@@ -217,10 +232,16 @@ def load_plate_map(plate_map_file, plate):
     return jsonify(wrap_data(plate.serialize()))
 
 
-def clear_channel_annotations(plate_id):
-    channel_annotations = ProjectChannelAnnotations.query.join(Channel).join(Well).join(Plate).filter(Plate.id == plate_id).all()
+def clear_plate_map(plate_id):
+    channel_annotations = ProjectChannelAnnotations.query.join(Channel).join(Well).join(Plate).filter(
+        Plate.id == plate_id).all()
     for annotation in channel_annotations:
         db.session.delete(annotation)
+
+    channels = Channel.query.join(Well).join(Plate).filter(Plate.id == plate_id).all()
+    for channel in channels:
+        channel.reinitialize()
+
     db.session.flush()
 
 
@@ -235,17 +256,11 @@ def catch_all(path):
     res.status_code = 404
     return res
 
+
 @socketio.on('connect')
 def test_message(message=None):
-    print "Connected Socket"
-    emit('test', 'test')
     emit('message', request.sid + ' Connected', broadcast=True)
-    # for i in range(1, 101):
-    #     send_message(i)
-    # plates = Plate.query.all()
-    # if plates:
-    #     plates = [x.to_json() for x in plates]
-    # socketio.emit('all_projects', wrap_data(plates))
+
 
 @socketio.on('client_test')
 def client_test(message=None):
@@ -255,14 +270,8 @@ def client_test(message=None):
 
 @socketio.on('list', namespace='/project')
 def socket_get_or_post_projects():
-    send_message('GETTING/POSTING PROJECTS')
     projects = GenotypingProject.query.all()
     emit('list_all', [x.serialize() for x in projects])
-
-
-@socketio.on('list')
-def list_items():
-    print "List without namespace pinged"
 
 
 @microspat.route('/genotyping-project/', methods=['GET', 'POST'])
@@ -270,7 +279,7 @@ def get_or_post_projects():
     if request.method == 'GET':
         return table_list_all(GenotypingProject)
     elif request.method == 'POST':
-        project_params = request.json
+        project_params = json.loads(request.get_json())
         print project_params
         try:
             project = GenotypingProject(**project_params)
@@ -283,7 +292,7 @@ def get_or_post_projects():
 
 @microspat.route('/genotyping-project/calculate-probability/', methods=['POST'])
 def calculate_probability():
-    project_json = request.json
+    project_json = json.loads(request.get_json())
     project = GenotypingProject.query.get(project_json['id'])
     assert isinstance(project, GenotypingProject)
     project.probability_threshold = project_json['probability_threshold']
@@ -297,7 +306,7 @@ def get_or_update_project(id):
     if request.method == 'GET':
         return table_get_details(GenotypingProject, id)
     elif request.method == 'PUT':
-        project_update_dict = request.json
+        project_update_dict = json.loads(request.get_json())
         project = GenotypingProject.query.get(id)
         if project:
             try:
@@ -349,7 +358,7 @@ def get_or_create_artifact_estimators():
     if request.method == 'GET':
         return table_list_all(ArtifactEstimatorProject)
     elif request.method == 'POST':
-        project_params = request.json
+        project_params = json.loads(request.get_json())
         try:
             project = ArtifactEstimatorProject(**project_params)
             db.session.add(project)
@@ -365,7 +374,7 @@ def get_or_update_artifact_estimator(id):
     if request.method == 'GET':
         return table_get_details(ArtifactEstimatorProject, id)
     elif request.method == 'PUT':
-        project_update_dict = request.json
+        project_update_dict = json.loads(request.get_json())
         project = ArtifactEstimatorProject.query.get(id)
         if project:
             try:
@@ -413,12 +422,21 @@ def add_breakpoint(id):
     try:
         estimator = ArtifactEstimator.query.get(id)
         assert isinstance(estimator, ArtifactEstimator)
-        breakpoint = float(request.json['breakpoint'])
+        request_json = request.get_json()
+        breakpoint = float(request_json['breakpoint'])
         estimator.add_breakpoint(breakpoint)
 
         return jsonify(wrap_data(estimator.serialize()))
     except Exception as e:
         return handle_error(e)
+
+
+@microspat.route('/artifact-estimator/<int:id>/recalculate-artifact-equations/', methods=['POST'])
+def recalculate_artifact_equations(id):
+    estimator = ArtifactEstimator.query.get(id)
+    parameter_sets = request.get_json()
+    estimator.generate_estimating_equations(parameter_sets)
+    return jsonify(wrap_data(estimator.serialize()))
 
 
 @microspat.route('/artifact-estimator/<int:id>/clear-breakpoints/', methods=['GET'])
@@ -437,7 +455,7 @@ def get_or_create_bin_estimators():
     if request.method == 'GET':
         return table_list_all(BinEstimatorProject)
     elif request.method == 'POST':
-        project_params = request.json
+        project_params = json.loads(request.get_json())
         try:
             print "Adding a new project"
             project = BinEstimatorProject(**project_params)
@@ -454,7 +472,7 @@ def get_or_update_bin_estimator(id):
     if request.method == 'GET':
         return table_get_details(BinEstimatorProject, id)
     elif request.method == 'PUT':
-        project_update_dict = request.json
+        project_update_dict = json.loads(request.get_json())
         project = BinEstimatorProject.query.get(id)
         if project:
             try:
@@ -484,6 +502,87 @@ def get_or_update_bin_estimator(id):
             return handle_error(e)
 
 
+@microspat.route('/bin-estimator/<int:id>/locus/<int:locus_id>/bins/', methods=['PUT', 'POST'])
+def create_or_update_bins(id, locus_id):
+    bins = map(json.loads, request.json)
+    old_bins = filter(lambda _: _.get('id'), bins)
+    new_bins = filter(lambda _: not _.get('id'), bins)
+
+    project = BinEstimatorProject.query.get(id)
+    assert isinstance(project, BinEstimatorProject)
+    locus_bin_set = [_ for _ in project.locus_bin_sets if _.locus_id == locus_id][0]
+    assert isinstance(locus_bin_set, LocusBinSet)
+
+    if not locus_bin_set:
+        return handle_error("Locus is not assigned to this project")
+
+    # Remove deleted bins
+    old_bin_ids = [_['id'] for _ in old_bins]
+    for b in locus_bin_set.bins:
+        print b.id
+        if b.id not in old_bin_ids:
+            db.session.delete(b)
+
+    # Update old bins
+    for b in old_bins:
+        old_bin = [_ for _ in locus_bin_set.bins if _.id == b['id']][0]
+        assert isinstance(old_bin, Bin)
+        old_bin.base_size = b['base_size']
+        old_bin.bin_buffer = b['bin_buffer']
+        old_bin.label = b['label']
+
+    # Add new bins
+    for b in new_bins:
+        new_bin = Bin(label=b['label'], base_size=b['base_size'], bin_buffer=b['bin_buffer'])
+        db.session.add(new_bin)
+        locus_bin_set.bins.append(new_bin)
+
+    db.session.flush()
+
+    project.parameters_changed(locus_id)
+
+    locus_parameters = project.get_locus_parameters(locus_id)
+
+    assert isinstance(locus_parameters, BinEstimatorLocusParams)
+
+    locus_parameters.scanning_parameters_stale = False
+    locus_parameters.filter_parameters_stale = False
+    locus_parameters.bin_estimator_parameters_stale = False
+
+    return jsonify(wrap_data({"status": "Success"}))
+
+
+@microspat.route('/locus-parameters/', methods=['POST'])
+def batch_update_locus_parameters():
+    update_fns = {
+        'artifact_estimator_locus_params': update_artifact_locus_params,
+        'genotyping_locus_params': update_genotyping_locus_params,
+        'bin_estimator_locus_params': update_bin_estimator_locus_params,
+        'base_locus_params': update_locus_params
+    }
+    locus_params_update_dict = json.loads(request.get_json())
+    proj_id = locus_params_update_dict['project_id']
+    project = Project.query.get(proj_id)
+    locus_parameters = ProjectLocusParams.query.filter(ProjectLocusParams.project_id == proj_id).all()
+    print project, locus_parameters
+    if locus_parameters:
+        try:
+            updater = update_fns.get(locus_parameters[0].discriminator, update_locus_params)
+            try:
+                for p in locus_parameters:
+                    updater(p, locus_params_update_dict)
+            except StaleParametersError as e:
+                return handle_error("{} is stale at locus {}, analyze that first!".format(e.project, e.locus))
+            db.session.flush()
+            for p in locus_parameters:
+                project.analyze_locus(p.locus_id, block_commit=True)
+            return jsonify(wrap_data({'Status': 'Success'}))
+        except SQLAlchemyError as e:
+            return handle_error(e)
+    else:
+        return jsonify(error="No Record Found", status=404)
+
+
 @microspat.route('/locus-parameters/<int:id>/', methods=['GET', 'PUT'])
 def get_or_update_locus_parameters(id):
     update_fns = {
@@ -495,7 +594,8 @@ def get_or_update_locus_parameters(id):
     if request.method == 'GET':
         return table_get_details(ProjectLocusParams, id)
     elif request.method == 'PUT':
-        locus_params_update_dict = request.json
+        locus_params_update_dict = json.loads(request.get_json())
+        print type(locus_params_update_dict)
         locus_params = ProjectLocusParams.query.get(id)
         assert isinstance(locus_params, ProjectLocusParams)
         project = Project.query.get(locus_params.project_id)
@@ -517,11 +617,11 @@ def get_or_update_locus_parameters(id):
 
 
 @microspat.route('/locus/', methods=['GET', 'POST'])
-def get_loci():
+def get_or_post_loci():
     if request.method == 'GET':
         return table_list_all(Locus)
     elif request.method == 'POST':
-        locus_params = request.json
+        locus_params = json.loads(request.get_json())
         try:
             locus = Locus(**locus_params)
             db.session.add(locus)
@@ -529,6 +629,24 @@ def get_loci():
             return jsonify(wrap_data(locus.serialize()))
         except Exception as e:
             return handle_error(e)
+
+
+@microspat.route('/locus/from-csv/', methods=['POST'])
+def load_loci_from_csv_path(f=None):
+    if not f:
+        locus_csv = request.files.getlist('files')[0]
+    else:
+        locus_csv = f
+    try:
+        if locus_csv.filename[-4:] != ".csv":
+            return handle_error("Uploaded file is not a CSV")
+        loci = load_loci_from_csv(locus_csv)
+        map(db.session.add, loci)
+        db.session.flush()
+        return table_list_all(Locus)
+
+    except LocusException as e:
+        return handle_error(e)
 
 
 @microspat.route('/locus/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
@@ -554,8 +672,11 @@ def get_or_post_locus_sets():
     if request.method == 'GET':
         return table_list_all(LocusSet)
     elif request.method == 'POST':
-        locus_set_params = request.json['locus_set']
-        locus_ids = request.json['locus_ids']
+        request_json = request.get_json()
+        print request_json
+        print type(request_json)
+        locus_set_params = json.loads(request_json['locus_set'])
+        locus_ids = request_json['locus_ids']
         try:
             locus_set = LocusSet(**locus_set_params)
             for locus_id in locus_ids:
@@ -591,9 +712,10 @@ def get_or_post_ladders():
     if request.method == 'GET':
         return table_list_all(Ladder)
     elif request.method == 'POST':
-        ladder_params = request.json
+        ladder_params = json.loads(request.get_json())
         try:
-            if ladder_params['id']:
+            print ladder_params
+            if ladder_params.get('id', None):
                 l = Ladder.query.get(ladder_params['id'])
             else:
                 l = Ladder()
@@ -612,7 +734,7 @@ def get_ladder(id):
     if request.method == 'GET':
         return table_get_details(Ladder, id)
     elif request.method == 'PUT':
-        ladder_params = request.json
+        ladder_params = json.loads(request.get_json())
         try:
             l = Ladder.query.get(ladder_params.pop('id'))
             for attr in ladder_params.keys():
@@ -633,44 +755,16 @@ def get_samples():
 @microspat.route('/sample/', methods=['POST'])
 def post_sample_csv():
     sample_csvs = request.files.getlist('files')
-
     if not sample_csvs:
         return handle_error("Nothing Uploaded")
-
-    positive_designations = ['pos', 'positive_control', 'positive', 'positive control', '+', 'pc']
-    negative_designations = ['neg', 'negative_control', 'negative', 'negative control', '-', 'nc']
-    sample_designations = ['s', 'sample', '']
-
     samples = []
-
     try:
         for sample_csv in sample_csvs:
-
             if sample_csv.filename[-4:] != ".csv":
                 return handle_error("Uploaded file is not a CSV")
-
-            r = CaseInsensitiveDictReader(sample_csv)
-
-            if sorted(r.fieldnames) != ['barcode', 'designation']:
-                return handle_error("CSV fieldnames invalid. Header must be ['Barcode', 'Designation']")
-
-            for sample_entry in r:
-                if sample_entry['designation'].lower() in positive_designations:
-                    sample_entry['designation'] = 'positive_control'
-                elif sample_entry['designation'].lower() in negative_designations:
-                    sample_entry['designation'] = 'negative_control'
-                elif sample_entry['designation'].lower() in sample_designations:
-                    sample_entry['designation'] = 'sample'
-                else:
-                    return handle_error("Sample designation {} is not valid".format(sample_entry['designation']))
-
-                barcode = sample_entry['barcode']
-                designation = sample_entry['designation']
-
-                sample = Sample(barcode=barcode, designation=designation)
-
-                db.session.add(sample)
-                samples.append(sample)
+            sample_list = load_samples_from_csv(sample_csv)
+            map(db.session.add, sample_list)
+            samples += sample_list
         db.session.flush()
     except Exception as e:
         return handle_error(e)
@@ -698,18 +792,92 @@ def save_plate():
         return res
     if plate_zips:
         try:
-            plate_ids = []
-            for plate_zip in plate_zips:
-                p_id = Plate.from_zip(plate_zip, ladder_id)
-                plate_ids.append(p_id)
-            db.session.expire_all()
-            return jsonify(wrap_data([Plate.query.get(plate_id).serialize() for plate_id in plate_ids]))
+            files = []
+            if not os.path.exists('./tmp'):
+                os.mkdir('./tmp')
+            for i, f in enumerate(plate_zips):
+                filename = str(i)
+                f.save(os.path.join('./tmp', filename))
+                files.append(os.path.join('./tmp', filename))
+                # plate_ids = []
+                # for plate_zip in plate_zips:
+                # p = Plate.from_zip(plate_zip, ladder_id, add_to_db=False)
+                # plate_ids.append(p_id)
+            # db.session.expire_all()
+            ladder = Ladder.query.get(ladder_id)
+            plate_zips = map(open, files)
+            print plate_zips
+            try:
+                extracted_plates = load_plate_zips(plate_zips, ladder)
+            except Exception as e:
+                map(lambda x: x.close, plate_zips)
+                raise e
+            plates = []
+            for extracted_plate in extracted_plates:
+                if Plate.query.filter(Plate.plate_hash == extracted_plate.plate_hash).count():
+                    return handle_error(
+                        "A plate with the same hash as {} already exists. Are you sure this hasn't "
+                        "been loaded before?".format(extracted_plate.label))
+                p = Plate(label=extracted_plate.label, comments=extracted_plate.comments,
+                          creator=extracted_plate.creator,
+                          date_run=extracted_plate.date_run, well_arrangement=extracted_plate.well_arrangement,
+                          ce_machine=extracted_plate.ce_machine, plate_hash=extracted_plate.plate_hash)
+
+                db.session.add(p)
+
+                for well in extracted_plate.wells:
+                    w = Well(well_label=well.well_label, comments=well.comments, base_sizes=well.base_sizes,
+                             ladder_peak_indices=well.ladder_peak_indices, sizing_quality=well.sizing_quality,
+                             offscale_indices=well.offscale_indices, fsa_hash=well.fsa_hash)
+                    w.plate = p
+                    w.ladder = ladder
+                    db.session.add(w)
+                    for channel in well.channels:
+                        c = Channel(wavelength=channel.wavelength, data=channel.data, color=channel.color)
+                        c.well = w
+                        db.session.add(c)
+                plates.append(p)
+            db.session.flush()
+            return jsonify(wrap_data([Plate.query.get(plate.id).serialize() for plate in plates]))
         except Exception as e:
             return handle_error(e)
+        finally:
+            map(lambda x: os.remove(os.path.join('./tmp', x)), os.listdir('./tmp'))
     else:
         res = jsonify(error="Nothing Uploaded")
         res.status_code = 404
         return res
+
+
+# @microspat.route('/plate/', methods=['POST'])
+# def save_plate():
+#     plate_zips = request.files.getlist('files')
+#     ladder_id = request.form['ladder_id']
+#     if ladder_id == 'undefined':
+#         res = jsonify(error="Please Select a Ladder")
+#         res.status_code = 404
+#         return res
+#     if plate_zips:
+#         try:
+#             plate_ids = []
+#             for plate_zip in plate_zips:
+#                 p_id = Plate.from_zip(plate_zip, ladder_id)
+#                 plate_ids.append(p_id)
+#             db.session.expire_all()
+#             return jsonify(wrap_data([Plate.query.get(plate_id).serialize() for plate_id in plate_ids]))
+#         except Exception as e:
+#             return handle_error(e)
+#     else:
+#         res = jsonify(error="Nothing Uploaded")
+#         res.status_code = 404
+#         return res
+
+
+@microspat.route('/plate/<int:plate_id>/', methods=['DELETE'])
+def delete_plate(plate_id):
+    p = Plate.query.get(plate_id)
+    db.session.delete(p)
+    return jsonify(wrap_data({'status': 'Success'}))
 
 
 @microspat.route('/plate/<int:id>/', methods=['GET', 'POST'])
@@ -718,11 +886,13 @@ def get_plate_or_post_plate_map(id):
         return table_get_details(Plate, id)
     elif request.method == 'POST':
         plate_map_list = request.files.getlist('files')
+        print request.form
+        print request.form['create_samples_if_not_exist'] == 'true'
         if plate_map_list:
             try:
                 plate_map = plate_map_list[0]
                 plate = Plate.query.get(id)
-                return load_plate_map(plate_map, plate)
+                return load_plate_map(plate_map, plate, request.form['create_samples_if_not_exist'] == 'true')
             except Exception as e:
                 return handle_error(e)
         else:
@@ -731,8 +901,21 @@ def get_plate_or_post_plate_map(id):
 
 @microspat.route('/plate/locus/<int:id>/', methods=['GET'])
 def get_plates_with_locus(id):
-    plate_ids = set(Plate.query.join(Well).join(Channel).filter(Channel.locus_id == 196).values(Plate.id))
+    plate_ids = set(Plate.query.join(Well).join(Channel).filter(Channel.locus_id == id).values(Plate.id))
     return jsonify(wrap_data({"ids": plate_ids}))
+
+
+@microspat.route('/plate/<int:plate_id>/recalculate-ladder/<int:ladder_id>/', methods=['GET'])
+def recalculate_plate_ladder(plate_id, ladder_id):
+    plate = Plate.query.get(plate_id)
+    ladder = Ladder.query.get(ladder_id)
+    assert isinstance(plate, Plate)
+    for well in plate.wells:
+        well.ladder = ladder
+        well.calculate_base_sizes()
+    db.session.flush()
+    plate = Plate.query.get(plate_id)
+    return jsonify(wrap_data(plate.serialize()))
 
 
 @microspat.route('/well/<int:id>/')
@@ -743,7 +926,8 @@ def get_well(id):
 @microspat.route('/well/<int:id>/recalculate-ladder/', methods=['POST'])
 def recalculate_ladder(id):
     well = Well.query.get(id)
-    peak_indices = request.json['peak_indices']
+    request_json = request.get_json()
+    peak_indices = request_json['peak_indices']
     if well and isinstance(peak_indices, list):
         try:
             well.calculate_base_sizes(peak_indices)
@@ -791,14 +975,31 @@ def get_project_sample_locus_annotations_by_sample(project_id, sample_id):
 
 @microspat.route('/locus-annotations/', methods=['POST'])
 def update_locus_annotations():
-    annotations = request.json
-    try:
-        for annotation in annotations:
-            sample_annotation = SampleLocusAnnotation.query.get(annotation['id'])
-            assert isinstance(sample_annotation, SampleLocusAnnotation)
-            sample_annotation.alleles = annotation['alleles']
-            sample_annotation.flags['manual_curation'] = True
-        db.session.commit()
-        return jsonify(wrap_data({'status': 'Success'}))
-    except Exception as e:
-        return handle_error(e)
+    annotations = map(json.loads, request.get_json())
+    for annotation in annotations:
+        print annotation
+        sample_annotation = SampleLocusAnnotation.query.get(annotation['id'])
+        assert isinstance(sample_annotation, SampleLocusAnnotation)
+        sample_annotation.alleles = annotation['alleles']
+        sample_annotation.flags['manual_curation'] = True
+    db.session.commit()
+    return jsonify(wrap_data({'status': 'Success'}))
+
+
+@microspat.route('/control/', methods=['GET'])
+def get_controls():
+    return table_list_all(Control)
+
+
+@microspat.route('/control/<int:id>/', methods=['GET', 'PUT'])
+def get_control(id):
+    if request.method == 'GET':
+        return table_get_details(Control, id)
+    elif request.method == 'PUT':
+        ctrl = Control.query.get(id)
+        update_control = json.loads(request.get_json())
+        print ctrl
+        print update_control
+        ctrl.set_alleles(update_control['alleles'])
+        db.session.flush()
+        return jsonify(wrap_data(ctrl.serialize()))

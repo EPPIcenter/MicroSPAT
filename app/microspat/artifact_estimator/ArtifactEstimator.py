@@ -187,13 +187,14 @@ class ArtifactEstimator(object):
 
 
 class ArtifactEquation(object):
-    def __init__(self, sd, r_squared, slope, intercept, start_size, end_size):
+    def __init__(self, sd, r_squared, slope, intercept, start_size, end_size, method=None):
         self.sd = sd
         self.r_squared = r_squared
         self.start_size = start_size
         self.end_size = end_size
         self.slope = slope
         self.intercept = intercept
+        self.method = method
 
     def annotate_artifact(self, annotated_main_peak, annotated_artifact_peak):
         artifact_estimate = (self.slope * annotated_main_peak['peak_size'] + self.intercept) * \
@@ -220,7 +221,7 @@ class ArtifactEquation(object):
 
         model = m(peaks)
 
-        return cls(start_size=start_size, end_size=end_size, **model)
+        return cls(start_size=start_size, end_size=end_size, method=method, **model)
 
     @staticmethod
     def linear_regression(pts, regressor):

@@ -97,7 +97,10 @@ class MutableDict(Mutable, dict):
 #         self.changed()
 
 class MutableList(Mutable, list):
-    """A list type that implements :class:`.Mutable`.
+    """
+    SQLAlchemy implementation
+
+    A list type that implements :class:`.Mutable`.
     The :class:`.MutableList` object implements a list that will
     emit change events to the underlying mapping when the contents of
     the list are altered, including when values are added or removed.

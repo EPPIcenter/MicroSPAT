@@ -1,5 +1,9 @@
 import hashlib
 import zipfile
+from functools import partial
+import dill
+from pathos import multiprocessing
+# import multiprocessing
 
 from app.microspat.peak_annotator.PeakAnnotators import *
 from ..signal_processor.TraceProcessor import LadderProcessor, MicrosatelliteProcessor, NoLadderException
@@ -187,6 +191,30 @@ class PlateExtractor(object):
         return cls(label=label, wells=wells, well_arrangement=well_arrangement, date_run=date_run, creator=creator,
                    comments=comments, ce_machine=ce_machine, plate_hash=plate_hash)
 
+    @classmethod
+    def from_zip_and_calculate_base_sizes(cls, zip_file, ladder, color, base_size_precision, sq_limit,
+                                          filter_parameters, scanning_parameters, creator=None, comments=None):
+        p = cls.from_zip(zip_file, creator, comments)
+        p.calculate_base_sizes(ladder=ladder, color=color, base_size_precision=base_size_precision, sq_limit=sq_limit,
+                               filter_parameters=filter_parameters, scanning_parameters=scanning_parameters)
+
+        return p
+
+    @classmethod
+    def parallel_from_zip(cls, zip_files, ladder, color, base_size_precision, sq_limit,
+                          filter_parameters, scanning_parameters, creator=None, comments=None):
+
+        pool = multiprocessing.Pool()
+        print "MultiProcessing Plate Loading with {} Processes".format(pool._processes)
+        fn = partial(cls.from_zip_and_calculate_base_sizes, ladder=ladder, color=color,
+                     base_size_precision=base_size_precision,
+                     sq_limit=sq_limit,
+                     filter_parameters=filter_parameters,
+                     scanning_parameters=scanning_parameters)
+        extracted_plates = pool.map(fn, zip_files)
+        pool.close()
+        return extracted_plates
+
     def surrounding_wells(self, well_label, distance):
         quad = None
         if self.well_arrangement == 384:
@@ -202,7 +230,7 @@ class PlateExtractor(object):
         if quad:
             surrounding_well_list = map(lambda _: self.convert_from_quad(quad, _), surrounding_well_list)
 
-        surrounding_wells = [self.wells_dict[x] for x in surrounding_well_list]
+        surrounding_wells = filter(None, [self.wells_dict.get(x, None) for x in surrounding_well_list])
         return surrounding_wells
 
     def crosstalk_annotator(self, well_label, color, max_capillary_distance=2, idx_dist=1):
@@ -345,7 +373,8 @@ class PlateExtractor(object):
 
 
 class WellExtractor(object):
-    def __init__(self, well_label, plate=None, comments=None, base_sizes=None, sizing_quality=None, offscale_indices=None,
+    def __init__(self, well_label, plate=None, comments=None, base_sizes=None, sizing_quality=None,
+                 offscale_indices=None,
                  ladder_peak_indices=None, channels=None, fsa_hash=None):
         self._channels_dict = None
 

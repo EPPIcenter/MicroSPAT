@@ -15,7 +15,7 @@ import { PlateDetailComponent } from './d3-plate-detail.component';
 @Component({
     selector: 'pm-plate-list',
     template: `
-    <pm-section-header [header]="'Plates'"></pm-section-header>
+    <br>
     <div class="row main-container">
         <div class="col-sm-5">
             <div class="row">
@@ -38,10 +38,10 @@ import { PlateDetailComponent } from './d3-plate-detail.component';
                                         <option *ngFor="let ladder of ladders" value={{ladder.id}}>{{ladder.label}}</option>
                                     </select>
                                 </div>
-                                <button class="btn btn-primary" type="button" (click)="upload()">Upload</button>
+                                <button class="btn btn-primary" [ngClass]="{disabled: uploading}" type="button" (click)="upload()">Upload</button>
                             </form>
                             <br>
-                            <div class="row" *ngIf="uploading">
+                            <div *ngIf="uploading">
                                 <pm-progress-bar [fullLabel]="'Uploading Plates'"></pm-progress-bar>
                             </div>
                             <span class="label label-danger">{{newPlateError}}</span>
@@ -50,6 +50,9 @@ import { PlateDetailComponent } from './d3-plate-detail.component';
                 </div>
             </div>
             <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Plates</h3>
+                </div>
                 <div class="panel-body">
                     <div *ngIf="loadingPlates">
                         <pm-progress-bar [label]="'Plates'"></pm-progress-bar>
@@ -86,8 +89,11 @@ import { PlateDetailComponent } from './d3-plate-detail.component';
                 <div *ngIf="loadingPlate">
                     <pm-progress-bar [label]="'Plate'"></pm-progress-bar>
                 </div>
-                <div *ngIf="selectedPlate">
-                    <pm-d3-plate-detail [plate]="selectedPlate"></pm-d3-plate-detail>
+                <div *ngIf="deletingPlate">
+                    <pm-progress-bar [fullLabel]="'Deleting Plate'"></pm-progress-bar>
+                </div>
+                <div *ngIf="selectedPlate && !deletingPlate">
+                    <pm-d3-plate-detail [plate]="selectedPlate" (deletePlate)="deletePlate($event)"></pm-d3-plate-detail>
                 </div>  
             </div>            
         </div>
@@ -111,6 +117,7 @@ export class PlateListComponent implements OnInit {
     
     private loadingPlates = false;
     private loadingPlate = false;
+    private deletingPlate = false;
 
     private uploading = false;
     
@@ -174,6 +181,26 @@ export class PlateListComponent implements OnInit {
     
     fileChangeEvent(fileInput: any){
         this.filesToUpload = <Array<File>> fileInput.target.files;
+    }
+
+    deletePlate(plate_id: number) {
+        if(!this.deletingPlate) {
+            this.deletingPlate = true;
+            this._plateService.deletePlate(plate_id).subscribe(
+                () => {
+                    this.selectedPlate = null;
+                    this.getPlates();
+                    toastr.success("Plate Succesfully Deleted");
+                },
+                err => {
+                    toastr.error(err);
+                },
+                () => {
+                    this.deletingPlate = false;
+                }
+            );
+
+        }
     }
     
     upload() {

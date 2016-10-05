@@ -10,4 +10,18 @@ export class GenotypingLocusParameters extends LocusParameters {
     absolute_peak_height_limit: number;
     failure_threshold: number;
     genotyping_parameters_stale: boolean;
+
+    initialize() {
+        super.initialize();
+        
+        this.soft_artifact_sd_limit = 3;
+        this.hard_artifact_sd_limit = 1;
+        this.offscale_threshold = 32000;
+        this.bleedthrough_filter_limit = 2;
+        this.crosstalk_filter_limit = 2;
+        this.relative_peak_height_limit = .01;
+        this.absolute_peak_height_limit = 50;
+        this.failure_threshold = 500;
+        
+    }
 }

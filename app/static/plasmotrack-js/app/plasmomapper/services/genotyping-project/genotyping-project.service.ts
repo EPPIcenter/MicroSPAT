@@ -10,6 +10,7 @@ import { SampleBasedProjectService }       from '../sample-based-project/sample-
 
 import { DatabaseItem }         from '../DatabaseItem';
 import { GenotypingProject }    from './genotyping-project.model';
+import { GenotypingLocusParameters } from './locus-parameters/genotyping-locus-parameters.model';
 import { SampleLocusAnnotation } from '../sample-based-project/sample-annotation/locus-annotation/sample-locus-annotation.model';
 
 
@@ -84,6 +85,10 @@ export class GenotypingProjectService extends SampleBasedProjectService {
         
         this.calculateProbability = (project: GenotypingProject) => {
             return this._commonServerMethods.postJSON(project, this._projectsUrl + "calculate-probability/")
+                .map(p => {
+                    this.clearCache(project.id);
+                    return p;
+                })
         }
 
         this.artifactEstimatorChanged = (artifact_estimator_id: number) => {
@@ -114,5 +119,7 @@ export class GenotypingProjectService extends SampleBasedProjectService {
                 this.clearCache(id);
             })
         }
+
+
     }
 }

@@ -11,6 +11,10 @@ import { ProjectService }       from '../project/project.service';
 import { DatabaseItem }             from '../DatabaseItem';
 import { ArtifactEstimatorProject } from './artifact-estimator-project.model';
 import { ArtifactEstimator }        from './locus-artifact-estimator/artifact-estimator/artifact-estimator.model';
+import { ArtifactEquationParameterSet } from './locus-artifact-estimator/artifact-estimator/artifact-equation/artifact-equation-parameter-set.model';
+
+class AEMEthods {
+}
 
 @Injectable()
 export class ArtifactEstimatorProjectService extends ProjectService {
@@ -22,6 +26,8 @@ export class ArtifactEstimatorProjectService extends ProjectService {
     
     public deleteArtifactEstimator: (id: number) => Observable<DatabaseItem>;
     public addBreakpoint: (artifact_estimator_id: number, breakpoint: number) => Observable<ArtifactEstimator>;
+
+    public recalculateArtifactEquations: (artifact_estimator_id: number, parameters: ArtifactEquationParameterSet[]) => Observable<ArtifactEstimator>;
     public clearArtifactEstimatorBreakpoints: (artifact_estimator_id: number) => Observable<ArtifactEstimator>;
     public clearCache: (id: number) => void;
 
@@ -57,12 +63,24 @@ export class ArtifactEstimatorProjectService extends ProjectService {
                             return t;
                         })
         }
+
+        this.recalculateArtifactEquations = (artifact_estimator_id: number, parameters: ArtifactEquationParameterSet[]) => {
+            return this._commonServerMethods.postJSON(parameters, 
+                this._artifactEstimatorUrl + artifact_estimator_id + "/recalculate-artifact-equations/")
+                .map(res => <Object> res.json().data)
+                .map(res => {
+                    console.log(res);
+                    let t = new ArtifactEstimator();
+                    t.fillFromJSON(res);
+                    return t;
+                })
+        }
         
         this.clearArtifactEstimatorBreakpoints = (artifact_estimator_id: number) => {
             return this._commonServerMethods.getUrl(this._artifactEstimatorUrl + artifact_estimator_id + "/clear-breakpoints/")
                         .map(res => {
                             let t = new ArtifactEstimator();
-                            t.fillFromJSON(res)
+                            t.fillFromJSON(res);
                             return t;
                         })
         }

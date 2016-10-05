@@ -12,24 +12,31 @@ import { LocusSetService } from '../../services/locus-set/locus-set.service';
 @Component({
     selector: 'pm-locus-set-list',
     template: `
-    <pm-section-header [header]="'Locus Sets'"></pm-section-header>
+    <br>
     <div class="row main-container">
-        <div class="table-responsive list-panel col-sm-2">
-            <span class="label label-danger">{{locusSetListError}}</span>
-            <table class="table table-striped table-hover table-condensed">
-                <thead>
-                    <tr>
-                        <th>Label</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr *ngFor="let locusSet of locusSets">
-                        <td>{{locusSet.label}}</td>
-                        <td><a><span (click)="removeLocusSet(locusSet.id)" class="glyphicon glyphicon-remove-circle"></span></a></td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="col-sm-2">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Locus Sets</h3>
+                </div>
+                <div class="panel-body table-responsive list-panel">
+                    <span class="label label-danger">{{locusSetListError}}</span>
+                    <table class="table table-striped table-hover table-condensed">
+                        <thead>
+                            <tr>
+                                <th>Label</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let locusSet of locusSets">
+                                <td>{{locusSet.label}}</td>
+                                <td><a><span (click)="removeLocusSet(locusSet.id)" class="glyphicon glyphicon-remove-circle"></span></a></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
         <div class="col-sm-5">
             <div class="panel panel-default">

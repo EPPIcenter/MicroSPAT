@@ -61,7 +61,11 @@ export class CommonServerMethods {
                             t.fillFromJSON(res);
                             return t;
                         })
-                        .do(data => cache.set(id, data))
+                        .do(data => {
+                            if(cache != null){
+                                cache.set(id, data)
+                            }
+                        })
                         .catch(this.handleError);
         }
     }
@@ -75,7 +79,13 @@ export class CommonServerMethods {
     public updateItem<T extends DatabaseItem>(item: T, type: { new(): T ;}, url: string, cache?: LRUCache<T>) : Observable<T> {
         let headers = new Headers();
         headers.append('Content-Type', 'application/json');
-        return this.http.put(url + item.id + '/', JSON.stringify(item), {headers: headers})
+        return this.http.put(url + item.id + '/', JSON.stringify(item, (k, v) => {
+            if(k.startsWith('_')) {
+                return undefined;
+            } else {
+                return v;
+            }
+        }), {headers: headers})
             .map(res => <Object> res.json().data)
             .map((res) => {
                             let t = new type();
@@ -148,7 +158,34 @@ export class CommonServerMethods {
     public postJSON(obj: Object, url: string) {
         let headers = new Headers();
         headers.append('Content-Type', 'application/json');
-        return this.http.post(url, JSON.stringify(obj), {headers: headers})
+
+        // if(Array.isArray(obj)) {
+        //     console.log(obj);
+        //     stringified = JSON.stringify(obj.map((el) => {
+        //             return JSON.stringify(el, (k, v) => {
+        //                 if(k.startsWith('_')) {
+        //                     return undefined;
+        //                 } else {
+        //                     return v;
+        //                 }
+        //             })
+        //         })
+        //     )
+        // } else {
+        console.log(obj);
+        let stringified = JSON.stringify(obj, (k, v) => {
+            if(k.startsWith('_')) {
+                return undefined;
+            } else {
+                return v;
+            }
+        })
+        //}
+
+        console.log(stringified);
+        console.log(typeof stringified);
+        
+        return this.http.post(url, stringified, {headers: headers})
                     .catch(this.handleError);
     }
     

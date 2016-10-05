@@ -11,7 +11,7 @@ from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import validates, deferred, reconstructor, joinedload
 from sqlalchemy import event
 from sqlalchemy.orm.util import object_state
-from sqlalchemy.orm.session import attributes
+from sqlalchemy.orm.session import attributes, make_transient
 
 from sqlalchemy.engine import Engine
 
@@ -110,7 +110,8 @@ class Flaggable(object):
 class LocusSetAssociatedMixin(object):
     @declared_attr
     def locus_set_id(self):
-        return db.Column(db.Integer, db.ForeignKey('locus_set.id'), nullable=False)
+        #TODO: add index to sqlite
+        return db.Column(db.Integer, db.ForeignKey('locus_set.id'), nullable=False, index=True)
 
     @declared_attr
     def locus_set(self):
@@ -145,9 +146,9 @@ class Sample(TimeStamped, Flaggable, db.Model):
     barcode = db.Column(db.String(255), nullable=False, unique=True)
     designation = db.Column(db.String(255), nullable=False, default='sample', index=True)
     channels = db.relationship('Channel', backref=db.backref('sample'), lazy='dynamic')
-
-    __mapper_args__ = {'polymorphic_on': designation,
-                       'polymorphic_identity': 'sample'}
+    #
+    # __mapper_args__ = {'polymorphic_on': designation,
+    #                    'polymorphic_identity': 'sample'}
 
     @validates('designation')
     def validate_designation(self, key, designation):
@@ -164,6 +165,75 @@ class Sample(TimeStamped, Flaggable, db.Model):
         }
 
 
+class InvalidAllelesException(Exception):
+    pass
+
+
+class Control(TimeStamped, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    barcode = db.Column(db.String(255), unique=True, nullable=False)
+    bin_estimator_id = db.Column(db.Integer, db.ForeignKey('bin_estimator_project.id'), index=True, nullable=False)
+    bin_estimator = db.relationship('BinEstimatorProject', cascade='save-update, merge, delete, expunge')
+    alleles = db.Column(MutableDict.as_mutable(JSONEncodedData))
+
+    __table_args__ = (db.UniqueConstraint('barcode', 'bin_estimator_id', name='_barcode_bin_estimator_uc'),)
+
+    def __init__(self, barcode, bin_estimator_id):
+        bin_estimator = BinEstimatorProject.query.get_or_404(bin_estimator_id)
+
+        assert isinstance(bin_estimator, BinEstimatorProject)
+        self.bin_estimator_id = bin_estimator_id
+        self.bin_estimator = bin_estimator
+        self.barcode = barcode
+        self.initialize_alleles()
+
+    def initialize_alleles(self):
+        self.alleles = {}
+        for bin_set in self.bin_estimator.locus_bin_sets:
+            assert isinstance(bin_set, LocusBinSet)
+            self.alleles[str(bin_set.locus_id)] = dict.fromkeys([str(_.id) for _ in bin_set.bins], False)
+        return self
+
+    def set_alleles(self, alleles):
+        if self.alleles_valid(alleles):
+            self.alleles = alleles
+        else:
+            raise InvalidAllelesException()
+        return self
+
+    def alleles_valid(self, alleles):
+        valid_locus_ids = [str(_.id) for _ in self.bin_estimator.locus_set.loci]
+        for locus_id in alleles.keys():
+            if locus_id in valid_locus_ids:
+                be_bin_set = next((_ for _ in self.bin_estimator.locus_bin_sets if _.locus_id == int(locus_id)), None)
+                if be_bin_set:
+                    valid_bin_ids = [str(_.id) for _ in be_bin_set.bins]
+                    for bin_id in alleles[locus_id].keys():
+                        if bin_id not in valid_bin_ids:
+                            return False
+                else:
+                    return False
+            else:
+                return False
+        return True
+
+    def serialize(self):
+        return {
+            'id': self.id,
+            'barcode': self.barcode,
+            'bin_estimator_id': self.bin_estimator_id,
+            'bin_estimator': self.bin_estimator.serialize(),
+            'alleles': self.alleles
+        }
+
+    def serialize_details(self):
+        res = self.serialize()
+        res.update({
+            'bin_estimator': self.bin_estimator.serialize_details()
+        })
+        return res
+
+
 class Project(LocusSetAssociatedMixin, TimeStamped, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255), unique=True, nullable=False)
@@ -171,10 +241,54 @@ class Project(LocusSetAssociatedMixin, TimeStamped, db.Model):
     creator = db.Column(db.String(255))
     description = db.Column(db.Text, nullable=True)
     channel_annotations = db.relationship('ProjectChannelAnnotations', backref=db.backref('project'), lazy='dynamic',
-                                          cascade='save-update, merge, delete, delete-orphan')
+                                          cascade='save-update, merge, delete, expunge, delete-orphan')
     discriminator = db.Column('type', db.String(255))
     __mapper_args__ = {'polymorphic_on': discriminator,
                        'polymorphic_identity': 'base_project'}
+
+    @classmethod
+    def copy_project(cls, project):
+        assert isinstance(project, cls)
+        locus_params = project.locus_parameters.all()
+        channel_annotations = project.channel_annotations.all()
+
+        db.session.expunge(project)
+        make_transient(project)
+
+        title_invalid = True
+        copy_count = 1
+        title = project.title
+
+        while title_invalid:
+            title = "Copy {} of {}".format(copy_count, project.title)
+            title_invalid = Project.query.filter(Project.title == title).all()
+            copy_count += 1
+
+        project.title = title
+        project.id = None
+        project.date = datetime.utcnow()
+
+        map(db.session.expunge, locus_params)
+        map(make_transient, locus_params)
+        map(lambda _: setattr(_, 'id', None), locus_params)
+
+        map(db.session.expunge, channel_annotations)
+        map(make_transient, channel_annotations)
+        map(lambda _: setattr(_, 'old_id', _.id), channel_annotations)
+        map(lambda _: setattr(_, 'id', None), channel_annotations)
+
+        db.session.add(project)
+        db.session.flush()
+
+        map(lambda _: setattr(_, 'project_id', project.id), locus_params)
+        map(lambda _: setattr(_, 'project', project), channel_annotations)
+
+        map(db.session.add, locus_params)
+        map(db.session.add, channel_annotations)
+
+        db.session.flush()
+
+        return project
 
     @property
     def associated_samples(self):
@@ -239,8 +353,8 @@ class Project(LocusSetAssociatedMixin, TimeStamped, db.Model):
 
         locus_parameters.scanning_parameters_stale = True
         locus_parameters.filter_parameters_stale = True
-        if not block_commit:
-            db.session.commit()
+        # if not block_commit:
+        #     db.session.commit()
 
         return channel_annotation
 
@@ -266,8 +380,8 @@ class Project(LocusSetAssociatedMixin, TimeStamped, db.Model):
 
         channel_annotations = self.bulk_create_channel_annotations(channel_ids, block_commit=True)
 
-        if not block_commit:
-            db.session.commit()
+        # if not block_commit:
+        #     db.session.commit()
 
         return channel_annotations
 
@@ -281,8 +395,8 @@ class Project(LocusSetAssociatedMixin, TimeStamped, db.Model):
         for channel_id in channel_ids:
             objs.append(ProjectChannelAnnotations(channel_id=channel_id, project_id=self.id))
         db.session.bulk_save_objects(objs)
-        if not block_commit:
-            db.session.commit()
+        # if not block_commit:
+        #     db.session.commit()
         return objs
 
     def recalculate_channel(self, channel_annotation, rescan_peaks, block_commit=False):
@@ -314,8 +428,8 @@ class Project(LocusSetAssociatedMixin, TimeStamped, db.Model):
 
             channel_annotation.annotated_peaks = channel.peaks[:]
 
-        if not block_commit:
-            db.session.commit()
+        # if not block_commit:
+        #     db.session.commit()
 
         return channel_annotation
 
@@ -326,8 +440,8 @@ class Project(LocusSetAssociatedMixin, TimeStamped, db.Model):
             recalculated_channel_annotations.append(
                 self.recalculate_channel(channel_annotation, rescan_peaks, block_commit=True))
 
-        if not block_commit:
-            db.session.commit()
+        # if not block_commit:
+        #     db.session.commit()
 
         return recalculated_channel_annotations
 
@@ -356,8 +470,8 @@ class Project(LocusSetAssociatedMixin, TimeStamped, db.Model):
         locus_parameters.scanning_parameters_stale = False
         locus_parameters.filter_parameters_stale = False
 
-        if not block_commit:
-            db.session.commit()
+        # if not block_commit:
+        #     db.session.commit()
 
         return channel_annotations
 
@@ -469,8 +583,46 @@ class QuantificationBiasEstimating(object):
         return self
 
 
-class SampleBasedProject(Project):
+class SampleBasedProject(Project, BinEstimating):
+    id = db.Column(db.Integer, db.ForeignKey('project.id'), primary_key=True)
     __mapper_args__ = {'polymorphic_identity': 'sample_based_project'}
+
+    @classmethod
+    def copy_project(cls, project):
+        assert isinstance(project, cls)
+
+        reference_run_map = {}
+
+        sample_annotations = project.sample_annotations.all()
+        for sa in sample_annotations:
+            assert isinstance(sa, ProjectSampleAnnotations)
+            for la in sa.locus_annotations:
+                la.old_ref_id = la.reference_run_id
+                assert isinstance(la, SampleLocusAnnotation)
+                reference_run_map[(sa.sample_id, la.locus_id)] = la.reference_run_id
+
+        sample_annotations = map(ProjectSampleAnnotations.copy_project_sample_annotations, sample_annotations)
+
+        project = super(SampleBasedProject, cls).copy_project(project)
+
+        project.sample_annotations = sample_annotations
+
+        old_ref_map = {}
+        for ca in project.channel_annotations.all():
+            old_ref_map[ca.old_id] = ca
+
+        for sa in sample_annotations:
+            assert isinstance(sa, ProjectSampleAnnotations)
+            for la in sa.locus_annotations:
+                assert isinstance(la, SampleLocusAnnotation)
+                ref_run = reference_run_map[(sa.sample_id, la.locus_id)]
+                if ref_run:
+                    la.reference_run = old_ref_map[ref_run]
+                la.project_id = project.id
+
+        db.session.flush()
+
+        return project
 
     @declared_attr
     def sample_annotations(self):
@@ -480,6 +632,12 @@ class SampleBasedProject(Project):
     @property
     def locus_parameters(self):
         raise NotImplementedError("Sample Based Project should not be directly initialized.")
+
+    def scanning_parameters_set_stale(self, locus_id):
+        raise NotImplementedError("Sample Based Project should not be directly initialized")
+
+    def filter_parameters_set_stale(self, locus_id):
+        raise NotImplementedError("Sample Based Project should not be directly initialized")
 
     def add_sample(self, sample_id, block_commit=False):
         sample_annotation = ProjectSampleAnnotations(sample_id=sample_id)
@@ -491,13 +649,17 @@ class SampleBasedProject(Project):
 
         self.add_channels([str(x[0]) for x in channel_ids], block_commit=True)
 
-        if not block_commit:
-            db.session.commit()
+        # if not block_commit:
+        #     db.session.commit()
 
         return sample_annotation
 
     def add_samples(self, sample_ids):
-        full_sample_ids = sample_ids
+        present_sample_ids = set([_.id for _ in self.associated_samples])
+        print present_sample_ids
+        print set(sample_ids)
+        full_sample_ids = list(set(sample_ids) - present_sample_ids)
+        print full_sample_ids
         n = 0
         while n * 100 < len(full_sample_ids):
             sample_ids = full_sample_ids[n * 100: (n + 1) * 100]
@@ -517,13 +679,12 @@ class SampleBasedProject(Project):
                     sample_annotation.locus_annotations.append(locus_sample_annotation)
             self.bulk_create_channel_annotations(channel_ids, block_commit=True)
             db.session.flush()
-            db.session.commit()
             n += 1
         locus_params = self.locus_parameters.all()
         for lp in locus_params:
             lp.filter_parameters_stale = True
             lp.scanning_parameters_stale = True
-        db.session.commit()
+        return self
 
     def serialize(self):
         res = super(SampleBasedProject, self).serialize()
@@ -531,7 +692,6 @@ class SampleBasedProject(Project):
             'sample_annotations': []
         })
         return res
-
 
     def get_locus_sample_annotations(self, locus_id):
         """
@@ -549,27 +709,58 @@ class SampleBasedProject(Project):
         })
         return res
 
+    def bin_estimator_changed(self, locus_id):
+        lp = self.get_locus_parameters(locus_id)
+        lp.set_filter_parameters_stale()
+        self.clear_locus_bin_annotations(locus_id)
+        self.initialize_alleles(locus_id)
+        return self
+
+    def clear_locus_bin_annotations(self, locus_id):
+        channel_annotations = self.get_locus_channel_annotations(locus_id)
+        self.clear_bin_annotations(channel_annotations)
+        self.clear_sample_annotations(locus_id)
+        return self
+
 
 class BinEstimatorProject(Project):
     # Collection of channels used to generate bins
     id = db.Column(db.Integer, db.ForeignKey('project.id'), primary_key=True)
+
     locus_bin_sets = db.relationship('LocusBinSet', lazy='immediate',
-                                     cascade='save-update, merge, delete, delete-orphan')
+                                     cascade='save-update, merge, delete, expunge, delete-orphan')
 
     locus_parameters = db.relationship('BinEstimatorLocusParams', backref=db.backref('bin_estimator_project'),
-                                       lazy='dynamic', cascade='save-update, merge, delete, delete-orphan')
+                                       lazy='dynamic', cascade='save-update, merge, delete, expunge, delete-orphan')
 
     __mapper_args__ = {'polymorphic_identity': 'bin_estimator_project'}
+
+    @classmethod
+    def copy_project(cls, project):
+        locus_bin_sets = project.locus_bin_sets
+        locus_bin_sets = map(LocusBinSet.copy_locus_bin_set, locus_bin_sets)
+
+        project = super(BinEstimatorProject, cls).copy_project(project)
+
+        project.locus_bin_sets = locus_bin_sets
+
+        db.session.flush()
+
+        return project
 
     def parameters_changed(self, locus_id):
         gp_projects = GenotypingProject.query.filter(GenotypingProject.bin_estimator_id == self.id).all()
         art_projects = ArtifactEstimatorProject.query.filter(ArtifactEstimatorProject.bin_estimator_id == self.id).all()
+        controls = Control.query.filter(Control.bin_estimator_id == self.id).all()
         for project in gp_projects:
             assert isinstance(project, GenotypingProject)
             project.bin_estimator_changed(locus_id)
         for project in art_projects:
             assert isinstance(project, ArtifactEstimatorProject)
             project.bin_estimator_changed(locus_id)
+        for control in controls:
+            assert isinstance(control, Control)
+            control.initialize_alleles()
 
     def filter_parameters_set_stale(self, locus_id):
         self.parameters_changed(locus_id)
@@ -614,10 +805,20 @@ class BinEstimatorProject(Project):
         return self
 
     def delete_locus_bin_set(self, locus_id):
-        old_sets = [x for x in self.locus_bin_sets if x.locus_id == locus_id]
-        for s in old_sets:
-            db.session.delete(s)
+        LocusBinSet.query.filter(LocusBinSet.project_id==self.id).filter(LocusBinSet.locus_id==locus_id).delete()
+        # old_sets = [x for x in self.locus_bin_sets if x.locus_id == locus_id]
+        # for s in old_sets:
+        #     db.session.delete(s)
+        # db.session.flush()
         self.parameters_changed(locus_id)
+
+        return self
+
+    def create_locus_bin_set(self, locus_id):
+        lbs = LocusBinSet()
+        lbs.locus_id = locus_id
+        self.locus_bin_sets.append(lbs)
+        db.session.flush()
 
     def annotate_bins(self, locus_id, peaks):
         lbs = self.get_locus_bin_set(locus_id)
@@ -641,6 +842,7 @@ class BinEstimatorProject(Project):
         loci = self.locus_set.loci
         for locus in loci:
             self.delete_locus_bin_set(locus.id)
+            self.create_locus_bin_set(locus.id)
         self.channel_annotations.delete()
         for lp in self.locus_parameters.all():
             assert isinstance(lp, ProjectLocusParams)
@@ -677,12 +879,23 @@ class BinEstimatorProject(Project):
 
 class LocusBinSet(BinFinder.BinFinder, db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    locus_id = db.Column(db.Integer, db.ForeignKey('locus.id', ondelete="CASCADE"))
+    locus_id = db.Column(db.Integer, db.ForeignKey('locus.id', ondelete="CASCADE"), index=True)
     locus = db.relationship('Locus', lazy='immediate')
-    project_id = db.Column(db.Integer, db.ForeignKey('bin_estimator_project.id', ondelete="CASCADE"))
+    project_id = db.Column(db.Integer, db.ForeignKey('bin_estimator_project.id', ondelete="CASCADE"), index=True)
     project = db.relationship('BinEstimatorProject')
+    bins = db.relationship('Bin', backref=db.backref('locus_bin_set'), lazy='immediate', cascade='save-update, merge, delete, expunge, delete-orphan')
 
-    bins = db.relationship('Bin', lazy='immediate', cascade='save-update, merge, delete, delete-orphan')
+    @classmethod
+    def copy_locus_bin_set(cls, lbs):
+        bins = map(Bin.copy_bin, lbs.bins)
+
+        db.session.expunge(lbs)
+        make_transient(lbs)
+
+        lbs.id = None
+        lbs.bins = bins
+
+        return lbs
 
     def __repr__(self):
         return "<Locus Bin Set: {}>".format(self.locus.label)
@@ -719,11 +932,18 @@ class LocusBinSet(BinFinder.BinFinder, db.Model):
 
 class Bin(Flaggable, BinFinder.Bin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    locus_bin_set_id = db.Column(db.Integer, db.ForeignKey('locus_bin_set.id', ondelete="CASCADE"))
+    locus_bin_set_id = db.Column(db.Integer, db.ForeignKey('locus_bin_set.id', ondelete="CASCADE"), index=True)
     label = db.Column(db.Text, nullable=False)
     base_size = db.Column(db.Float, nullable=False)
     bin_buffer = db.Column(db.Float, nullable=False)
     peak_count = db.Column(db.Integer)
+
+    @classmethod
+    def copy_bin(cls, b):
+        db.session.expunge(b)
+        make_transient(b)
+        b.id = None
+        return b
 
     def __repr__(self):
         return "<Bin {}>".format(self.label)
@@ -734,6 +954,7 @@ class Bin(Flaggable, BinFinder.Bin, db.Model):
 
     def serialize(self):
         res = {
+            'id': self.id,
             'locus_bin_set_id': self.locus_bin_set_id,
             'label': self.label,
             'base_size': self.base_size,
@@ -754,6 +975,19 @@ class ArtifactEstimatorProject(Project, BinEstimating):
                                        cascade='save-update, merge, delete, delete-orphan')
 
     __mapper_args__ = {'polymorphic_identity': 'artifact_estimator_project'}
+
+    @classmethod
+    def copy_project(cls, project):
+        assert isinstance(project, cls)
+        locus_artifact_estimators = project.locus_artifact_estimators
+        locus_artifact_estimators = map(LocusArtifactEstimator.copy_locus_artifact_estimator, locus_artifact_estimators)
+
+        project = super(ArtifactEstimatorProject, cls).copy_project(project)
+
+        project.locus_artifact_estimators = locus_artifact_estimators
+        db.session.flush()
+
+        return project
 
     def bin_estimator_changed(self, locus_id):
         self.clear_bin_annotations(locus_id)
@@ -795,8 +1029,8 @@ class ArtifactEstimatorProject(Project, BinEstimating):
             channel_annotation = self.add_channel(channel_id, block_commit=True)
             channel_annotations.append(channel_annotation)
 
-        if not block_commit:
-            db.session.commit()
+        # if not block_commit:
+        #     db.session.commit()
 
         return channel_annotations
 
@@ -812,8 +1046,8 @@ class ArtifactEstimatorProject(Project, BinEstimating):
                                                                                        block_commit=True)
         self.annotate_channel(channel_annotation)
 
-        if not block_commit:
-            db.session.commit()
+        # if not block_commit:
+        #     db.session.commit()
 
         return channel_annotation
 
@@ -824,18 +1058,20 @@ class ArtifactEstimatorProject(Project, BinEstimating):
         for channel_annotation in recalculated_channel_annotations:
             self.annotate_channel(channel_annotation)
 
-        if not block_commit:
-            db.session.commit()
+        # if not block_commit:
+        #     db.session.commit()
 
         return recalculated_channel_annotations
 
     def delete_locus_artifact_estimator(self, locus_id):
-        old_estimators = [x for x in self.locus_artifact_estimators if x.locus_id == locus_id]
-        if old_estimators:
-            for e in old_estimators:
-                db.session.delete(e)
-            self.parameters_changed(locus_id)
-            db.session.commit()
+        LocusArtifactEstimator.query.filter(LocusArtifactEstimator.project_id == self.id).filter(LocusArtifactEstimator.locus_id == locus_id).delete()
+        # old_estimators = [x for x in self.locus_artifact_estimators if x.locus_id == locus_id]
+        # if old_estimators:
+        #     for e in old_estimators:
+        #         db.session.delete(e)
+        self.parameters_changed(locus_id)
+        # db.session.flush()
+            # db.session.commit()
         return ArtifactEstimatorProject.query.get(self.id)
 
     def calculate_locus_artifact_estimator(self, locus_id):
@@ -882,11 +1118,12 @@ class ArtifactEstimatorProject(Project, BinEstimating):
             for peak in annotated_peaks:
                 peak['artifact_contribution'] = 0
                 peak['artifact_error'] = 0
-            artifact_annotator = next(
-                locus_artifact_estimator for locus_artifact_estimator in self.locus_artifact_estimators if
-                locus_artifact_estimator.locus_id == locus_id)
-            assert isinstance(artifact_annotator, LocusArtifactEstimator)
-            annotated_peaks = artifact_annotator.annotate_artifact(annotated_peaks)
+            artifact_annotator = [locus_artifact_estimator for locus_artifact_estimator in self.locus_artifact_estimators if
+                locus_artifact_estimator.locus_id == locus_id]
+            if artifact_annotator:
+                artifact_annotator = artifact_annotator[0]
+                assert isinstance(artifact_annotator, LocusArtifactEstimator)
+                annotated_peaks = artifact_annotator.annotate_artifact(annotated_peaks)
         return annotated_peaks
 
     def analyze_locus(self, locus_id, block_commit=False):
@@ -954,12 +1191,25 @@ class ArtifactEstimatorProject(Project, BinEstimating):
 
 class LocusArtifactEstimator(AE.ArtifactEstimatorSet, db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    locus_id = db.Column(db.Integer, db.ForeignKey('locus.id', ondelete="CASCADE"))
+    locus_id = db.Column(db.Integer, db.ForeignKey('locus.id', ondelete="CASCADE"), index=True)
     locus = db.relationship('Locus')
-    project_id = db.Column(db.Integer, db.ForeignKey('artifact_estimator_project.id', ondelete="CASCADE"))
+    project_id = db.Column(db.Integer, db.ForeignKey('artifact_estimator_project.id', ondelete="CASCADE"), index=True)
     project = db.relationship('ArtifactEstimatorProject')
     artifact_estimators = db.relationship('ArtifactEstimator', lazy='immediate',
                                           cascade='save-update, merge, delete, delete-orphan')
+
+    @classmethod
+    def copy_locus_artifact_estimator(cls, lae):
+        assert isinstance(lae, cls)
+        artifact_estimators = map(ArtifactEstimator.copy_artifact_estimator, lae.artifact_estimators)
+
+        db.session.expunge(lae)
+        make_transient(lae)
+
+        lae.id = None
+        lae.artifact_estimators = artifact_estimators
+
+        return lae
 
     def __repr__(self):
         return "<Artifact Estimator {}>".format(self.locus.label)
@@ -1013,11 +1263,24 @@ class ArtifactEstimator(AE.ArtifactEstimator, db.Model):
     artifact_distance = db.Column(db.Float, nullable=False)
     artifact_distance_buffer = db.Column(db.Float, nullable=False)
     locus_artifact_estimator_id = db.Column(db.Integer,
-                                            db.ForeignKey('locus_artifact_estimator.id', ondelete="CASCADE"))
+                                            db.ForeignKey('locus_artifact_estimator.id', ondelete="CASCADE"), index=True)
     locus_artifact_estimator = db.relationship('LocusArtifactEstimator')
     artifact_equations = db.relationship('ArtifactEquation', lazy='immediate',
                                          cascade='save-update, merge, delete, delete-orphan')
     peak_data = db.Column(MutableList.as_mutable(JSONEncodedData))
+
+    @classmethod
+    def copy_artifact_estimator(cls, ae):
+        assert isinstance(ae, cls)
+        art_eqs = map(ArtifactEquation.copy_artifact_equation, ae.artifact_equations)
+
+        db.session.expunge(ae)
+        make_transient(ae)
+
+        ae.id = None
+        ae.artifact_equations = art_eqs
+
+        return ae
 
     @reconstructor
     def init_on_load(self):
@@ -1032,7 +1295,9 @@ class ArtifactEstimator(AE.ArtifactEstimator, db.Model):
         for ae in artifact_equations:
             self.artifact_equations.append(
                 ArtifactEquation(sd=ae.sd, r_squared=ae.r_squared, slope=ae.slope, intercept=ae.intercept,
-                                 start_size=ae.start_size, end_size=ae.end_size))
+                                 start_size=ae.start_size, end_size=ae.end_size, method=ae.method))
+
+        self.locus_artifact_estimator.project.parameters_changed(self.locus_artifact_estimator.locus_id)
         return self
 
     def add_breakpoint(self, breakpoint):
@@ -1042,25 +1307,25 @@ class ArtifactEstimator(AE.ArtifactEstimator, db.Model):
         old_param_sets = [{
                               'start_size': eq.start_size,
                               'end_size': eq.end_size,
-                              'method': 'TSR'
+                              'method': eq.method
                           } for eq in self.artifact_equations]
-
-        param_sets = []
-        for param_set in old_param_sets:
-            if param_set['start_size'] < breakpoint < param_set['end_size']:
-                param_sets.append({
-                    'start_size': param_set['start_size'],
-                    'end_size': breakpoint,
-                    'method': 'TSR'
-                })
-                param_sets.append({
-                    'start_size': breakpoint,
-                    'end_size': param_set['end_size'],
-                    'method': 'TSR'
-                })
-            else:
-                param_sets.append(param_set)
-        self.generate_estimating_equations(param_sets)
+        if any([breakpoint > _['peak_size'] for _ in self.peak_data]):
+            param_sets = []
+            for param_set in old_param_sets:
+                if param_set['start_size'] < breakpoint < param_set['end_size']:
+                    param_sets.append({
+                        'start_size': param_set['start_size'],
+                        'end_size': breakpoint,
+                        'method': 'TSR'
+                    })
+                    param_sets.append({
+                        'start_size': breakpoint,
+                        'end_size': param_set['end_size'],
+                        'method': 'TSR'
+                    })
+                else:
+                    param_sets.append(param_set)
+            self.generate_estimating_equations(param_sets)
         return self
 
     def clear_breakpoints(self):
@@ -1079,28 +1344,36 @@ class ArtifactEstimator(AE.ArtifactEstimator, db.Model):
             'artifact_distance_buffer': self.artifact_distance_buffer,
             'locus_artifact_estimator_id': self.locus_artifact_estimator_id,
             'peak_data': self.peak_data,
-            'artifact_equations': [eqn.serialize() for eqn in self.artifact_equations]
+            'artifact_equations': sorted([eqn.serialize() for eqn in self.artifact_equations], key=lambda x: x['start_size'])
         }
         return res
 
 
 class ArtifactEquation(Flaggable, AE.ArtifactEquation, db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    artifact_estimator_id = db.Column(db.Integer, db.ForeignKey('artifact_estimator.id', ondelete="CASCADE"))
+    artifact_estimator_id = db.Column(db.Integer, db.ForeignKey('artifact_estimator.id', ondelete="CASCADE"), index=True)
     sd = db.Column(db.Float, nullable=False)
     r_squared = db.Column(db.Float, nullable=True)
     slope = db.Column(db.Float, nullable=False)
     intercept = db.Column(db.Float, nullable=False)
     start_size = db.Column(db.Float, nullable=False)
     end_size = db.Column(db.Float, nullable=False)
+    method = db.Column(db.String(255), default='TSR', nullable=False)
+
+    @classmethod
+    def copy_artifact_equation(cls, ae):
+        db.session.expunge(ae)
+        make_transient(ae)
+        ae.id = None
+        return ae
 
     def __repr__(self):
-        return "<Artifact Equation y = {}x + {}".format(self.slope, self.intercept)
+        return "<Artifact Equation y = {}x + {} ({})".format(self.slope, self.intercept, self.method)
 
     @reconstructor
     def init_on_load(self):
         super(ArtifactEquation, self).__init__(self.sd, self.r_squared, self.slope, self.intercept, self.start_size,
-                                               self.end_size)
+                                               self.end_size, self.method)
 
     def serialize(self):
         res = {
@@ -1111,16 +1384,31 @@ class ArtifactEquation(Flaggable, AE.ArtifactEquation, db.Model):
             'slope': self.slope,
             'intercept': self.intercept,
             'start_size': self.start_size,
-            'end_size': self.end_size
+            'end_size': self.end_size,
+            'method': self.method
         }
         return res
 
 
 class QuantificationBiasEstimatorProject(SampleBasedProject):
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, db.ForeignKey('sample_based_project.id'), primary_key=True)
     locus_parameters = db.relationship('QuantificationBiasLocusParams',
                                        backref=db.backref('quantification_bias_estimator_project'),
                                        lazy='dynamic', cascade='save-update, merge, delete, delete-orphan')
+
+    __mapper_args__ = {'polymorphic_identity': 'quantification_bias_estimator_project'}
+
+    def filter_parameters_set_stale(self, locus_id):
+        self.parameters_changed(locus_id)
+
+    def scanning_parameters_set_stale(self, locus_id):
+        self.parameters_changed(locus_id)
+
+    def parameters_changed(self, locus_id):
+        projects = GenotypingProject.query.filter(GenotypingProject.bin_estimator_id == self.id).all()
+        for project in projects:
+            assert isinstance(project, GenotypingProject)
+            project.quantification_bias_estimator_changed(locus_id)
 
     def annotate_quantification_bias(self, locus_id, peak_set):
         peak_set = correct_peak_proportion(self.get_beta(locus_id), peak_set)
@@ -1132,7 +1420,7 @@ class QuantificationBiasEstimatorProject(SampleBasedProject):
     def calculate_beta(self, locus_id):
         lp = self.get_locus_parameters(locus_id)
         if lp:
-            locus_annotations = self.get_sample_locus_annotations(locus_id)
+            locus_annotations = self.get_locus_sample_annotations(locus_id)
             peak_sets = [filter(lambda _: 'true_proportion' in _, locus_annotation.annotated_peaks) for locus_annotation
                          in locus_annotations]
             if peak_sets and all(map(lambda _: len(_) == 2, peak_sets)):  # Algorithm currently only supports 2 peaks
@@ -1154,9 +1442,9 @@ class QuantificationBiasEstimatorProject(SampleBasedProject):
         return self
 
 
-class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating, QuantificationBiasEstimating):
+class GenotypingProject(SampleBasedProject, ArtifactEstimating, QuantificationBiasEstimating):
     # Collection of methods to annotate peaks with artifact, bin in which a peak falls, probabilistic estimate of peak
-    id = db.Column(db.Integer, db.ForeignKey('project.id'), primary_key=True)
+    id = db.Column(db.Integer, db.ForeignKey('sample_based_project.id'), primary_key=True)
     locus_parameters = db.relationship('GenotypingLocusParams', backref=db.backref('genotyping_project'),
                                        lazy='dynamic',
                                        cascade='save-update, merge, delete, delete-orphan')
@@ -1196,12 +1484,6 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating, Q
             sample_annotation.clear_flags()
         return self
 
-    def clear_locus_bin_annotations(self, locus_id):
-        channel_annotations = self.get_locus_channel_annotations(locus_id)
-        self.clear_bin_annotations(channel_annotations)
-        self.clear_sample_annotations(locus_id)
-        return self
-
     def clear_locus_artifact_annotations(self, locus_id):
         channel_annotations = self.get_locus_channel_annotations(locus_id)
         self.clear_artifact_annotations(channel_annotations)
@@ -1209,27 +1491,44 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating, Q
         return self
 
     def clear_locus_quantification_bias_annotations(self, locus_id):
-        locus_annotations = self.get_sample_locus_annotations(locus_id)
+        locus_annotations = self.get_locus_sample_annotations(locus_id)
         self.clear_quantification_bias_annotations(locus_annotations)
         return self
 
-    def bin_estimator_changed(self, locus_id):
-        lp = self.get_locus_parameters(locus_id)
-        lp.set_filter_parameters_stale()
-        self.clear_bin_annotations(locus_id)
-        self.initialize_alleles(locus_id)
+    def change_artifact_estimator(self, artifact_estimator_id):
+        if artifact_estimator_id:
+            artifact_estimator = ArtifactEstimatorProject.query.get(artifact_estimator_id)
+            assert isinstance(artifact_estimator, ArtifactEstimatorProject)
+            if artifact_estimator.locus_set_id != self.locus_set_id:
+                raise AttributeError("Artifact Estimator Locus Set does not match.")
+            if artifact_estimator.bin_estimator_id != self.bin_estimator_id:
+                raise AttributeError("Artifact Estimator Bin Set does not match.")
+            self.artifact_estimator_id = artifact_estimator_id
+        else:
+            self.artifact_estimator_id = None
+        db.session.flush()
+        lps = self.locus_parameters.all()
+        map(lambda _: _.set_filter_parameters_stale, lps)
+        map(lambda _: self.clear_locus_artifact_annotations(_.locus_id), lps)
+        return self
+
+    def remove_artifact_estimator(self):
+        self.artifact_estimator_id = None
+        lps = self.locus_parameters.all()
+        map(lambda _: self.clear_locus_artifact_annotations(_.locus_id), lps)
+        db.session.flush()
         return self
 
     def artifact_estimator_changed(self, locus_id):
         lp = self.get_locus_parameters(locus_id)
         lp.set_filter_parameters_stale()
-        self.clear_artifact_annotations(locus_id)
+        self.clear_locus_artifact_annotations(locus_id)
         self.initialize_alleles(locus_id)
         return self
 
     def quantification_bias_estimator_changed(self, locus_id):
         self.clear_locus_quantification_bias_annotations(locus_id)
-        locus_annotations = self.get_sample_locus_annotations(locus_id)
+        locus_annotations = self.get_locus_sample_annotations(locus_id)
         for locus_annotation in locus_annotations:
             self.recalculate_alleles(locus_annotation)
         return self
@@ -1263,8 +1562,8 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating, Q
 
         self.annotate_channel(channel_annotation)
 
-        if not block_commit:
-            db.session.commit()
+        # if not block_commit:
+        #     db.session.commit()
         return channel_annotation
 
     def recalculate_channels(self, channel_annotations, rescan_peaks, block_commit=False):
@@ -1274,8 +1573,8 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating, Q
         for channel_annotation in channel_annotations:
             self.annotate_channel(channel_annotation)
 
-        if not block_commit:
-            db.session.commit()
+        # if not block_commit:
+        #     db.session.commit()
         return channel_annotations
 
     def add_channel(self, channel_id, block_commit=False):
@@ -1286,16 +1585,16 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating, Q
         if not channel_annotation:
             channel_annotation = super(GenotypingProject, self).add_channel(channel_id, block_commit=True)
 
-            if not block_commit:
-                db.session.commit()
+            # if not block_commit:
+            #     db.session.commit()
 
         return channel_annotation
 
     def add_channels(self, channel_ids, block_commit=False):
         channel_annotations = super(GenotypingProject, self).add_channels(channel_ids, block_commit=True)
 
-        if not block_commit:
-            db.session.commit()
+        # if not block_commit:
+        #     db.session.commit()
 
         return channel_annotations
 
@@ -1324,7 +1623,7 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating, Q
         self.clear_sample_annotations(locus_id)
         locus_params = self.get_locus_parameters(locus_id)
         assert isinstance(locus_params, GenotypingLocusParams)
-        locus_annotations = self.get_sample_locus_annotations(locus_id)
+        locus_annotations = self.get_locus_sample_annotations(locus_id)
         all_runs = self.get_runs(locus_id)
         for locus_annotation in locus_annotations:
             eventlet.sleep()
@@ -1503,7 +1802,7 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating, Q
                     true_peaks.append(peak)
                     locus_annotation.alleles[str(peak['bin_id'])] = True
                     locus_annotation.alleles.changed()
-            self.annotate_quantification_bias(locus_annotation.locus_id, true_peaks)
+            # self.annotate_quantification_bias(locus_annotation.locus_id, true_peaks)
             if self.quantification_bias_estimator:
                 self.quantification_bias_estimator.annotate_quantification_bias(locus_annotation.locus_id, true_peaks)
 
@@ -1635,8 +1934,8 @@ class GenotypingProject(SampleBasedProject, BinEstimating, ArtifactEstimating, Q
 
 class ProjectLocusParams(PeakScanner, db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    locus_id = db.Column(db.Integer, db.ForeignKey("locus.id", ondelete="CASCADE"))
-    project_id = db.Column(db.Integer, db.ForeignKey("project.id", ondelete="CASCADE"))
+    locus_id = db.Column(db.Integer, db.ForeignKey("locus.id", ondelete="CASCADE"), index=True)
+    project_id = db.Column(db.Integer, db.ForeignKey("project.id", ondelete="CASCADE"), index=True)
     project = db.relationship('Project', lazy='immediate')
     locus = db.relationship('Locus', lazy='immediate')
 
@@ -1673,15 +1972,9 @@ class ProjectLocusParams(PeakScanner, db.Model):
         scanning_params = target.scanning_parameters.keys()
 
         if params_changed(target, scanning_params):
-            target.set_scanning_parameters_stale(target.locus_id)
+            target.set_scanning_parameters_stale()
         elif params_changed(target, filter_params):
-            target.set_filter_parameters_stale(target.locus_id)
-
-        # if params_changed(target, filter_params):
-        #     target.filter_parameters_stale = True
-        #
-        # if params_changed(target, scanning_params):
-        #     target.scanning_parameters_stale = True
+            target.set_filter_parameters_stale()
 
         app.logger.debug("Filter Parameters Stale: {}".format(target.filter_parameters_stale))
         app.logger.debug("Scanning Parameters Stale: {}".format(target.scanning_parameters_stale))
@@ -1893,7 +2186,7 @@ class QuantificationBiasLocusParams(ProjectLocusParams):
             target.quantification_bias_parameters_stale = True
 
         app.logger.debug(
-            "Quantification Bias Parameteres Stale: {}".format(target.quantification_bias_parameters_stale))
+            "Quantification Bias Parameters Stale: {}".format(target.quantification_bias_parameters_stale))
 
     @classmethod
     def __declare_last__(cls):
@@ -1940,6 +2233,16 @@ class ProjectSampleAnnotations(TimeStamped, db.Model):
     moi = db.Column(db.Integer)
     __table_args__ = (db.UniqueConstraint('project_id', 'sample_id', name='_project_sample_uc'),)
 
+    @classmethod
+    def copy_project_sample_annotations(cls, psa):
+        locus_annotations = map(SampleLocusAnnotation.copy_sample_locus_annotation, psa.locus_annotations)
+        db.session.expunge(psa)
+        make_transient(psa)
+        psa.id = None
+
+        psa.locus_annotations = locus_annotations
+        return psa
+
     def serialize(self):
         res = {
             'id': self.id,
@@ -1960,7 +2263,7 @@ class ProjectSampleAnnotations(TimeStamped, db.Model):
 
 class SampleLocusAnnotation(TimeStamped, Flaggable, db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    project_id = db.Column(db.Integer, db.ForeignKey("project.id"))
+    project_id = db.Column(db.Integer, db.ForeignKey("project.id"), index=True)
     sample_annotations_id = db.Column(db.Integer, db.ForeignKey("project_sample_annotations.id", ondelete="CASCADE"),
                                       index=True)
     locus_id = db.Column(db.Integer, db.ForeignKey('locus.id', ondelete="CASCADE"), index=True)
@@ -1971,12 +2274,19 @@ class SampleLocusAnnotation(TimeStamped, Flaggable, db.Model):
     reference_run = db.relationship('ProjectChannelAnnotations', lazy='select')
     alleles = db.Column(MutableDict.as_mutable(JSONEncodedData))
 
+    @classmethod
+    def copy_sample_locus_annotation(cls, annotation):
+        db.session.expunge(annotation)
+        make_transient(annotation)
+        annotation.id = None
+        return annotation
+
     def __init__(self, locus_id, project_id):
         self.locus_id = locus_id
         self.project_id = project_id
 
     def clear_annotated_peaks(self):
-        self.annotated_peaks = [];
+        self.annotated_peaks = []
 
     def clear_alleles(self):
         self.alleles = dict.fromkeys(self.alleles, False)
@@ -2045,7 +2355,7 @@ class Locus(Colored, db.Model):
             'max_base_length': self.max_base_length,
             'min_base_length': self.min_base_length,
             'nucleotide_repeat_length': self.nucleotide_repeat_length,
-            'locus_matadata': self.locus_metadata,
+            'locus_metadata': self.locus_metadata,
             'color': self.color
         }
         return res
@@ -2105,7 +2415,7 @@ class Plate(PlateExtractor, TimeStamped, Flaggable, db.Model):
     Immutable data about plate sourced from zip of FSA Files
     """
     id = db.Column(db.Integer, primary_key=True)
-    label = db.Column(db.String(255), unique=True, nullable=False, index=True)
+    label = db.Column(db.String(255), nullable=False, index=True)
     creator = db.Column(db.String(255), nullable=True)
     date_processed = db.Column(db.DateTime, default=datetime.utcnow)
     date_run = db.Column(db.Date, nullable=False)
@@ -2145,10 +2455,12 @@ class Plate(PlateExtractor, TimeStamped, Flaggable, db.Model):
         return plates
 
     @classmethod
-    def from_zip(cls, zip_file, ladder_id, creator=None, comments=None, block_flush=False):
+    def from_zip(cls, zip_file, ladder, creator=None, comments=None, add_to_db=True):
         extracted_plate = PlateExtractor.from_zip(zip_file, creator, comments)
 
-        ladder = Ladder.query.get(ladder_id)
+        if type(ladder) == int:
+            ladder = Ladder.query.get(ladder)
+
         extracted_plate = extracted_plate.calculate_base_sizes(ladder=ladder.base_sizes, color=ladder.color,
                                                                base_size_precision=ladder.base_size_precision,
                                                                sq_limit=ladder.sq_limit,
@@ -2159,24 +2471,32 @@ class Plate(PlateExtractor, TimeStamped, Flaggable, db.Model):
                 date_run=extracted_plate.date_run, well_arrangement=extracted_plate.well_arrangement,
                 ce_machine=extracted_plate.ce_machine, plate_hash=extracted_plate.plate_hash)
 
-        db.session.add(p)
-        db.session.flush()
+        if add_to_db:
+            db.session.add(p)
+        # db.session.flush()
 
         for well in extracted_plate.wells:
             w = Well(well_label=well.well_label, comments=well.comments, base_sizes=well.base_sizes,
                      ladder_peak_indices=well.ladder_peak_indices, sizing_quality=well.sizing_quality,
                      offscale_indices=well.offscale_indices, fsa_hash=well.fsa_hash)
 
-            w.plate_id = p.id
-            w.ladder_id = ladder.id
-            db.session.add(w)
-            db.session.flush()
+            # w.plate_id = p.id
+            w.plate = p
+            # w.ladder_id = ladder.id
+            w.ladder = ladder
+
+            if add_to_db:
+                db.session.add(w)
+            # db.session.add(w)
+            # db.session.flush()
             for channel in well.channels:
                 c = Channel(wavelength=channel.wavelength, data=channel.data, color=channel.color)
-                c.well_id = w.id
-                db.session.add(c)
-            db.session.flush()
-        return p.id
+                # c.well_id = w.id
+                c.well = w
+                if add_to_db:
+                    db.session.add(c)
+            # db.session.flush()
+        return p
 
     @classmethod
     def from_zips(cls, zip_files, ladder_id, creator=None, comments=None):
@@ -2255,17 +2575,17 @@ class Well(WellExtractor, TimeStamped, Flaggable, db.Model):
     Immutable data about well sourced from FSA Files, apart from ladder used.
     """
     id = db.Column(db.Integer, primary_key=True)
-    plate_id = db.Column(db.Integer, db.ForeignKey("plate.id", ondelete="CASCADE"), nullable=False)
+    plate_id = db.Column(db.Integer, db.ForeignKey("plate.id", ondelete="CASCADE"), nullable=False, index=True)
     well_label = db.Column(db.String(3), nullable=False)
-    base_sizes = deferred(db.Column(MutableList.as_mutable(JSONEncodedData)))
+    # base_sizes = deferred(db.Column(MutableList.as_mutable(JSONEncodedData)))
     # Compressed implementation
-    # base_sizes = deferred(db.Column(MutableList.as_mutable(CompressedJSONEncodedData)))
+    base_sizes = deferred(db.Column(MutableList.as_mutable(CompressedJSONEncodedData)))
     ladder_peak_indices = db.Column(MutableList.as_mutable(JSONEncodedData))
     sizing_quality = db.Column(db.Float, default=1000)
     channels = db.relationship('Channel', backref=db.backref('well'),
                                cascade='save-update, merge, delete, delete-orphan')
     offscale_indices = db.Column(MutableList.as_mutable(JSONEncodedData))
-    ladder_id = db.Column(db.Integer, db.ForeignKey('ladder.id'), nullable=False)
+    ladder_id = db.Column(db.Integer, db.ForeignKey('ladder.id'), nullable=False, index=True)
     ladder = db.relationship('Ladder')
     fsa_hash = db.Column(db.String(32), nullable=False, unique=True, index=True)
     _channels_dict = None
@@ -2327,15 +2647,15 @@ class Channel(ChannelExtractor, TimeStamped, Colored, Flaggable, db.Model):
     Immutable data about channel within an FSA File
     """
     id = db.Column(db.Integer, primary_key=True)
-    well_id = db.Column(db.Integer, db.ForeignKey("well.id", ondelete="CASCADE"))
+    well_id = db.Column(db.Integer, db.ForeignKey("well.id", ondelete="CASCADE"), index=True)
     wavelength = db.Column(db.Integer, nullable=False)
-    data = deferred(db.Column(MutableList.as_mutable(JSONEncodedData)))
+    # data = deferred(db.Column(MutableList.as_mutable(JSONEncodedData)))
     # Compressed Implementation
-    # data = deferred(db.Column(MutableList.as_mutable(CompressedJSONEncodedData)))
+    data = deferred(db.Column(MutableList.as_mutable(CompressedJSONEncodedData)))
     max_data_point = db.Column(db.Integer, default=0)
 
-    sample_id = db.Column(db.Integer, db.ForeignKey('sample.id'))
-    locus_id = db.Column(db.Integer, db.ForeignKey('locus.id'))
+    sample_id = db.Column(db.Integer, db.ForeignKey('sample.id'), index=True)
+    locus_id = db.Column(db.Integer, db.ForeignKey('locus.id'), index=True)
     locus = db.relationship('Locus')
 
     def __repr__(self):
@@ -2347,6 +2667,11 @@ class Channel(ChannelExtractor, TimeStamped, Colored, Flaggable, db.Model):
     @reconstructor
     def init_on_load(self):
         super(Channel, self).__init__(color=self.color, wavelength=self.wavelength)
+
+    def reinitialize(self):
+        self.max_data_point = 0
+        self.sample_id = None
+        self.locus_id = None
 
     def filter_to_locus_range(self):
         self.filter_annotated_peaks(

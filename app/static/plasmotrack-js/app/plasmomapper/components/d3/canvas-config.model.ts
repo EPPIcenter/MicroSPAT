@@ -4,4 +4,5 @@ export interface CanvasConfig {
     domain: [number, number];
     range: [number, number];
     click_handler?: (x_coord?: number, y_coord?: number) => void;
+    contextMenu?: [{title: string, action: (any)}];
 }

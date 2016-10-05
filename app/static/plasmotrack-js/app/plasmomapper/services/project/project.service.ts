@@ -16,18 +16,26 @@ import { ChannelAnnotation }    from './channel-annotation/channel-annotation.mo
 export class ProjectService {
     public saveLocusParameters: (locus_params: LocusParameters) => Observable<LocusParameters>;
     public getLocusChannelAnnotations: (project_id: number, locus_id: number) => Observable<ChannelAnnotation[]>
+    public batchApplyLocusParameters: (locus_parameters: LocusParameters, project_id: number) => Observable<any>;
     
     private _locusParamsUrl = API_BASE + "/locus-parameters/";
     protected _channelAnnotationsUrl = API_BASE + "/channel-annotations/";
     
     constructor(protected _commonServerMethods: CommonServerMethods) {
+        
         this.saveLocusParameters = (locus_params: LocusParameters) => {
             return this._commonServerMethods.updateItem(locus_params, LocusParameters, this._locusParamsUrl);
+        };
+
+        this.batchApplyLocusParameters = (locus_params: LocusParameters, project_id: number) => {
+            locus_params['project_id'] = project_id;
+            return this._commonServerMethods.postJSON(locus_params, this._locusParamsUrl);
         }
+
         this.getLocusChannelAnnotations = (project_id: number, locus_id: number) => {
             let url = this._channelAnnotationsUrl + project_id + "/locus/" + locus_id; 
             return this._commonServerMethods.getList(ChannelAnnotation, url)
-        }
+        };
         
     };
 }

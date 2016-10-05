@@ -18,18 +18,19 @@ import { BinEstimatorProject } from '../../services/bin-estimator-project/bin-es
     selector: 'genotyping-project-list',
     template: `
     <div class="row">
-        <pm-section-header [header]="'Genotyping Projects'"></pm-section-header>
-    </div>
-    <div class="row">
         <div *ngFor="let err of constructorErrors">
             <span class="label label-danger">{{err}}</span>
             <br/>
         </div>
         <span class="label label-danger">{{deleteProjectError}}</span>
     </div>
+    <br>
     <div class="row main-container">
         <div class="col-sm-6">
             <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Genotyping Projects</h3>
+                </div>
                 <div class="panel-body">
                     <div *ngIf="loadingProjects">
                         <pm-progress-bar [label]="'Projects'"></pm-progress-bar>

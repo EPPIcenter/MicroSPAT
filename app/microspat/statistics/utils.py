@@ -42,8 +42,8 @@ def calculate_allele_frequencies(locus_annotations):
     for locus_label, locus_annotation in groupby(locus_annotations, key=lambda _: _[0]):
         annotated_peak_sets = filter(lambda _: len(_) > 0, map(lambda _: _[1], locus_annotation))
         annotated_peaks = reduce(lambda _, __: _ + __, annotated_peak_sets, [])
-        annotated_peaks.sort(key=lambda _: _['bin'])
-        for bin_label, binned_peaks in groupby(annotated_peaks, key=lambda _: _['bin']):
+        annotated_peaks.sort(key=lambda _: _['bin_id'])
+        for bin_label, binned_peaks in groupby(annotated_peaks, key=lambda _: _['bin_id']):
             allele_frequencies[locus_label][bin_label] = len(list(binned_peaks)) / float(len(annotated_peak_sets))
 
     return allele_frequencies
@@ -63,7 +63,7 @@ def allele_frequency_weighted_probability(p, locus_allele_frequencies):
     if not locus_allele_frequencies:
         raise _FREQUENCIES_REQUIRED
     probability = p['probability']
-    allele_frequency = locus_allele_frequencies[p['bin']]
+    allele_frequency = locus_allele_frequencies[p['bin_id']]
     return allele_frequency * probability
 
 
@@ -72,7 +72,7 @@ def combo_weighted_probability(p, locus_allele_frequencies):
         raise _FREQUENCIES_REQUIRED
     probability, peak_height, artifact, error = __extract_features(p)
     cdf_val = st.norm.cdf((peak_height - artifact) / error)
-    allele_frequency = locus_allele_frequencies[p['bin']]
+    allele_frequency = locus_allele_frequencies[p['bin_id']]
     return cdf_val * allele_frequency * probability
 
 

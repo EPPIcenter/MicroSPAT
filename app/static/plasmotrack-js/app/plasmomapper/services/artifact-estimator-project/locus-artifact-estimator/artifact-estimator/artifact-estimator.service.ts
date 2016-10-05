@@ -12,5 +12,5 @@ import { ArtifactEquationParameterSet } from './artifact-equation/artifact-equat
 
 @Injectable()
 export class ArtifactEstimatorService {
-    private _artifactEstimatorUrl = API_BASE + "/artifact-estimator-equation/"
+    private _artifactEstimatorUrl = API_BASE + "/artifact-estimator-equation/";
 }
