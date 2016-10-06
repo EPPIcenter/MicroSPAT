@@ -23,7 +23,8 @@ class ArtifactEstimatorSet(object):
 
         peak = {
             'peak_height': int,
-            'peak_size': int
+            'peak_size': int,
+            'relative_peak_height': int
         }
 
         :rtype: ArtifactEstimatorSet
@@ -44,7 +45,8 @@ class ArtifactEstimatorSet(object):
         cluster_set = []
         for peak_set in peak_sets:
             if peak_set:
-                max_peak = max(peak_set, key=lambda _: _['peak_height'])
+                max_peak = [peak for peak in peak_set if peak['relative_peak_height'] == 1]
+                max_peak = max_peak[0]
                 for peak in peak_set:
                     peak['dist_from_max_peak'] = peak['peak_size'] - max_peak['peak_size']
                 cluster_set += peak_set
@@ -58,7 +60,12 @@ class ArtifactEstimatorSet(object):
                 artifact_distance = cluster['center']
                 artifact_distance_buffer = cluster['sd']
                 peak_subset = [peak for peak in cluster_set if
-                               abs(peak['dist_from_max_peak'] - artifact_distance) < artifact_distance_buffer * 3]
+                               abs(peak['dist_from_max_peak'] - artifact_distance) < artifact_distance_buffer * 3 and
+                               peak['relative_peak_height'] != 1]
+
+                if 2 > cluster['center'] > 3:
+                    print peak_subset
+
                 if len(peak_subset) >= min_artifact_peak_frequency:
                     artifact_estimator = ArtifactEstimator(artifact_distance=artifact_distance,
                                                            artifact_distance_buffer=max(artifact_distance_buffer * 3,

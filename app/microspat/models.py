@@ -2225,7 +2225,7 @@ class ProjectSampleAnnotations(TimeStamped, db.Model):
     """
     id = db.Column(db.Integer, primary_key=True)
     sample_id = db.Column(db.Integer, db.ForeignKey('sample.id', ondelete="CASCADE"), index=True)
-    project_id = db.Column(db.Integer, db.ForeignKey('project.id', ondelete="CASCADE"), index=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('project.id'), index=True)
     locus_annotations = db.relationship('SampleLocusAnnotation', backref=db.backref('sample_annotation'),
                                         # lazy='dynamic',
                                         cascade='save-update, merge, delete, delete-orphan')

@@ -69,6 +69,7 @@ import { BinEstimatorProjectService } from '../../../services/bin-estimator-proj
                         <br>
                         <div>
                             <pm-progress-bar *ngIf="isSubmitting" [fullLabel]="'Saving and Analyzing Locus... This May Take A While'"></pm-progress-bar>
+                            <pm-progress-bar *ngIf="savingBins" [fullLabel]="'Saving Bins... This May Take A While'"></pm-progress-bar>
                         </div>
                     </div>
                 </div>
@@ -92,6 +93,7 @@ export class BinEstimatorLocusListComponent {
 
     private isSubmitting: boolean = false;
     private selectingLocus: boolean = false;
+    private savingBins: boolean = false;
 
     private locusParamsCollapsed = false;
     
@@ -260,31 +262,35 @@ export class BinEstimatorLocusListComponent {
     }
 
     private saveBins(bins) {
-        console.log("Saving Changes");
-        console.log(this.selectedBins);
-        console.log(bins);
-        this.selectedBins = bins; 
-        this._binEstimatorProjectService.createOrUpdateBins(this.selectedProject, this.selectedLocus.id, this.selectedBins, "Bins Saved")
-            .subscribe(res => {
-                this._binEstimatorProjectService.clearCache(this.selectedProject.id);
-                this._binEstimatorProjectService.getBinEstimatorProject(this.selectedProject.id)
-                    .subscribe(
-                        proj => {
-                            let locusParam = this.selectedLocusParameter;
-                            this._genotypingProjectService.binEstimatorChanged(proj.id);
-                            this._artifactEstimatorProjectService.binEstimatorChanged(proj.id);
-                            this.selectedProject = proj;
-                            this.loadLocusParameters();
-                            this.selectedLocusParameter = this.locusParameters.filter((lps) => {
-                                return lps.id === locusParam.id;
-                            })[0];
-                            this.selectLocus(locusParam.locus_id);
-                        },
-                        err => {
-                            throw err;
-                        }
+        if(!this.savingBins) {
+            this.savingBins = true;
+            this.selectedBins = bins; 
+            this._binEstimatorProjectService.createOrUpdateBins(this.selectedProject, this.selectedLocus.id, this.selectedBins, "Bins Saved")
+                .subscribe(res => {
+                    this._binEstimatorProjectService.clearCache(this.selectedProject.id);
+                    this._binEstimatorProjectService.getBinEstimatorProject(this.selectedProject.id)
+                        .subscribe(
+                            proj => {
+                                let locusParam = this.selectedLocusParameter;
+                                this._genotypingProjectService.binEstimatorChanged(proj.id);
+                                this._artifactEstimatorProjectService.binEstimatorChanged(proj.id);
+                                this.selectedProject = proj;
+                                this.loadLocusParameters();
+                                this.selectedLocusParameter = this.locusParameters.filter((lps) => {
+                                    return lps.id === locusParam.id;
+                                })[0];
+                                this.selectLocus(locusParam.locus_id);
+                            },
+                            err => {
+                                throw err;
+                            },
+                            () => {
+                                this.savingBins = false;
+                            }
                     )
             });
+        }
+
     }
 
     ngOnInit() {

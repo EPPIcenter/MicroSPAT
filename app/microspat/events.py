@@ -1,8 +1,9 @@
 # import eventlet
 import os
+import tempfile
 
 from flask import Blueprint, jsonify, request
-from flask import json
+from flask import json, send_file
 from flask_socketio import emit
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
@@ -290,6 +291,76 @@ def get_or_post_projects():
             return handle_error(e)
 
 
+@microspat.route('/genotyping-project/<int:id>/get-alleles/', methods=['GET'])
+def get_alleles(id):
+    try:
+        gp = GenotypingProject.query.get(id)
+        loci = gp.locus_set.loci
+        results = []
+        bin_cache = dict()
+        header = ["Sample"] + [_.label for _ in loci]
+        for sa in gp.sample_annotations.all():
+            sample_res = dict()
+            sample_res['Sample'] = sa.sample.barcode
+            for la in sa.locus_annotations:
+                alleles = la.alleles.items()
+                bin_ids = [x[0] for x in alleles if x[1]]
+                present_alleles = []
+                for bin_id in bin_ids:
+                    if not bin_cache.get(bin_id, None):
+                        b = Bin.query.get(int(bin_id))
+                        bin_cache[bin_id] = b
+                    else:
+                        b = bin_cache[bin_id]
+                    present_alleles.append(b.label)
+                sample_res[la.locus.label] = ";".join(present_alleles)
+            results.append(sample_res)
+        handle, temp_path = tempfile.mkstemp(suffix='csv', prefix=gp.title)
+        with open(temp_path, 'w') as f:
+            w = csv.DictWriter(f, fieldnames=header)
+            w.writeheader()
+            w.writerows(results)
+        return send_file(temp_path, as_attachment=True, attachment_filename="{} Alleles.csv".format(gp.title))
+    except Exception as e:
+        return handle_error(e)
+
+
+@microspat.route('/genotyping-project/<int:id>/get-dominant-alleles/', methods=['GET'])
+def get_dominant_peaks(id):
+    try:
+        gp = GenotypingProject.query.get(id)
+        loci = gp.locus_set.loci
+        results = []
+        header = ["Sample"] + [_.label for _ in loci]
+        for sa in gp.sample_annotations.all():
+            sample_res = dict()
+            sample_res['Sample'] = sa.sample.barcode
+            for la in sa.locus_annotations:
+                max_peak = None
+                peak_alleles = []
+                alleles = la.alleles.items()
+                called_bin_ids = [int(_[0]) for _ in alleles if _[1]]
+                peaks = [peak for peak in la.annotated_peaks if peak['bin_id'] and int(peak['bin_id']) in called_bin_ids]
+                for peak in peaks:
+                    if not max_peak:
+                        max_peak = peak
+                    elif peak['peak_height'] > max_peak['peak_height']:
+                        max_peak = peak
+                if max_peak:
+                    peak_alleles = [str(max_peak['bin'])]
+                if peak_alleles:
+                    sample_res[la.locus.label] = ";".join(peak_alleles)
+            results.append(sample_res)
+        handle, temp_path = tempfile.mkstemp(suffix='csv', prefix=gp.title)
+        with open(temp_path, 'w') as f:
+            w = csv.DictWriter(f, fieldnames=header)
+            w.writeheader()
+            w.writerows(results)
+        return send_file(temp_path, as_attachment=True, attachment_filename="{} Dominant Peaks.csv".format(gp.title))
+    except Exception as e:
+        return handle_error(e)
+
+
 @microspat.route('/genotyping-project/calculate-probability/', methods=['POST'])
 def calculate_probability():
     project_json = json.loads(request.get_json())
@@ -319,10 +390,9 @@ def get_or_update_project(id):
             err = "Uh Oh, Project Doesn't Exist"
             return handle_error(err)
     elif request.method == 'DELETE':
-        project = GenotypingProject.query.get(id)
         try:
-            db.session.delete(project)
-            return jsonify(wrap_data({"id": "project.id"}))
+            GenotypingProject.query.filter(GenotypingProject.id==id).delete()
+            return jsonify(wrap_data({"id": id}))
         except Exception as e:
             return handle_error(e)
 

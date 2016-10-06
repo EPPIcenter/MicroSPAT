@@ -72,8 +72,18 @@ export class CommonServerMethods {
 
     public getUrl(url) : Observable<any> {
         return this.http.get(url)
-                    .map(res => <Object> res.json().data)
+                    .map(res => {
+                        console.log(res);
+                        return <Object> res.json().data
+                    })
                     .catch(this.handleError);
+    }
+
+    public getFile(url) : Observable<any> {
+        return Observable.from(url).map(() => {
+            window.location = url;
+        })
+        .catch(this.handleError);
     }
     
     public updateItem<T extends DatabaseItem>(item: T, type: { new(): T ;}, url: string, cache?: LRUCache<T>) : Observable<T> {

@@ -23,6 +23,8 @@ export class GenotypingProjectService extends SampleBasedProjectService {
     public deleteProject: (id: number) => Observable<DatabaseItem>;
     public calculateProbability: (project: GenotypingProject) => Observable<any>;
     public saveAnnotations: (annotations: SampleLocusAnnotation[]) => Observable<any>;
+    public getAlleles: (id: number) => Observable<any>;
+    public getDominantAlleles: (id: number) => Observable<any>;
     
     public addSamples: (files: File[], id: number) => Observable<GenotypingProject>;
 
@@ -81,6 +83,14 @@ export class GenotypingProjectService extends SampleBasedProjectService {
         
         this.saveAnnotations = (annotations: SampleLocusAnnotation[]) => {
             return this._commonServerMethods.postJSON(annotations, this._annotationsUrl);
+        }
+
+        this.getAlleles = (id: number) => {
+            return this._commonServerMethods.getFile(this._projectsUrl + id + "/get-alleles/")
+        }
+
+        this.getDominantAlleles = (id: number) => {
+            return this._commonServerMethods.getFile(this._projectsUrl + id + "/get-dominant-alleles/")
         }
         
         this.calculateProbability = (project: GenotypingProject) => {
