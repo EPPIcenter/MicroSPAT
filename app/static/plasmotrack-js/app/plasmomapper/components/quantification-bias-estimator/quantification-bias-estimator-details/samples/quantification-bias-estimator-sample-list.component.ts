@@ -6,8 +6,8 @@ import { LocusPipe } from '../../../../pipes/locus.pipe';
 import { SectionHeaderComponent } from '../../../layout/section-header.component';
 import { ProgressBarComponent } from '../../../layout/progress-bar.component';
 
-import { GenotypingProject } from '../../../../services/genotyping-project/genotyping-project.model';
-import { GenotypingProjectService } from '../../../../services/genotyping-project/genotyping-project.service';
+import { QuantificationBiasEstimatorProject } from '../../../../services/quantification-bias-estimator-project/quantification-bias-estimator-project.model';
+import { QuantificationBiasEstimatorProjectService } from '../../../../services/quantification-bias-estimator-project/quantification-bias-estimator-project.service';
 
 import { BinEstimatorProjectService } from '../../../../services/bin-estimator-project/bin-estimator-project.service';
 import { Bin } from '../../../../services/bin-estimator-project/locus-bin-set/bin/bin.model';
@@ -23,7 +23,7 @@ import { ChannelAnnotation } from '../../../../services/project/channel-annotati
 import { D3SampleAnnotationEditor } from '../../sample-annotation-editor.component';
 
 @Component({
-    selector: 'genotyping-project-sample-list',
+    selector: 'quantification-bias-estimator-project-sample-list',
     pipes: [LocusPipe],
     host: {
         '(document:keydown)': 'eventHandler($event)'
@@ -36,22 +36,7 @@ import { D3SampleAnnotationEditor } from '../../sample-annotation-editor.compone
                     <div class="col-sm-12">
                         <div class="panel panel-default">
                             <div class="panel-heading">
-                                <h6 class="panel-title">Probabilistic Peak Annotation</h6>
-                            </div>
-                            <div class="panel-body">
-                                <div class="col-sm-3">
-                                    <button class="btn btn-primary" (click)="calculateProbability()">Calculate</button>
-                                </div>
-                                <div class="col-sm-9">
-                                    <pm-progress-bar *ngIf="calculatingProbability" [fullLabel]="'Calculating Probability...'"></pm-progress-bar>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-sm-12">
-                        <div class="panel panel-default">
-                            <div class="panel-heading">
-                                <h6 class="panel-title">Add Samples</h6>
+                                <h3 class="panel-title">Add Control Samples</h3>
                             </div>
                             <div class="panel-body">
                                 <form>
@@ -62,7 +47,6 @@ import { D3SampleAnnotationEditor } from '../../sample-annotation-editor.compone
                                 </form>
                                 <br>
                                 <pm-progress-bar *ngIf="uploading" [fullLabel]="'Uploading File...'"></pm-progress-bar>
-                                <span class="label label-danger">{{uploadError}}</span>
                             </div>
                         </div>
                     </div>
@@ -79,17 +63,13 @@ import { D3SampleAnnotationEditor } from '../../sample-annotation-editor.compone
                                         <thead>
                                             <tr>
                                                 <th (click)="reverseSampleSorting = !reverseSampleSorting; sampleSortingParam = 'barcode'; sortSamples()">Barcode</th>
-                                                <th (click)="reverseSampleSorting = !reverseSampleSorting; sampleSortingParam = 'designation'; sortSamples()">Designation</th>
-                                                <th (click)="reverseSampleSorting = !reverseSampleSorting; sampleSortingParam = 'moi'; sortSamples()">MOI</th>
                                                 <th>Last Updated</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <tr *ngFor="let sample_annotation of _sampleAnnotations" (click)="selectSample(sample_annotation)" [ngClass]="{success:sample_annotation.sample.id==selectedSample?.id}">
+                                            <tr *ngFor="let sample_annotation of sampleAnnotations" (click)="selectSample(sample_annotation)" [ngClass]="{success: sample_annotation.sample.id==selectedSample?.id}">
                                                 <td>{{sample_annotation.sample.barcode}}</td>
-                                                <td>{{sample_annotation.sample.designation}}</td>
-                                                <td>{{sample_annotation.moi}}</td>
-                                                <td>{{sample_annotation.last_updtaed | date: "fullDate"}}</td>
+                                                <td>{{sample_annotation.last_updated | date: "fullDate"}}</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -163,127 +143,127 @@ import { D3SampleAnnotationEditor } from '../../sample-annotation-editor.compone
     `,
     directives: [SampleListComponent, SectionHeaderComponent, D3SampleAnnotationEditor, ProgressBarComponent]
 })
-export class GenotypingProjectSampleList implements OnInit {
-    public selectedProject: GenotypingProject;
-    public selectedSample: Sample;
-    public selectedSampleLocusAnnotations: SampleLocusAnnotation[];
-    public selectedLocusAnnotation: SampleLocusAnnotation;
-    public errorMessage: string;
+export class QuantificationBiasEstimatorProjectSampleList implements OnInit {
+    private selectedProject: QuantificationBiasEstimatorProject;
+    private selectedSample: Sample;
+    private selectedSampleLocusAnnotations: SampleLocusAnnotation[];
+    private selectedLocusAnnotation: SampleLocusAnnotation;
     private selectedBinEstimator: BinEstimatorProject;
     private selectedBins: Map<number, Bin>;
-    
-    private sampleFileCSV: File[] = [];
+
+    private sampleFileCSV: File[];
     private uploading = false;
-    private uploadComplete = false;
-    private uploadError: string;
     
     private sampleSortingParam: string = 'barcode';
-    private reverseSampleSorting = true;
-    
+    private reverseSampleSorting = false;
+
     private navItems: [{label: string, click: Function, active: boolean}]
-    private header;
-    
-    private _sampleAnnotations: SampleAnnotation[] = [];
+    private header: string;
+
+    private sampleAnnotations: SampleAnnotation[] = [];
     private selectedLocusAnnotationIndex = 0;
-    
-    private channelAnnotations: Map<number, ChannelAnnotation[]>
+
+    private channelAnnotations: Map<number, ChannelAnnotation[]>;
     private selectedLocusChannelAnnotations: ChannelAnnotation[];
     
-    private calculatingProbability = false;
-    
     constructor(
-        private _genotypingProjectService: GenotypingProjectService,
+        private _quantificationBiasEstimatorProjectService: QuantificationBiasEstimatorProjectService,
         private _binEstimatorProjectService: BinEstimatorProjectService,
         private _routeParams: RouteParams,
         private _router: Router
-    ) {}
-    
-    private getBinEstimator = (proj: GenotypingProject) => {
+    ){}
+
+    private getBinEstimator = (proj: QuantificationBiasEstimatorProject) => {
         return this._binEstimatorProjectService.getBinEstimatorProject(proj.bin_estimator_id);
     }
-    
-    private selectLocusAnnotation() {
+
+    selectLocusAnnotation() {
         let annotation = this.selectedSampleLocusAnnotations[this.selectedLocusAnnotationIndex];
         this.selectedBins = null;
         this.selectedLocusAnnotation = annotation;
         this.selectedLocusChannelAnnotations = this.channelAnnotations.get(this.selectedLocusAnnotation.locus_id);
         if(this.selectedBinEstimator.locus_bin_sets.get(this.selectedLocusAnnotation.locus_id)) {
             this.selectedBins = this.selectedBinEstimator.locus_bin_sets.get(this.selectedLocusAnnotation.locus_id).bins;
-        };
+        }
     }
-    
+
     getProject() {
-        this.selectedProject = null
-        this.selectedSample = null
-        this.selectedSampleLocusAnnotations = null
+        this.selectedProject = null;
+        this.selectedSample = null;
+        this.selectedSampleLocusAnnotations = null;
         this.selectedLocusAnnotation = null;
         this.selectedBinEstimator = null;
         this.selectedBins = null;
-        this.calculatingProbability = false;
-        this._sampleAnnotations = [];
-        this._genotypingProjectService.getProject(+this._routeParams.get('project_id'))
-                .map((project) => {
+        this.sampleAnnotations = [];
+        this._quantificationBiasEstimatorProjectService.getProject(+this._routeParams.get('project_id'))
+            .map(
+                project => {
                     this.selectedProject = project;
-                    project.sample_annotations.forEach(sampleAnnotation => {
-                        this._sampleAnnotations.push(sampleAnnotation);
-                    });
+                    project.sample_annotations.forEach(
+                        sample_annotation => {
+                            this.sampleAnnotations.push(sample_annotation);
+                        }
+                    )
                     this.sortSamples();
                     this.header = this.selectedProject.title + " Samples"
                     this.navItems = [
                         {
-                            label: 'Details',
-                            click: () => this.goToLink('GenotypingProjectDetail', {project_id: this.selectedProject.id}),
+                             label: 'Details',
+                            click: () => this.goToLink('QuantificationBiasEstimatorProjectDetail', {project_id: this.selectedProject.id}),
                             active: false
                         },
                         {
                             label: 'Samples',
-                            click: () => this.goToLink('GenotypingProjectSampleList', {project_id: this.selectedProject.id}),
+                            click: () => this.goToLink('QuantificationBiasEstimatorProjectSampleList', {project_id: this.selectedProject.id}),
                             active: true
                         },
                         {
                             label: 'Loci',
-                            click: () => this.goToLink('GenotypingProjectLocusList', {project_id: this.selectedProject.id}),
+                            click: () => this.goToLink('QuantificationBiasEstimatorProjectLocusList', {project_id: this.selectedProject.id}),
                             active: false
                         }
                     ]
                     return project;
-                })
-                .concatMap(this.getBinEstimator)
-                .subscribe(
-                    binEstimator => this.selectedBinEstimator = binEstimator,
-                    err => this.errorMessage = err
-                )
+                }
+            )
+            .concatMap(this.getBinEstimator)
+            .subscribe(
+                binEstimator => this.selectedBinEstimator = binEstimator,
+                err => {
+                    console.log(err);
+                    toastr.error(err)
+                }
+            )
     }
-    
-    fileChangeEvent(fileInput: any){
-        this.sampleFileCSV = <Array<File>> fileInput.target.files;
+
+    fileChangeEvent(fileInput: any) {
+        this.sampleFileCSV = fileInput.target.files;
     }
-    
+
     upload() {
         if(!this.uploading) {
             this.uploading = true;
-            this.uploadComplete = false
-            this._genotypingProjectService.addSamples(this.sampleFileCSV, this.selectedProject.id).subscribe(
+            this._quantificationBiasEstimatorProjectService.addSamples(this.sampleFileCSV, this.selectedProject.id).subscribe(
                 project => {
                     this.selectedProject = project;
-                    this._sampleAnnotations = [];
-                    project.sample_annotations.forEach(sampleAnnotation => {
-                            this._sampleAnnotations.push(sampleAnnotation);
-                        });
+                    this.sampleAnnotations = [];
+                    project.sample_annotations.forEach(sample_annotation => {
+                        this.sampleAnnotations.push(sample_annotation);
+                    })
                     this.sortSamples();
-                    toastr.success("Succesfully Uploaded Sample List");
-                }, 
-                error => {
-                    this.uploadError = error
+                    toastr.success("Succesfully Uploaded Sample List and Assigned Controls");
                 },
-                () => {
-                    this.uploading = false;
-                }
+                err => {
+                    console.log(err);
+                    toastr.error(err)
+                },
+                () => this.uploading = false
             )
+
         }
     }
-    
-    private countOf(object: Object, status) {
+
+    countOf(object: Object, status) {
         let count = 0;
         for(let k in object) {
             if(object[k] == status) {
@@ -293,15 +273,7 @@ export class GenotypingProjectSampleList implements OnInit {
         return count
     }
     
-    private calculateProbability() {
-        this.calculatingProbability = true;
-        this._genotypingProjectService.calculateProbability(this.selectedProject)
-            .subscribe(res => {
-                this.getProject();
-            })
-    }
-    
-    private eventHandler(event: KeyboardEvent) {
+    eventHandler(event: KeyboardEvent) {
         if(this.selectedSampleLocusAnnotations) {         
             if(event.keyCode == 38) {
                 if(this.selectedLocusAnnotationIndex > 0) {
@@ -316,33 +288,34 @@ export class GenotypingProjectSampleList implements OnInit {
                     event.preventDefault()
                 }
             }
-        } 
+        }
     }
-  
-    private selectSample(sample_annotation: SampleAnnotation) {
-        this._genotypingProjectService.getSampleLocusAnnotations(sample_annotation.project_id, sample_annotation.sample.id)
+
+    selectSample(sample_annotation: SampleAnnotation) {
+        this._quantificationBiasEstimatorProjectService.getSampleLocusAnnotations(sample_annotation.project_id, sample_annotation.sample.id)
             .subscribe(sampleLocusAnnotations => {
                 this.selectedLocusAnnotation = null;
                 this.selectedSample = sample_annotation.sample;
                 this.channelAnnotations = new Map<number, ChannelAnnotation[]>();
-                this._genotypingProjectService.getSampleChannelAnnotations(sample_annotation.project_id, sample_annotation.sample.id).subscribe(
-                    channelAnnotations => {
-                        channelAnnotations.forEach(channelAnnotation => {
-                            if(this.channelAnnotations.has(channelAnnotation.locus_id)) {
-                                this.channelAnnotations.get(channelAnnotation.locus_id).push(channelAnnotation);
-                            } else {
-                                this.channelAnnotations.set(channelAnnotation.locus_id, [channelAnnotation]);
-                            }
-                        });
-                        this.selectedSampleLocusAnnotations = sampleLocusAnnotations;
-                        this.sortAnnotations();
-                    }
-                );
+                this._quantificationBiasEstimatorProjectService.getSampleChannelAnnotations(sample_annotation.project_id, sample_annotation.sample.id)
+                    .subscribe(
+                        channelAnnotations => {
+                            channelAnnotations.forEach(channelAnnotation => {
+                                if(this.channelAnnotations.has(channelAnnotation.locus_id)) {
+                                    this.channelAnnotations.get(channelAnnotation.locus_id).push(channelAnnotation);
+                                } else {
+                                    this.channelAnnotations.set(channelAnnotation.locus_id, [channelAnnotation]);
+                                }
+                            });
+                            this.selectedSampleLocusAnnotations = sampleLocusAnnotations;
+                            this.sortAnnotations();
+                        }
+                    )
             })
     }
-  
-    private sortAnnotations() {
-        this.selectedSampleLocusAnnotations.sort((a,b) => {
+
+    sortAnnotations() {
+        this.selectedSampleLocusAnnotations.sort((a, b) => {
             if (a.locus_id > b.locus_id) {
                 return 1;
             } else if(a.locus_id < b.locus_id) {
@@ -352,13 +325,13 @@ export class GenotypingProjectSampleList implements OnInit {
             }
         })
     }
-    
-    private sortSamples() {
+
+    sortSamples() {
         let inSample = false;        
         if(['barcode', 'designation'].indexOf(this.sampleSortingParam) >= 0) {
             inSample = true;
         }
-        this._sampleAnnotations.sort((a,b) => {            
+        this.sampleAnnotations.sort((a,b) => {            
             if(inSample) {
                 var c = a.sample[this.sampleSortingParam];
                 var d = b.sample[this.sampleSortingParam];
@@ -377,16 +350,18 @@ export class GenotypingProjectSampleList implements OnInit {
         })
         
         if(this.reverseSampleSorting) {
-            this._sampleAnnotations.reverse();
+            this.sampleAnnotations.reverse();
         }
     }
-    
+
     private goToLink(dest: String, params: Object) {
         let link = [dest, params];
         this._router.navigate(link);
     }
   
     ngOnInit() {
+        console.log("Initializing Component");
+        
         this.getProject();
     }
 }

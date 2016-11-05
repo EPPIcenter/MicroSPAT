@@ -5,12 +5,14 @@ import tempfile
 from flask import Blueprint, jsonify, request
 from flask import json, send_file
 from flask_socketio import emit
+from sqlalchemy import exists
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.utils import secure_filename
 
 from app.utils import CaseInsensitiveDictReader
-from app.microspat.utils import load_loci_from_csv, LocusException, load_samples_from_csv, load_plate_zips
+from app.microspat.utils import load_loci_from_csv, LocusException, load_samples_from_csv, load_plate_zips, \
+    load_samples_and_controls_from_csv
 from models import *
 
 microspat = Blueprint('microspat', import_name=__name__, template_folder='templates',
@@ -176,6 +178,26 @@ def update_genotyping_locus_params(target, update_dict):
     target.relative_peak_height_limit = update_dict['relative_peak_height_limit']
     target.absolute_peak_height_limit = update_dict['absolute_peak_height_limit']
     target.failure_threshold = update_dict['failure_threshold']
+    target.bootstrap_probability_threshold = update_dict['bootstrap_probability_threshold']
+    target.probability_threshold = update_dict['probability_threshold']
+    return target
+
+
+def update_quantification_bias_estimator_locus_params(target, update_dict):
+    """
+    :type target: QuantificationBiasEstimatorLocusParams
+    """
+    if target.project.bin_estimator_id:
+        bin_estimator = target.project.bin_estimator
+        lp = bin_estimator.get_locus_parameters(target.locus_id)
+        assert isinstance(lp, BinEstimatorLocusParams)
+        if lp.filter_parameters_stale or lp.scanning_parameters_stale or lp.bin_estimator_parameters_stale:
+            raise StaleParametersError(bin_estimator, target.locus)
+
+    update_locus_params(target, update_dict)
+    target.offscale_threshold = update_dict['offscale_threshold']
+    target.min_bias_quantifier_peak_height = update_dict['min_bias_quantifier_peak_height']
+    target.min_bias_quantifier_peak_proportion = update_dict['min_bias_quantifier_peak_proportion']
     return target
 
 
@@ -192,6 +214,7 @@ def load_plate_map(plate_map_file, plate, create_samples_if_not_exist=False):
     locus_labels = [x for x in locus_labels if x.lower() not in ['', 'well']]
     new_channels = defaultdict(list)
     clear_plate_map(plate.id)
+    stale_tracker = {}
     for entry in r:
         eventlet.sleep()
         well_label = entry['Well']
@@ -221,7 +244,16 @@ def load_plate_map(plate_map_file, plate, create_samples_if_not_exist=False):
                 channel.add_locus(locus.id)
                 channel.add_sample(sample.id)
                 for project_id in projects:
-                    new_channels[project_id].append(channel.id)
+                    if not db.session.query(exists().where(ProjectChannelAnnotations.project_id == 2).where(
+                                    ProjectChannelAnnotations.channel_id == 137)).scalar():
+                        new_channels[project_id].append(channel.id)
+
+                    if not (project_id, locus.id,) in stale_tracker:
+                        lp = ProjectLocusParams.query.filter(ProjectLocusParams.project_id == project_id).filter(
+                            ProjectLocusParams.locus_id == locus.id).one()
+                        lp.scanning_parameters_stale = True
+                        stale_tracker[(project_id, locus.id)] = True
+
     db.session.flush()
     plate.check_contamination()
     for project_id in new_channels.keys():
@@ -237,7 +269,8 @@ def clear_plate_map(plate_id):
     channel_annotations = ProjectChannelAnnotations.query.join(Channel).join(Well).join(Plate).filter(
         Plate.id == plate_id).all()
     for annotation in channel_annotations:
-        db.session.delete(annotation)
+        # db.session.delete(annotation)
+        annotation.reinitialize()
 
     channels = Channel.query.join(Well).join(Plate).filter(Plate.id == plate_id).all()
     for channel in channels:
@@ -275,8 +308,16 @@ def socket_get_or_post_projects():
     emit('list_all', [x.serialize() for x in projects])
 
 
+def send_notification(type, message):
+    socketio.emit('notification',
+         {
+             'type': type,
+             'msg': message
+         }, broadcast=True)
+
+
 @microspat.route('/genotyping-project/', methods=['GET', 'POST'])
-def get_or_post_projects():
+def get_or_post_genotyping_projects():
     if request.method == 'GET':
         return table_list_all(GenotypingProject)
     elif request.method == 'POST':
@@ -297,22 +338,35 @@ def get_alleles(id):
         gp = GenotypingProject.query.get(id)
         loci = gp.locus_set.loci
         results = []
-        bin_cache = dict()
+
+        la_dict = defaultdict(list)
+        locus_annotations = SampleLocusAnnotation.query.filter(SampleLocusAnnotation.project_id == id).all()
+        for locus_annotation in locus_annotations:
+            la_dict[locus_annotation.sample_annotations_id].append(locus_annotation)
+
+        sample_annotations_ids = ProjectSampleAnnotations.query.filter(
+            ProjectSampleAnnotations.project_id == id).values(
+            ProjectSampleAnnotations.id)
+
+        sample_ids = dict(ProjectSampleAnnotations.query.distinct().join(Sample).filter(
+            ProjectSampleAnnotations.project_id == id).values(ProjectSampleAnnotations.id, Sample.barcode))
+
+        bins = dict(Bin.query.join(LocusBinSet).join(BinEstimatorProject).filter(
+            BinEstimatorProject.id == gp.bin_estimator_id).values(Bin.id, Bin.label))
+
         header = ["Sample"] + [_.label for _ in loci]
-        for sa in gp.sample_annotations.all():
+        for sa_id in sample_annotations_ids:
+            sa_id = sa_id[0]
             sample_res = dict()
-            sample_res['Sample'] = sa.sample.barcode
-            for la in sa.locus_annotations:
+            sample_res['Sample'] = sample_ids[sa_id]
+            for la in la_dict[sa_id]:
                 alleles = la.alleles.items()
                 bin_ids = [x[0] for x in alleles if x[1]]
-                present_alleles = []
-                for bin_id in bin_ids:
-                    if not bin_cache.get(bin_id, None):
-                        b = Bin.query.get(int(bin_id))
-                        bin_cache[bin_id] = b
-                    else:
-                        b = bin_cache[bin_id]
-                    present_alleles.append(b.label)
+                try:
+                    bin_ids.remove("None")
+                except ValueError:
+                    pass
+                present_alleles = [bins[int(bin_id)] for bin_id in bin_ids]
                 sample_res[la.locus.label] = ";".join(present_alleles)
             results.append(sample_res)
         handle, temp_path = tempfile.mkstemp(suffix='csv', prefix=gp.title)
@@ -326,21 +380,42 @@ def get_alleles(id):
 
 
 @microspat.route('/genotyping-project/<int:id>/get-dominant-alleles/', methods=['GET'])
-def get_dominant_peaks(id):
+def get_dominant_alleles(id):
     try:
         gp = GenotypingProject.query.get(id)
         loci = gp.locus_set.loci
         results = []
+
+        la_dict = defaultdict(list)
+        locus_annotations = SampleLocusAnnotation.query.filter(SampleLocusAnnotation.project_id == id).all()
+        for locus_annotation in locus_annotations:
+            la_dict[locus_annotation.sample_annotations_id].append(locus_annotation)
+
+        sample_annotations_ids = ProjectSampleAnnotations.query.filter(
+            ProjectSampleAnnotations.project_id == id).values(
+            ProjectSampleAnnotations.id)
+
+        sample_ids = dict(ProjectSampleAnnotations.query.distinct().join(Sample).filter(
+            ProjectSampleAnnotations.project_id == id).values(ProjectSampleAnnotations.id, Sample.barcode))
+
         header = ["Sample"] + [_.label for _ in loci]
-        for sa in gp.sample_annotations.all():
+
+        for sa_id in sample_annotations_ids:
+            sa_id = sa_id[0]
             sample_res = dict()
-            sample_res['Sample'] = sa.sample.barcode
-            for la in sa.locus_annotations:
+            sample_res['Sample'] = sample_ids[sa_id]
+            for la in la_dict[sa_id]:
                 max_peak = None
                 peak_alleles = []
                 alleles = la.alleles.items()
-                called_bin_ids = [int(_[0]) for _ in alleles if _[1]]
-                peaks = [peak for peak in la.annotated_peaks if peak['bin_id'] and int(peak['bin_id']) in called_bin_ids]
+                bin_ids = [x[0] for x in alleles if x[1]]
+                try:
+                    bin_ids.remove("None")
+                except ValueError:
+                    pass
+                called_bin_ids = [int(bin_id) for bin_id in bin_ids]
+                peaks = [peak for peak in la.annotated_peaks if
+                         peak['bin_id'] and int(peak['bin_id']) in called_bin_ids]
                 for peak in peaks:
                     if not max_peak:
                         max_peak = peak
@@ -361,19 +436,73 @@ def get_dominant_peaks(id):
         return handle_error(e)
 
 
+@microspat.route('/genotyping-project/<int:id>/get-peak-data/', methods=['GET'])
+def get_peak_data(id):
+    try:
+        gp_title = GenotypingProject.query.filter(GenotypingProject.id == id).value(GenotypingProject.title)
+        results = []
+        header = ["Sample", "Locus", "Peak Height", "Relative Peak Height", "Peak Size", "Peak Area", "Left Tail",
+                  "Right Tail", "Artifact Contribution", "Artifact Error", "In Bin", "Called Allele", "Allele Label",
+                  "Bleedthrough Ratio", "Crosstalk Ratio", "Probability", "Well", "Artifact Flag",
+                  "Below Relative Threshold Flag", "Bleedthrough Flag", "Crosstalk Flag"]
+        locus_annotations = SampleLocusAnnotation.query.filter(SampleLocusAnnotation.project_id == id).join(
+            SampleLocusAnnotation.locus).join(ProjectChannelAnnotations).join(Channel).join(Well).values(
+            SampleLocusAnnotation.annotated_peaks, SampleLocusAnnotation.sample_annotations_id, Locus.label,
+            Well.well_label, SampleLocusAnnotation.alleles)
+        sample_ids = dict(ProjectSampleAnnotations.query.distinct().join(Sample).filter(
+            ProjectSampleAnnotations.project_id == id).values(ProjectSampleAnnotations.id, Sample.barcode))
+        for la in locus_annotations:
+            alleles = la[4].items()
+            bin_ids = [str(x[0]) for x in alleles if x[1]]
+            for peak in la[0]:
+                res = dict()
+                res["Sample"] = sample_ids[la[1]]
+                res["Locus"] = la[2]
+                res["Peak Height"] = peak['peak_height']
+                res["Peak Size"] = peak['peak_size']
+                res["Peak Area"] = peak['peak_area']
+                res["Left Tail"] = peak['left_tail']
+                res["Right Tail"] = peak['right_tail']
+                res["Artifact Contribution"] = peak['artifact_contribution']
+                res["Artifact Error"] = peak['artifact_error']
+                res["Artifact Flag"] = peak['flags']['artifact']
+                res["Below Relative Threshold Flag"] = peak['flags']['below_relative_threshold']
+                res["Crosstalk Flag"] = peak['flags']['crosstalk']
+                res["Bleedthrough Flag"] = peak['flags']['bleedthrough']
+                res["In Bin"] = bool(peak['bin_id'])
+                res["Relative Peak Height"] = peak['relative_peak_height']
+                if res["In Bin"]:
+                    print peak['bin_id']
+                    res["Called Allele"] = str(peak['bin_id']) in bin_ids
+                    res["Allele Label"] = str(peak['bin'])
+                res["Bleedthrough Ratio"] = peak['bleedthrough_ratio']
+                res["Crosstalk Ratio"] = peak['crosstalk_ratio']
+                res["Well"] = la[3]
+                if 'probability' in peak:
+                    res["Probability"] = peak['probability']
+                results.append(res)
+        handle, temp_path = tempfile.mkstemp(suffix='csv', prefix=gp_title)
+        with open(temp_path, 'w') as f:
+            w = csv.DictWriter(f, fieldnames=header)
+            w.writeheader()
+            w.writerows(results)
+        return send_file(temp_path, as_attachment=True, attachment_filename="{} Peak Data.csv".format(gp_title))
+    except Exception as e:
+        return handle_error(e)
+
+
 @microspat.route('/genotyping-project/calculate-probability/', methods=['POST'])
 def calculate_probability():
     project_json = json.loads(request.get_json())
     project = GenotypingProject.query.get(project_json['id'])
     assert isinstance(project, GenotypingProject)
-    project.probability_threshold = project_json['probability_threshold']
     project.probabilistic_peak_annotation()
     db.session.commit()
     return jsonify(wrap_data(project.serialize_details()))
 
 
 @microspat.route('/genotyping-project/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
-def get_or_update_project(id):
+def get_or_update_genotyping_project(id):
     if request.method == 'GET':
         return table_get_details(GenotypingProject, id)
     elif request.method == 'PUT':
@@ -391,7 +520,7 @@ def get_or_update_project(id):
             return handle_error(err)
     elif request.method == 'DELETE':
         try:
-            GenotypingProject.query.filter(GenotypingProject.id==id).delete()
+            GenotypingProject.query.filter(GenotypingProject.id == id).delete()
             return jsonify(wrap_data({"id": id}))
         except Exception as e:
             return handle_error(e)
@@ -421,6 +550,61 @@ def genotyping_project_add_samples(id):
 
     gp.add_samples(list(sample_ids))
     return jsonify(wrap_data(gp.serialize_details()))
+
+
+@microspat.route('/quantification-bias-estimator-project/', methods=['GET', 'POST'])
+def get_or_post_bias_estimator_projects():
+    if request.method == 'GET':
+        return table_list_all(QuantificationBiasEstimatorProject)
+    elif request.method == 'POST':
+        project_params = json.loads(request.get_json())
+        print project_params
+        try:
+            project = QuantificationBiasEstimatorProject(**project_params)
+            db.session.add(project)
+            db.session.flush()
+            return jsonify(wrap_data(project.serialize_details()))
+        except Exception as e:
+            return handle_error(e)
+
+
+@microspat.route('/quantification-bias-estimator-project/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
+def get_or_update_bias_estimator_project(id):
+    if request.method == 'GET':
+        return table_get_details(QuantificationBiasEstimatorProject, id)
+    elif request.method == 'PUT':
+        project_update_dict = json.loads(request.get_json())
+        project = QuantificationBiasEstimatorProject.query.get(id)
+        if project:
+            try:
+                project = update_project(project, project_update_dict)
+                db.session.commit()
+                return jsonify(wrap_data(project.serialize_details()))
+            except Exception as e:
+                return handle_error(e)
+        else:
+            err = "Uh Oh, Project Doesn't Exist"
+            return handle_error(err)
+    elif request.method == 'DELETE':
+        try:
+            QuantificationBiasEstimatorProject.query.filter(QuantificationBiasEstimatorProject.id == id).delete()
+            return jsonify(wrap_data({"id": id}))
+        except Exception as e:
+            return handle_error(e)
+
+
+@microspat.route('/quantification-bias-estimator-project/<int:id>/add-samples/', methods=['POST'])
+def quantification_bias_estimator_project_add_samples(id):
+    qbe = QuantificationBiasEstimatorProject.query.get(id)
+    assert isinstance(qbe, QuantificationBiasEstimatorProject)
+
+    files = request.files.getlist('files')
+    if not files:
+        return handle_error("Nothing Uploaded")
+
+    for sample_file in files:
+        load_samples_and_controls_from_csv(sample_file, qbe.id)
+    return jsonify(wrap_data(qbe.serialize_details()))
 
 
 @microspat.route('/artifact-estimator-project/', methods=['GET', 'POST'])
@@ -628,6 +812,7 @@ def batch_update_locus_parameters():
         'artifact_estimator_locus_params': update_artifact_locus_params,
         'genotyping_locus_params': update_genotyping_locus_params,
         'bin_estimator_locus_params': update_bin_estimator_locus_params,
+        'quantification_bias_locus_params': update_quantification_bias_estimator_locus_params,
         'base_locus_params': update_locus_params
     }
     locus_params_update_dict = json.loads(request.get_json())
@@ -645,7 +830,9 @@ def batch_update_locus_parameters():
                 return handle_error("{} is stale at locus {}, analyze that first!".format(e.project, e.locus))
             db.session.flush()
             for p in locus_parameters:
-                project.analyze_locus(p.locus_id, block_commit=True)
+                send_notification('info', 'Beginning Analysis: {}'.format(p.locus.label))
+                project.analyze_locus(p.locus_id)
+                send_notification('success', 'Completed Analysis: {}'.format(p.locus.label))
             return jsonify(wrap_data({'Status': 'Success'}))
         except SQLAlchemyError as e:
             return handle_error(e)
@@ -678,7 +865,9 @@ def get_or_update_locus_parameters(id):
                     print "STALE PARAMETER ERROR"
                     return handle_error("{} is stale at locus {}, analyze that first!".format(e.project, e.locus))
                 db.session.flush()
+                send_notification('info', 'Beginning Analysis: {}'.format(locus_params.locus.label))
                 project.analyze_locus(locus_params.locus_id)
+                send_notification('success', 'Completed Analysis: {}'.format(locus_params.locus.label))
                 return jsonify(wrap_data(locus_params.serialize()))
             except SQLAlchemyError as e:
                 return handle_error(e)
@@ -1018,28 +1207,32 @@ def get_channel(id):
 @microspat.route('/channel-annotations/<int:project_id>/locus/<int:locus_id>/')
 def get_project_locus_channel_annotations(project_id, locus_id):
     channel_annotations = ProjectChannelAnnotations.query.filter(
-        ProjectChannelAnnotations.project_id == project_id).join(Channel).filter(Channel.locus_id == locus_id).all()
+        ProjectChannelAnnotations.project_id == project_id).join(Channel).filter(Channel.locus_id == locus_id) \
+        .options(joinedload(ProjectChannelAnnotations.channel).joinedload(Channel.locus)).all()
     return jsonify(wrap_data([x.serialize() for x in channel_annotations]))
 
 
 @microspat.route('/channel-annotations/<int:project_id>/sample/<int:sample_id>/')
 def get_project_sample_channel_annotations(project_id, sample_id):
     channel_annotations = ProjectChannelAnnotations.query.filter(
-        ProjectChannelAnnotations.project_id == project_id).join(Channel).filter(Channel.sample_id == sample_id).all()
+        ProjectChannelAnnotations.project_id == project_id).join(Channel).filter(Channel.sample_id == sample_id)\
+        .options(joinedload(ProjectChannelAnnotations.channel).joinedload(Channel.locus)).all()
     return jsonify(wrap_data([x.serialize() for x in channel_annotations]))
 
 
 @microspat.route('/locus-annotations/<int:project_id>/locus/<int:locus_id>/')
 def get_project_sample_locus_annotations_by_locus(project_id, locus_id):
-    annotations = SampleLocusAnnotation.query.filter(
-        SampleLocusAnnotation.project_id == project_id).filter(SampleLocusAnnotation.locus_id == locus_id).all()
+    annotations = SampleLocusAnnotation.query.join(ProjectSampleAnnotations).filter(
+        SampleLocusAnnotation.project_id == project_id).filter(SampleLocusAnnotation.locus_id == locus_id)\
+        .options(joinedload(SampleLocusAnnotation.reference_run)).all()
     return jsonify(wrap_data([x.serialize() for x in annotations]))
 
 
 @microspat.route('/locus-annotations/<int:project_id>/sample/<int:sample_id>/')
 def get_project_sample_locus_annotations_by_sample(project_id, sample_id):
     annotations = SampleLocusAnnotation.query.join(ProjectSampleAnnotations).filter(
-        SampleLocusAnnotation.project_id == project_id).filter(ProjectSampleAnnotations.sample_id == sample_id).all()
+        SampleLocusAnnotation.project_id == project_id).filter(ProjectSampleAnnotations.sample_id == sample_id)\
+        .options(joinedload(SampleLocusAnnotation.reference_run)).all()
     return jsonify(wrap_data([x.serialize() for x in annotations]))
 
 
@@ -1056,20 +1249,53 @@ def update_locus_annotations():
     return jsonify(wrap_data({'status': 'Success'}))
 
 
-@microspat.route('/control/', methods=['GET'])
+@microspat.route('/control/', methods=['GET', 'POST'])
 def get_controls():
-    return table_list_all(Control)
+    if request.method == 'GET':
+        return table_list_all(Control)
+    elif request.method == 'POST':
+        try:
+            ctrl_info = json.loads(request.get_json())
+            print ctrl_info
+            ctrl = Control(barcode=ctrl_info['barcode'], bin_estimator_id=ctrl_info['bin_estimator_id'])
+            for k in ctrl_info['alleles'].keys():
+                if ctrl_info['alleles'][k] == 'null':
+                    ctrl_info['alleles'][k] = None
+            ctrl.set_alleles(ctrl_info['alleles'])
+
+            db.session.add(ctrl)
+            db.session.flush()
+            return jsonify(wrap_data(ctrl.serialize()))
+        except Exception as e:
+            handle_error(e)
 
 
-@microspat.route('/control/<int:id>/', methods=['GET', 'PUT'])
+@microspat.route('/control/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
 def get_control(id):
     if request.method == 'GET':
         return table_get_details(Control, id)
     elif request.method == 'PUT':
+        try:
+            ctrl = Control.query.get(id)
+            update_control = json.loads(request.get_json())
+            for k in update_control['alleles'].keys():
+                if update_control['alleles'][k] == 'null':
+                    update_control['alleles'][k] = None
+            print ctrl
+            print update_control
+            ctrl.bin_estimator_id = update_control['bin_estimator_id']
+            db.session.flush()
+            ctrl.initialize_alleles()
+            ctrl.set_alleles(update_control['alleles'])
+            db.session.flush()
+            return jsonify(wrap_data(ctrl.serialize()))
+        except Exception as e:
+            handle_error(e)
+    elif request.method == 'DELETE':
         ctrl = Control.query.get(id)
-        update_control = json.loads(request.get_json())
         print ctrl
-        print update_control
-        ctrl.set_alleles(update_control['alleles'])
+        db.session.delete(ctrl)
         db.session.flush()
-        return jsonify(wrap_data(ctrl.serialize()))
+        return jsonify(wrap_data({'status': 'Success'}))
+
+

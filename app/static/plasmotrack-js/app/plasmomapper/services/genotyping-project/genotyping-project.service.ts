@@ -47,7 +47,7 @@ export class GenotypingProjectService extends SampleBasedProjectService {
         })
         
         this.getProjects = () => {
-            this._socket.emit('list');
+            // this._socket.emit('list');
             return this._commonServerMethods.getList(GenotypingProject, this._projectsUrl)  
         };
         

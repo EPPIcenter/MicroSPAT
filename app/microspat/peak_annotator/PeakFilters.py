@@ -10,9 +10,12 @@ def less_than_filter(value, key):
     return fn
 
 
-def greater_than_filter(value, key):
+def greater_than_filter(value, key, or_equal=False):
     def fn(peak_annotations):
-        return filter(lambda x: x[key] > value, peak_annotations)
+        if or_equal:
+            return filter(lambda x: x[key] >= value, peak_annotations)
+        else:
+            return filter(lambda x: x[key] > value, peak_annotations)
     return fn
 
 
@@ -37,7 +40,7 @@ def crosstalk_filter(max_crosstalk_ratio):
 
 
 def probability_filter(probability_threshold):
-    return greater_than_filter(probability_threshold, 'probability')
+    return greater_than_filter(probability_threshold, 'probability', or_equal=True)
 
 
 def artifact_filter(min_peak_height, sd_multiplier):

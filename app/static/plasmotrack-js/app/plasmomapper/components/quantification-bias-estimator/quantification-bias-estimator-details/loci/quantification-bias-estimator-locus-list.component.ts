@@ -10,12 +10,12 @@ import { CommonLocusParametersDetailComponent } from '../../../project/common-lo
 
 import { LocusParametersDetailComponent } from '../../../project/locus-parameters-detail.component';
 
-import { GenotypingLocusParameters } from '../../../../services/genotyping-project/locus-parameters/genotyping-locus-parameters.model';
+import { QuantificationBiasEstimatorLocusParameters } from '../../../../services/quantification-bias-estimator-project/locus-parameters/quantification-bias-estimator-locus-parameters.model';
 import { SampleLocusAnnotation } from '../../../../services/sample-based-project/sample-annotation/locus-annotation/sample-locus-annotation.model';
 import { ChannelAnnotation } from '../../../../services/project/channel-annotation/channel-annotation.model';
 
-import { GenotypingProject } from '../../../../services/genotyping-project/genotyping-project.model';
-import { GenotypingProjectService } from '../../../../services/genotyping-project/genotyping-project.service';
+import { QuantificationBiasEstimatorProject } from '../../../../services/quantification-bias-estimator-project/quantification-bias-estimator-project.model';
+import { QuantificationBiasEstimatorProjectService } from '../../../../services/quantification-bias-estimator-project/quantification-bias-estimator-project.service';
 
 import { Locus } from '../../../../services/locus/locus.model';
 import { LocusService } from '../../../../services/locus/locus.service';
@@ -24,6 +24,7 @@ import { Bin } from '../../../../services/bin-estimator-project/locus-bin-set/bi
 import { BinEstimatorProject } from '../../../../services/bin-estimator-project/bin-estimator-project.model';
 import { BinEstimatorProjectService } from '../../../../services/bin-estimator-project/bin-estimator-project.service';
 import { D3SampleAnnotationEditor } from '../../sample-annotation-editor.component';
+
 
 interface AnnotationFilter {
     failures: boolean;
@@ -39,7 +40,7 @@ interface AnnotationFilter {
 
 
 @Component({
-    selector: 'genotyping-project-locus-list',
+    selector: 'quantification-bias-estimator-project-locus-list',
     pipes: [LocusPipe],
     host: {
         '(document:keydown)': 'eventHandler($event)'
@@ -48,79 +49,60 @@ interface AnnotationFilter {
         <pm-section-header [header]="header" [navItems]="navItems"></pm-section-header>
         <div class="row">
             <div *ngIf="selectedProject" class="col-sm-1">
-                <pm-locus-parameter-list class="list-panel" [(locusParameters)]="locusParameters" (locusClicked)="selectLocus($event)">
-                </pm-locus-parameter-list>
+                <pm-locus-parameter-list class="list-panel" [(locusParameters)]="locusParameters" (locusClicked)="selectLocus($event)"></pm-locus-parameter-list>
             </div>
             <div *ngIf="selectedLocusParameter" class="col-sm-4">
                 <div class="row">
                     <div class="panel panel-default">
                         <div (click)="locusParamsCollapsed = !locusParamsCollapsed" class="panel-heading">
                             <div class="h3 panel-title">
-                                <span>{{selectedLocusParameter.locus_id | locus | async}}</span> <span *ngIf="selectedLocusAnnotations"> | {{selectedLocusAnnotations.length}} Samples </span> <span *ngIf="failureRate"> | Failure Rate: {{failureRate | number}}</span>
+                                <span>{{selectedLocusParameter.locus_id | locus | async}}</span> 
+                                <span *ngIf="selectedLocusAnnotations"> | {{selectedLocusAnnotations.length}} Samples </span> 
+                                <span *ngIf="failureRate"> | Failure Rate: {{failureRate | number}}</span>
                                 <span *ngIf="locusParamsCollapsed" class="glyphicon glyphicon-menu-right pull-right"></span>
-                                <span *ngIf="!locusParamsCollapsed" class="glyphicon glyphicon-menu-down pull-right"></span> 
+                                <span *ngIf="!locusParamsCollapsed" class="glyphicon glyphicon-menu-down pull-right"></span>
                             </div>
                         </div>
                         <div *ngIf="!locusParamsCollapsed" class="panel-body">
                             <form>
                                 <pm-common-locus-parameter-detail [(locusParameter)]="selectedLocusParameter"></pm-common-locus-parameter-detail>
                                 <div class="row">
-                                    <div class="col-sm-12">
-                                        <h4>Genotyping Settings</h4>
-                                        <div class="col-sm-6">
-                                            <div class="form-group">
-                                                <label>Min Relative Peak Height</label>
-                                                <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" min="0" max="1" [(ngModel)]="selectedLocusParameter.relative_peak_height_limit">
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Min Absolute Peak Height</label>
-                                                <input class="form-control input-sm" (change)="onChanged()" type="number" required step="1" min="0" [(ngModel)]="selectedLocusParameter.absolute_peak_height_limit">
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Bleedthrough Limit</label>
-                                                <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" min="0" [(ngModel)]="selectedLocusParameter.bleedthrough_filter_limit">
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Crosstalk Limit</label>
-                                                <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" min="0" [(ngModel)]="selectedLocusParameter.crosstalk_filter_limit">
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Failure Threshold</label>
-                                                <input class="form-control input-sm" (change)="onChanged()" type="number" required step="1" min="0" [(ngModel)]="selectedLocusParameter.failure_threshold">
-                                            </div>
-                                        </div>                                
-                                        <div class="col-sm-6">
-                                            <div *ngIf="selectedProject.artifact_estimator_id" class="form-group">
-                                                <label>Soft Artifact SD Limit</label>
-                                                <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" [(ngModel)]="selectedLocusParameter.soft_artifact_sd_limit">
-                                            </div>
-                                            <div  *ngIf="selectedProject.artifact_estimator_id" class="form-group">
-                                                <label>Hard Artifact SD Limit</label>
-                                                <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" [(ngModel)]="selectedLocusParameter.hard_artifact_sd_limit">
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Genotyping Probability Threshold</label>
-                                                <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" min="0" [(ngModel)]="selectedLocusParameter.probability_threshold">
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Bootstrap Probability Threshold</label>
-                                                <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" min="0" [(ngModel)]="selectedLocusParameter.bootstrap_probability_threshold">
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Offscale Threshold</label>
-                                                <input class="form-control input-sm" (change)="onChanged()" type="number" required step="1" min="0" [(ngModel)]="selectedLocusParameter.offscale_threshold">
-                                            </div>
-                                            
+                                    <h4>Quantification Bias Estimator Settings</h4>
+                                    <div class="col-sm-6">    
+                                        <div class="form-group">
+                                            <label>Min Peak Height</label>
+                                            <input class="form-control input-sm" (change)="onChanged()" type="number" required step="1" min="0" [(ngModel)]="selectedLocusParameter.min_bias_quantifier_peak_height">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Min True Peak Proportion</label>
+                                            <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" min="0" max="1" [(ngModel)]="selectedLocusParameter.min_bias_quantifier_peak_proportion">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Offscale Threshold</label>
+                                            <input class="form-control input-sm" (change)="onChanged()" type="number" required step="1" min="0" [(ngModel)]="selectedLocusParameter.offscale_threshold">
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div class="form-group">
+                                            <label>Beta</label>
+                                            <input class="form-control input-sm" disabled type="number" [(ngModel)]="selectedLocusParameter.beta">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>SD</label>
+                                            <input class="form-control input-sm" disabled type="number" [(ngModel)]="selectedLocusParameter.sd">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>R²</label>
+                                            <input class="form-control input-sm" disabled type="number" [(ngModel)]="selectedLocusParameter.r_squared">
                                         </div>
                                     </div>
                                 </div>
-                                <button type="submit" class="btn btn-default" (click)="saveLocusParams(selectedLocusParameter)" [ngClass]="{disabled: isSubmitting}">Save and Analyze</button>
+                                <button class="btn btn-default" (click)="saveLocusParams(selectedLocusParameter)" [ngClass]="{disabled: isSubmitting}">Save and Analyze</button>
                             </form>
                             <br>
                             <div>
                                 <pm-progress-bar *ngIf="isSubmitting" [fullLabel]="'Saving and Analyzing Locus... This May Take A While'"></pm-progress-bar>
                             </div>
-                            <div *ngIf="errorMessage" class="alert alert-danger" role="alert">{{errorMessage}}</div>
                         </div>
                     </div>
                 </div>
@@ -245,47 +227,45 @@ interface AnnotationFilter {
     `,
     directives: [SectionHeaderComponent, LocusParametersListComponent, CommonLocusParametersDetailComponent, LocusParametersDetailComponent, D3SampleAnnotationEditor, ProgressBarComponent]
 })
-export class GenotypingProjectLocusList {
-    private selectedProject: GenotypingProject;
-    private locusParameters: GenotypingLocusParameters[] = [];
+export class QuantificationBiasEstimatorProjectLocusListComponent {
+    private selectedProject: QuantificationBiasEstimatorProject;
+    private locusParameters: QuantificationBiasEstimatorLocusParameters[] = [];
     private selectedLocus: Locus;
-    private selectedLocusParameter: GenotypingLocusParameters;
-    // private selectedLocusChannelAnnotations: ChannelAnnotation[];
+    private selectedLocusParameter: QuantificationBiasEstimatorLocusParameters;
     private selectedLocusAnnotations: SampleLocusAnnotation[];
     private selectedBinEstimator: BinEstimatorProject;
     private selectedBins: Map<number, Bin>;
-    private errorMessage: string;
     private isSubmitting: boolean = false;
     private selectingLocus: boolean = false;
 
     private failureRate: number;
-    
-    private locusParamsCollapsed = false;
+
+    private locusParamsCollapsed: boolean = false;
     private selectedLocusAnnotation: SampleLocusAnnotation;
     private filteredLocusAnnotations: SampleLocusAnnotation[] = [];
     private filteredLocusAnnotationIndex = 0;
-    
+
     private channelAnnotations: Map<number, ChannelAnnotation[]>;
     private selectedSampleChannelAnnotations: ChannelAnnotation[];
-    
+
     private filters: AnnotationFilter;
+
 
     private loadingAnnotations = false;
     private loadingLocusAnnotations = false;
-    
+
     private navItems;
     private header;
-    
+
     constructor(
-        private _genotypingProjectService: GenotypingProjectService,
+        private _qbeProjectService: QuantificationBiasEstimatorProjectService,
         private _binEstimatorProjectService: BinEstimatorProjectService,
         private _locusService: LocusService,
         private _routeParams: RouteParams,
         private _router: Router
     ){}
-    
-    
-    private getBinEstimator = (proj: GenotypingProject) => {
+
+     private getBinEstimator = (proj: QuantificationBiasEstimatorProject) => {
         return this._binEstimatorProjectService.getBinEstimatorProject(proj.bin_estimator_id);
     }
     
@@ -298,10 +278,10 @@ export class GenotypingProjectLocusList {
         }
         return count
     }
-    
+
     getProject() {
         let id = +this._routeParams.get('project_id');
-        this._genotypingProjectService.getProject(id)
+        this._qbeProjectService.getProject(id)
             .map(project => {
                 this.selectedProject = project;
                 this.loadLocusParameters();
@@ -309,17 +289,17 @@ export class GenotypingProjectLocusList {
                 this.navItems = [
                     {
                         label: 'Details',
-                        click: () => this.goToLink('GenotypingProjectDetail', {project_id: this.selectedProject.id}),
+                        click: () => this.goToLink('QuantificationBiasEstimatorProjectDetail', {project_id: this.selectedProject.id}),
                         active: false
                     },
                     {
                         label: 'Samples',
-                        click: () => this.goToLink('GenotypingProjectSampleList', {project_id: this.selectedProject.id}),
+                        click: () => this.goToLink('QuantificationBiasEstimatorProjectSampleList', {project_id: this.selectedProject.id}),
                         active: false
                     },
                     {
                         label: 'Loci',
-                        click: () => this.goToLink('GenotypingProjectLocusList', {project_id: this.selectedProject.id}),
+                        click: () => this.goToLink('QuantificationBiasEstimatorProjectLocusList', {project_id: this.selectedProject.id}),
                         active: true
                     }
                 ]
@@ -330,18 +310,17 @@ export class GenotypingProjectLocusList {
                 binEstimator => {
                     this.selectedBinEstimator = <BinEstimatorProject> binEstimator;
                 },
-                err => this.errorMessage = err
+                err => toastr.error(err)
             )
     }
-    
+
     private loadLocusParameters() {
         this.locusParameters = [];
         this.selectedProject.locus_parameters.forEach((locus_param, id) => {
             this.locusParameters.push(locus_param);
         });
-        console.log(this.locusParameters);
     }
-    
+
     private goToLink(dest: String, params: Object) {
       let link = [dest, params];
       this._router.navigate(link);
@@ -355,7 +334,17 @@ export class GenotypingProjectLocusList {
             }
         })            
     }
-    
+
+    private getLocusAnnotations(){
+        return this._qbeProjectService.getLocusAnnotations(this.selectedProject.id, this.selectedLocus.id)
+            .map(
+                locusAnnotations => {  
+                    this.selectedLocusAnnotations = locusAnnotations;
+                    this.getFailureRate(locusAnnotations);
+                    this.selectedLocusAnnotation = locusAnnotations[0];    
+                })
+    }
+
     private filterLocusAnnotations() {
         this.filteredLocusAnnotations = [];
         this.filteredLocusAnnotationIndex = 0
@@ -426,17 +415,7 @@ export class GenotypingProjectLocusList {
             }
         })
     }
-    
-    private getLocusAnnotations(){
-        return this._genotypingProjectService.getLocusAnnotations(this.selectedProject.id, this.selectedLocus.id)
-            .map(
-                locusAnnotations => {                    
-                    this.selectedLocusAnnotations = locusAnnotations;
-                    this.getFailureRate(locusAnnotations);
-                    this.selectedLocusAnnotation = locusAnnotations[0];    
-                })
-    }
-    
+
     private selectLocusAnnotation() {
         if (this.filteredLocusAnnotations.length > this.filteredLocusAnnotationIndex){
             this.selectedLocusAnnotation = this.filteredLocusAnnotations[this.filteredLocusAnnotationIndex];
@@ -470,11 +449,10 @@ export class GenotypingProjectLocusList {
             }
         } 
     }
-    
+
     private selectLocus(locus_id: number) {
         if(!this.isSubmitting && !this.selectingLocus){
             console.log(locus_id);
-            this.errorMessage = null;
             this.selectedLocus = null;
             this.failureRate = null;
             this.selectedLocusParameter = null;
@@ -502,7 +480,7 @@ export class GenotypingProjectLocusList {
                             this.clearFilter();
                         }
                     );
-                    this._genotypingProjectService.getLocusChannelAnnotations(this.selectedProject.id, locus_id).subscribe(
+                    this._qbeProjectService.getLocusChannelAnnotations(this.selectedProject.id, locus_id).subscribe(
                         channelAnnotations => {
                             channelAnnotations.forEach(channelAnnotation => {
                                 if(this.channelAnnotations.has(channelAnnotation.sample_id)) {
@@ -510,7 +488,6 @@ export class GenotypingProjectLocusList {
                                 } else {
                                     this.channelAnnotations.set(channelAnnotation.sample_id, [channelAnnotation]);
                                 }
-                                
                                 this.selectLocusAnnotation();
                             });
                             this.loadingAnnotations = false;
@@ -527,17 +504,16 @@ export class GenotypingProjectLocusList {
                     toastr.error(err);
                 }
             } else {
-                let lp = new GenotypingLocusParameters();
+                let lp = new QuantificationBiasEstimatorLocusParameters();
                 // lp.locus_id = -1;
                 lp.initialize();
-                console.log("ALL LOCUS ANALYSIS");
                 this.selectedLocusParameter = lp;
             }
             
         }
         
     }
-    
+
     private locusParamsSaved() {
         this.locusParameters = [];
         this.selectedProject.locus_parameters.forEach((locusParam, id) => {
@@ -550,10 +526,10 @@ export class GenotypingProjectLocusList {
             this.isSubmitting = true;
             // let locusParameter = this.selectedProject.locus_parameters.get(id);
             if(locusParameter.id) {
-                this._genotypingProjectService.saveLocusParameters(locusParameter).subscribe(
-                    (locusParam: GenotypingLocusParameters) => {
-                        this._genotypingProjectService.clearCache(locusParam.project_id);
-                        this._genotypingProjectService.getProject(locusParam.project_id)
+                this._qbeProjectService.saveLocusParameters(locusParameter).subscribe(
+                    (locusParam: QuantificationBiasEstimatorLocusParameters) => {
+                        this._qbeProjectService.clearCache(locusParam.project_id);
+                        this._qbeProjectService.getProject(locusParam.project_id)
                             .subscribe(
                                 proj => {
                                     this.selectedProject = proj;
@@ -563,19 +539,18 @@ export class GenotypingProjectLocusList {
                                 }
                             )
                     },
-                    (error) => {
-                        this.errorMessage = error;
-                        this.isSubmitting = false;
+                    (err) => {
+                        toastr.error(err)
                     },
                     () => {
                         this.isSubmitting = false;
                     }
                 )
             } else {
-                this._genotypingProjectService.batchApplyLocusParameters(locusParameter, this.selectedProject.id).subscribe(
+                this._qbeProjectService.batchApplyLocusParameters(locusParameter, this.selectedProject.id).subscribe(
                     () => {
-                        this._genotypingProjectService.clearCache(this.selectedProject.id);
-                        this._genotypingProjectService.getProject(this.selectedProject.id)
+                        this._qbeProjectService.clearCache(this.selectedProject.id);
+                        this._qbeProjectService.getProject(this.selectedProject.id)
                             .subscribe(
                                 proj => {
                                     this.selectedProject = proj;
@@ -594,36 +569,7 @@ export class GenotypingProjectLocusList {
         }
         
     }
-    
-    private saveAnnotations() {
-        if(!this.isSubmitting) {
-            this.isSubmitting = true;
-            let annotations = [];
-            this.selectedLocusAnnotations.forEach(annotation => {
-                if(annotation.isDirty) {
-                    annotations.push(annotation);
-                }
-            })
-            
-            this._genotypingProjectService.saveAnnotations(annotations)
-                .subscribe(
-                    () => {
-                        this.getLocusAnnotations().subscribe(
-                            () => {
-                                this.filterLocusAnnotations();
-                                this.isSubmitting = false;
-                            }
-                        );
-                    },
-                    err => {
-                        this.errorMessage = err;
-                        this.isSubmitting = false;
-                    }
-                )
-        }
-        
-    }
-    
+
     onChanged(e) {
         this.selectedLocusParameter.isDirty = true
     }
@@ -631,5 +577,5 @@ export class GenotypingProjectLocusList {
     ngOnInit() {
         this.getProject();
     }
-       
+
 }

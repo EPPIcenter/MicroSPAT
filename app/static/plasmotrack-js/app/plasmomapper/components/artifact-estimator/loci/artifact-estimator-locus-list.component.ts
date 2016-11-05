@@ -88,7 +88,7 @@ import { D3ArtifactEstimatorPanel } from '../locus-artifact-estimator/d3-artifac
                                     <div class="form-group col-sm-3">
                                         <label>Artifact Distance</label>
                                         <select (change)="selectArtifactEstimator($event)" class="form-control">
-                                            <option *ngFor="let artifactEstimator of artifactEstimators" value={{artifactEstimator.id}}>{{artifactEstimator.artifact_distance | number}}     {{artifactEstimator.peak_data.length}}</option>
+                                            <option *ngFor="let artifactEstimator of artifactEstimators" value={{artifactEstimator.id}}>{{artifactEstimator.label}}     {{artifactEstimator.peak_data.length}}</option>
                                         </select>
                                     </div>
                                 </div>
@@ -97,6 +97,9 @@ import { D3ArtifactEstimatorPanel } from '../locus-artifact-estimator/d3-artifac
                                         <button class="btn btn-warning" (click)="deleteArtifactEstimator()">Delete Estimator</button>
                                         <button class="btn btn-warning" (click)="clearBreakpoints()">Clear Breakpoints</button>
                                         <button class="btn btn-info" (click)="recalculateArtifactEquations()">Recalculate Equations</button>
+                                        <div *ngIf="deletingEstimator">
+                                            <pm-progress-bar [fullLabel]="'Deleting Estimator...'"></pm-progress-bar>
+                                        </div>
                                     </div>
                                 </div>
                             </form>
@@ -152,11 +155,19 @@ export class ArtifactEstimatorLocusListComponent implements OnInit {
     private selectingLocus: boolean = false;
 
     private loadingEstimators = false;
+    private deletingEstimator = false;
 
     private static possibleMethods = ['TSR', 'LSR', 'RANSAC', 'no_slope'];
     
     private navItems
     private header;
+
+    private method_names = {
+        TSR: 'TSR',
+        LSR: 'LSR',
+        RANSAC: 'RANSAC',
+        no_slope: 'No Slope'
+    }
 
     @ViewChild(D3ArtifactEstimatorPanel) artEstimatorPanel: D3ArtifactEstimatorPanel;
     
@@ -357,7 +368,9 @@ export class ArtifactEstimatorLocusListComponent implements OnInit {
     }
     
     private deleteArtifactEstimator() {
-        this._artifactEstimatorProjectService.deleteArtifactEstimator(this.selectedArtifactEstimator.id)
+        if(!this.deletingEstimator) {
+            this.deletingEstimator = true;
+            this._artifactEstimatorProjectService.deleteArtifactEstimator(this.selectedArtifactEstimator.id)
             .subscribe(
                 () => {
                     let _ : ArtifactEstimator[] = [];
@@ -373,8 +386,10 @@ export class ArtifactEstimatorLocusListComponent implements OnInit {
                     };
                     toastr.success("Artifact Estimator Deleted");
                 },
-                err => this.errorMessage = err
+                err => toastr.error(err),
+                () => this.deletingEstimator = false
             )
+        }
     }
     
     private clearBreakpoints() {

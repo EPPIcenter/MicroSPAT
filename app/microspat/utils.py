@@ -1,11 +1,9 @@
 from app.microspat.fsa_extractor.PlateExtractor import PlateExtractor
-from app.microspat.models import Locus, Sample, Plate, Well, Channel
+from app.microspat.models import Locus, Sample, Plate, Well, Channel, Control, GenotypingProject, \
+    QuantificationBiasEstimatorProject, ProjectSampleAnnotations
 from app.utils import CaseInsensitiveDictReader
-
-
-# from app import db
-
-
+from sqlalchemy.orm.exc import NoResultFound
+from app import db
 
 
 class LocusException(Exception):
@@ -14,6 +12,47 @@ class LocusException(Exception):
 
 class SampleException(Exception):
     pass
+
+
+class ControlException(Exception):
+    pass
+
+
+def load_samples_and_controls_from_csv(f, qbe_proj_id):
+    r = CaseInsensitiveDictReader(f)
+    qbe = QuantificationBiasEstimatorProject.query.get(qbe_proj_id)
+    control_map = {}
+    assert isinstance(qbe, QuantificationBiasEstimatorProject)
+    for d in r:
+        barcode = d.pop('barcode')
+        sample_id = Sample.query.filter(Sample.barcode == barcode).value(Sample.id)
+        if not barcode:
+            raise ControlException("Barcode header missing.")
+        controls_and_props = d.values()
+        controls_and_props = map(lambda _: _.strip().split(';'), controls_and_props)
+        controls = []
+        for control_and_prop in controls_and_props:
+            if len(control_and_prop) > 1:
+                control, prop = control_and_prop
+                try:
+                    prop = float(prop)
+                except ValueError:
+                    raise ControlException("Control entry malformed.")
+                try:
+                    c = Control.query.filter(Control.barcode == control).filter(
+                        Control.bin_estimator_id == qbe.bin_estimator_id).one()
+                except NoResultFound:
+                    raise ControlException("Control \"{}\" malformed or bin estimator does not match.".format(control))
+                assert isinstance(c, Control)
+                controls.append((c.id, prop))
+        if controls:
+            control_map[sample_id] = controls
+    sample_ids = control_map.keys()
+    qbe.add_samples(sample_ids)
+    db.session.flush()
+    sample_annotation_ids = qbe.sample_annotations.values(ProjectSampleAnnotations.id, ProjectSampleAnnotations.sample_id)
+    for sa_id, sample_id in sample_annotation_ids:
+        qbe.assign_controls(sa_id, control_map[sample_id])
 
 
 def load_loci_from_csv(f):
@@ -86,4 +125,3 @@ def load_plate_zips(zips, ladder):
                                                         filter_parameters=ladder.filter_parameters,
                                                         scanning_parameters=ladder.scanning_parameters)
     return extracted_plates
-

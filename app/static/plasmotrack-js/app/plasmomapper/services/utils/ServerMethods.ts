@@ -201,6 +201,6 @@ export class CommonServerMethods {
     
     protected handleError(error: Response) {
         console.log(error);
-        return Observable.throw(error.json().error || 'Server error');
+        return Observable.throw(error.json || 'Server error');
     };
 }

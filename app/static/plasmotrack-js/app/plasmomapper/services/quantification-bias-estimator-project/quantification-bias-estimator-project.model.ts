@@ -1,7 +1,7 @@
-import { Project } from '../project/project.model';
+import { SampleBasedProject } from '../sample-based-project/sample-based-project.model';
 import { QuantificationBiasEstimatorLocusParameters } from './locus-parameters/quantification-bias-estimator-locus-parameters.model';
 
-export class QuantificationBiasEstimatorProject extends Project {
+export class QuantificationBiasEstimatorProject extends SampleBasedProject {
     locus_parameters: Map<number, QuantificationBiasEstimatorLocusParameters>;
 
     fillFromJSON(obj) {
@@ -9,9 +9,9 @@ export class QuantificationBiasEstimatorProject extends Project {
 
         let lp = new Map<number, QuantificationBiasEstimatorLocusParameters>();
 
-        for(let key in obj.locus_paramters) {
+        for(let key in obj.locus_parameters) {
             let new_lp = new QuantificationBiasEstimatorLocusParameters();
-            new_lp.fillFromJSON(obj.locus_paramters[key]);
+            new_lp.fillFromJSON(obj.locus_parameters[key]);
             lp.set(parseInt(key), new_lp);
         }
         

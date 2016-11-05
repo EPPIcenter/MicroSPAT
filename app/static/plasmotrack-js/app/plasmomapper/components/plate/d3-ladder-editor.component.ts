@@ -20,11 +20,11 @@ import * as d3 from 'd3'
         </div>
     </div>
     <div class="col-sm-3">
-        <a (click)="recalculateLadder()" [ngClass]="{disabled: !well.isDirty}" class="btn btn-primary btn-block">Recalculate Ladder</a>
-        <a (click)="clearPeaks()" class="btn btn-warning btn-block">Clear Peaks</a>
-        <a [ngClass]="{disabled: !well.isDirty}" (click)="undo()" class="btn btn-info btn-block">Undo Changes</a>
-        <h3 class="span12 label label-info">SQ: {{well.sizing_quality | number}}</h3>
-        <h3 class="span12 label label-success">Well: {{well.well_label}}</h3>
+        <a (click)="recalculateLadder()" [ngClass]="{disabled: !well.isDirty}" class="btn btn-primary btn-block btn-xs">Recalculate Ladder</a>
+        <a (click)="clearPeaks()" class="btn btn-warning btn-block btn-xs">Clear Peaks</a>
+        <a [ngClass]="{disabled: !well.isDirty}" (click)="undo()" class="btn btn-info btn-block btn-xs">Undo Changes</a>
+        <h2 class="span12 label label-info">SQ: {{well.sizing_quality | number}}</h2>
+        <h2 class="span12 label label-success">Well: {{well.well_label}}</h2>
         <span class="label label-danger" *ngFor='let err of errorMessages'>{{err}}</span>
     </div>
     `

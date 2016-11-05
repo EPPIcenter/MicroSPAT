@@ -2,6 +2,7 @@
 from collections import defaultdict
 from itertools import groupby
 import scipy.stats as st
+import numpy as np
 
 
 _FREQUENCIES_REQUIRED = ValueError("Locus Allele Frequencies must be provided.")
@@ -44,7 +45,7 @@ def calculate_allele_frequencies(locus_annotations):
         annotated_peaks = reduce(lambda _, __: _ + __, annotated_peak_sets, [])
         annotated_peaks.sort(key=lambda _: _['bin_id'])
         for bin_label, binned_peaks in groupby(annotated_peaks, key=lambda _: _['bin_id']):
-            allele_frequencies[locus_label][bin_label] = len(list(binned_peaks)) / float(len(annotated_peak_sets))
+            allele_frequencies[locus_label][str(bin_label)] = len(list(binned_peaks)) / float(len(annotated_peak_sets))
 
     return allele_frequencies
 
@@ -60,19 +61,19 @@ def cdf_weighted_probability(p, _):
 
 
 def allele_frequency_weighted_probability(p, locus_allele_frequencies):
-    if not locus_allele_frequencies:
+    if not isinstance(locus_allele_frequencies, dict):
         raise _FREQUENCIES_REQUIRED
     probability = p['probability']
-    allele_frequency = locus_allele_frequencies[p['bin_id']]
+    allele_frequency = locus_allele_frequencies.get(str(p['bin_id']), 0)
     return allele_frequency * probability
 
 
 def combo_weighted_probability(p, locus_allele_frequencies):
-    if not locus_allele_frequencies:
+    if not isinstance(locus_allele_frequencies, dict):
         raise _FREQUENCIES_REQUIRED
     probability, peak_height, artifact, error = __extract_features(p)
     cdf_val = st.norm.cdf((peak_height - artifact) / error)
-    allele_frequency = locus_allele_frequencies[p['bin_id']]
+    allele_frequency = locus_allele_frequencies.get(str(p['bin_id']), 0)
     return cdf_val * allele_frequency * probability
 
 
@@ -124,6 +125,37 @@ def calculate_peak_probability(peak_set, num_possible, locus_allele_frequencies=
     return recalculated_probabilities
 
 
+def calculate_prob_pos_if_observed(peak_set, verbose=False):
+    for peak in peak_set:
+        prob_neg = peak['prob_negative']
+        prob_observed_if_neg = st.norm.sf((peak['peak_height'] - peak['artifact_contribution']) / float(max(peak['artifact_error'], 1e-6)))
+
+        prob_neg_if_observed = (prob_observed_if_neg * prob_neg) / float(max(((prob_observed_if_neg * prob_neg) + 1 - prob_neg), 1e-6))
+
+        peak['probability'] = max(1 - prob_neg_if_observed, 0)
+        if verbose:
+            print "Peak Height: {}   Artifact: {}   Error: {}".format(peak['peak_height'], peak['artifact_contribution'], peak['artifact_error'])
+            print "Prob neg: {}  Prob Observed if Neg: {}  Prob Neg if Observed: {}".format(prob_neg, prob_observed_if_neg, prob_neg_if_observed)
+    return peak_set
+
+
+def calculate_prob_negative(peak_set, moi, allele_frequencies, verbose=False):
+
+    prob_all_perms = sum([_['probability'] * allele_frequencies.get(str(_['bin_id']), 0) for _ in peak_set]) ** moi
+    if prob_all_perms < 1e-6:
+        map(lambda _: _.update({'prob_negative': 1}), peak_set)
+    else:
+        for i in range(len(peak_set)):
+            peak = peak_set.pop(i)
+            prob_perms_without_peak = sum([allele_frequency_weighted_probability(_, allele_frequencies) for _ in peak_set]) ** moi
+            # prob_perms_with_peak = prob_all_perms - prob_perms_without_peak
+            prob_peak_negative = prob_perms_without_peak / prob_all_perms
+            peak['prob_negative'] = prob_peak_negative
+
+            peak_set.insert(i, peak)
+    return peak_set
+
+
 def calculate_moi(locus_annotations, offset=0):
     """
     Given a set of locus annotations (All calls from a sample), calculate the MOI of the sample.  If the offset is
@@ -137,7 +169,7 @@ def calculate_moi(locus_annotations, offset=0):
         locus_label, annotated_peaks = locus_annotation
         peak_counts.append(len(annotated_peaks))
     peak_counts.sort()
-    if len(peak_counts) > -1 - offset:
+    if len(peak_counts) > abs(-1 - offset):
         moi = peak_counts[-1 - offset]
     else:
         moi = 0

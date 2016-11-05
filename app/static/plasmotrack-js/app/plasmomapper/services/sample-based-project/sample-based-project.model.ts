@@ -2,6 +2,7 @@ import { Project } from '../project/project.model';
 import { SampleAnnotation } from './sample-annotation/sample-annotation.model';
 
 export class SampleBasedProject extends Project {
+    bin_estimator_id: number;
     sample_annotations: Map<number, SampleAnnotation>;
     
     fillFromJSON(obj) {

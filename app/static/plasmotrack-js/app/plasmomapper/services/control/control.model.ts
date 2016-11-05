@@ -5,9 +5,9 @@ import { BinEstimatorProject } from '../bin-estimator-project/bin-estimator-proj
 
 type locus_id = number;
 type bin_id = number;
-type AlleleSet = {
-    [bin_id: number]: boolean
-}
+// type AlleleSet = {
+//     [bin_id: number]: boolean
+// }
 
 
 export class Control extends DatabaseItem implements TimeStamped {
@@ -15,7 +15,7 @@ export class Control extends DatabaseItem implements TimeStamped {
     bin_estimator_id: number;
     bin_estimator: BinEstimatorProject;
     alleles: {
-        [locus_id: number]: AlleleSet
+        [locus_id: number]: number
     };
     last_updated: Date
 

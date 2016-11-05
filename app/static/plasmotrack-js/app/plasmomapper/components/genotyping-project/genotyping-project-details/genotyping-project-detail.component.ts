@@ -102,10 +102,10 @@ export class GenotypingProjectDetailComponent implements OnInit {
             this.savingProject = true;
             this._genotypingProjectService.updateProject(this.selectedProject).subscribe(
                 (project) => {
-                    this.savingProject = false;
                     this.selectedProject.copyFromObj(project);
                 },
-                (error) => this.saveProjectError = error
+                err => toastr.error(err),
+                () => this.savingProject = false
             )
         }
     }
@@ -115,7 +115,8 @@ export class GenotypingProjectDetailComponent implements OnInit {
         this.deletingProject = true;
         this._genotypingProjectService.deleteProject(this.selectedProject.id).subscribe(
             () => this.goToLink('GenotypingProjectList'),
-            (err) => this.deleteProjectError = err
+            err => toastr.error(err),
+            () => this.deletingProject = false
         )
     }
 

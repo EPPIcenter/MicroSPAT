@@ -35,11 +35,14 @@ interface ZoomWindow {
     <div class="col-sm-3" style="height: 25vh">
         <div class="row">
             <div class="btn-group-vertical">
-                <button (click)="zoomIn()" type="button" class="btn btn-info"><span class="glyphicon glyphicon-plus"></span></button>
-                <button (click)="zoomOut()" type="button" class="btn btn-info"><span class="glyphicon glyphicon-minus"></span></button>
+                <button (click)="zoomIn()" type="button" class="btn btn-info btn-xs"><span class="glyphicon glyphicon-plus"></span></button>
+                <button (click)="zoomOut()" type="button" class="btn btn-info btn-xs"><span class="glyphicon glyphicon-minus"></span></button>
             </div>
+        </div>
+        <br>
+        <div class="row">
             <div class="btn-group">
-                <button type="button" class="btn btn-default btn-sm" *ngFor="let trace of traces" (click)="trace.display = !trace.display; render();">{{trace.color_label | capitalize}}</button>
+                <button type="button" class="btn btn-default btn-xs" *ngFor="let trace of traces" (click)="trace.display = !trace.display; render();">{{trace.color_label | capitalize}}</button>
             </div>
         </div>
         <br>

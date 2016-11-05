@@ -47,16 +47,16 @@ import { D3WellViewerComponent } from './d3-well-viewer.component';
                                 Create Samples If They Don't Exist
                             </label>
                         </div>
-                        <a class="btn btn-primary btn-block" [ngClass]="{disabled: recalculatingLadder || uploading}" (click)="upload()">Upload Plate Map</a>
+                        <a class="btn btn-primary btn-block btn-xs" [ngClass]="{disabled: recalculatingLadder || uploading}" (click)="upload()">Upload Plate Map</a>
                         <div class="btn-group" style="width:100%">
-                            <button [ngClass]="{disabled: recalculatingLadder || uploading}" type="button" class="btn btn-info btn-block dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <button [ngClass]="{disabled: recalculatingLadder || uploading}" type="button" class="btn btn-info btn-block btn-xs dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 Recalculate Ladder <span class="glyphicon glyphicon-chevron-down pull-right"></span>
                             </button>
                             <ul class="dropdown-menu" style="width:100%">
                                 <li *ngFor="let ladder of ladders"><a (click)="recalculatePlateLadder(plate.id, ladder.id)">{{ladder.label}}</a></li>
                             </ul>
                         </div>
-                        <a class="btn btn-warning btn-block" type="button" (click)="deletePlate.emit(plate.id)" [ngClass]="{disabled: uploading || recalculatingLadder}">Delete Plate</a>
+                        <a class="btn btn-warning btn-block btn-xs" type="button" (click)="deletePlate.emit(plate.id)" [ngClass]="{disabled: uploading || recalculatingLadder}">Delete Plate</a>
                     </form>
                     <br>
                     <div *ngIf="uploading">

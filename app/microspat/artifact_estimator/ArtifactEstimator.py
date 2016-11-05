@@ -51,6 +51,8 @@ class ArtifactEstimatorSet(object):
                     peak['dist_from_max_peak'] = peak['peak_size'] - max_peak['peak_size']
                 cluster_set += peak_set
 
+        cluster_set = [_ for _ in cluster_set if _['relative_peak_height'] < 1]
+
         clusters = find_clusters('dist_from_max_peak', cluster_set, bandwidth=nucleotide_repeat_length * .5,
                                  min_bin_freq=min_artifact_peak_frequency, cluster_all=False)
 
@@ -59,12 +61,18 @@ class ArtifactEstimatorSet(object):
             if cluster['center'] != 0:
                 artifact_distance = cluster['center']
                 artifact_distance_buffer = cluster['sd']
-                peak_subset = [peak for peak in cluster_set if
-                               abs(peak['dist_from_max_peak'] - artifact_distance) < artifact_distance_buffer * 3 and
-                               peak['relative_peak_height'] != 1]
+                peak_subset = []
+                temp = []
+                while cluster_set:
+                    peak = cluster_set.pop()
+                    if abs(peak['dist_from_max_peak'] - artifact_distance) < artifact_distance_buffer * 2 and peak['relative_peak_height'] != 1:
+                        peak_subset.append(peak)
+                    else:
+                        temp.append(peak)
 
-                if 2 > cluster['center'] > 3:
-                    print peak_subset
+                # peak_subset = [peak for peak in cluster_set if
+                #                abs(peak['dist_from_max_peak'] - artifact_distance) < artifact_distance_buffer * 3 and
+                #                peak['relative_peak_height'] != 1]
 
                 if len(peak_subset) >= min_artifact_peak_frequency:
                     artifact_estimator = ArtifactEstimator(artifact_distance=artifact_distance,
@@ -72,9 +80,17 @@ class ArtifactEstimatorSet(object):
                                                                                         .5),
                                                            peak_data=peak_subset)
 
-                    artifact_estimator.artifact_equations = artifact_estimator.generate_estimating_equations(
-                        generator_params)
+                    artifact_estimator.artifact_equations = artifact_estimator.generate_estimating_equations(generator_params)
                     artifact_estimators.append(artifact_estimator)
+                else:
+                    temp += peak_subset
+                cluster_set = temp
+        if cluster_set:
+            artifact_estimator = ArtifactEstimator(artifact_distance=None, artifact_distance_buffer=None,
+                                                   peak_data=cluster_set, label="Global Artifact")
+            generator_params[0]['method'] = 'RANSAC'
+            artifact_estimator.artifact_equations = artifact_estimator.generate_estimating_equations(generator_params)
+            artifact_estimators.append(artifact_estimator)
         return cls(artifact_estimators=artifact_estimators)
 
     def annotate_artifact(self, peak_set):
@@ -107,23 +123,24 @@ class ArtifactEstimatorSet(object):
 
 
 class ArtifactEstimator(object):
-    def __init__(self, artifact_distance, artifact_distance_buffer, peak_data=None, artifact_equations=None):
+    def __init__(self, artifact_distance, artifact_distance_buffer, peak_data=None, artifact_equations=None, label=None):
         """
         ArtifactEstimator estimates the artifact contribution to a peak falling a relative distance of artifact_distance
         +/- the artifact_distance_buffer from another peak
-        :type artifact_distance: float
-        :type artifact_distance_buffer: float
         :return: An Artifact Estimator
         """
         if peak_data is None:
             peak_data = []
         if artifact_equations is None:
             artifact_equations = []
+        if label is None:
+            label = str(artifact_distance)
 
         self.artifact_distance = artifact_distance
         self.artifact_distance_buffer = artifact_distance_buffer
         self.peak_data = peak_data
         self.artifact_equations = artifact_equations
+        self.label = label
 
     def generate_estimating_equations(self, parameter_sets, peak_data=None):
         """
@@ -141,13 +158,16 @@ class ArtifactEstimator(object):
         TSR -> Theil-Sen Regression
         RANSAC -> Random sample consensus using LSR
         no_slope -> mean of artifact as estimate
+
         :param peak_data: list of peaks
 
         peak = {
             peak_size: int
         }
+
         :return: ArtifactEquation[]
         """
+        print "REGENERATING ESTIMATING EQUATIONS"
         if peak_data:
             self.peak_data = peak_data
         artifact_equations = []
@@ -178,19 +198,30 @@ class ArtifactEstimator(object):
         annotated_peak = {
             peak_size: int,
             peak_height: int,
-            peak
+            artifact_contribution: float,
+            artifact_error: float
         }
         """
-        peaks.sort(key=lambda x: x['peak_size'])
-        for main_peak in peaks:
-            for artifact_peak in peaks:
-                peak_distance = artifact_peak['peak_size'] - main_peak['peak_size']
-                if peak_distance > (self.artifact_distance + self.artifact_distance_buffer):
-                    break
-                elif abs(peak_distance - self.artifact_distance) < self.artifact_distance_buffer:
+
+        if self.artifact_distance:
+            peaks.sort(key=lambda x: x['peak_size'])
+            for main_peak in peaks:
+                for artifact_peak in peaks:
+                    peak_distance = artifact_peak['peak_size'] - main_peak['peak_size']
+                    if peak_distance > (self.artifact_distance + self.artifact_distance_buffer):
+                        break
+                    else:
+                        if abs(peak_distance - self.artifact_distance) < self.artifact_distance_buffer:
+                            for eq in self.artifact_equations:
+                                if eq.start_size < main_peak['peak_size'] <= eq.end_size:
+                                    eq.annotate_artifact(main_peak, artifact_peak)
+        else:  # Treat as global artifact
+            main_peak = max(peaks, key=lambda _: _.get('peak_height'))
+            for peak in peaks:
+                if peak != main_peak:
                     for eq in self.artifact_equations:
                         if eq.start_size < main_peak['peak_size'] <= eq.end_size:
-                            eq.annotate_artifact(main_peak, artifact_peak)
+                            eq.annotate_artifact(main_peak, peak)
 
 
 class ArtifactEquation(object):

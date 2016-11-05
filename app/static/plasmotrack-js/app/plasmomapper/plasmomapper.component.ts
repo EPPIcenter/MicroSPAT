@@ -12,6 +12,7 @@ import { DashboardComponent } from './dashboard.component';
 import { GenotypingProjectComponent } from './components/genotyping-project/genotyping-project.component'
 import { BinEstimatorComponent } from './components/bin-estimator/bin-estimator.component';
 import { ArtifactEstimatorComponent } from './components/artifact-estimator/artifact-estimator.component';
+import { QuantificationBiasEstimatorProjectComponent } from './components/quantification-bias-estimator/quantification-bias-estimator.component';
 import { PlateComponent } from './components/plate/plate.component';
 import { SampleComponent } from './components/sample/sample.component';
 import { LocusComponent } from './components/locus/locus.component';
@@ -22,6 +23,7 @@ import { ControlComponent } from './components/control/control.component';
 import { GenotypingProjectService } from './services/genotyping-project/genotyping-project.service';
 import { ArtifactEstimatorProjectService } from './services/artifact-estimator-project/artifact-estimator-project.service';
 import { BinEstimatorProjectService } from './services/bin-estimator-project/bin-estimator-project.service';
+import { QuantificationBiasEstimatorProjectService } from './services/quantification-bias-estimator-project/quantification-bias-estimator-project.service';
 import { ChannelService } from './services/channel/channel.service';
 import { LocusSetService } from './services/locus-set/locus-set.service';
 import { PlateService } from './services/plate/plate.service';
@@ -46,6 +48,7 @@ import { ControlService } from './services/control/control.service';
                     <li><a [routerLink]="['GenotypingProject']">Genotyping Projects</a></li>
                     <li><a [routerLink]="['ArtifactEstimatingProject']">Artifact Estimators</a></li>
                     <li><a [routerLink]="['BinEstimatorProject']">Bin Estimators</a></li>
+                    <li><a [routerLink]="['QuantificationBiasEstimatorProject']">Quantification Bias Estimators</a></li>
                     <li><a [routerLink]="['Locus']">Loci</a></li>
                     <li><a [routerLink]="['LocusSet']">Locus Sets</a></li>
                     <li><a [routerLink]="['Ladder']">Ladders</a></li>
@@ -61,7 +64,7 @@ import { ControlService } from './services/control/control.service';
     styleUrls: ['app/plasmomapper/plasmomapper.component.css'],
     directives: [ROUTER_DIRECTIVES],
     providers: [
-        CommonServerMethods, ProjectServerMethods, GenotypingProjectService, 
+        CommonServerMethods, ProjectServerMethods, GenotypingProjectService, QuantificationBiasEstimatorProjectService,
         ChannelService, LocusSetService, PlateService, LocusService, ProjectService,
         ArtifactEstimatorProjectService, BinEstimatorProjectService, LadderService,
         SampleService, WellService, NotificationService, ControlService
@@ -72,6 +75,11 @@ import { ControlService } from './services/control/control.service';
         path: '/genotyping-projects/...',
         name: 'GenotypingProject',
         component: GenotypingProjectComponent,
+    },
+    {
+        path: '/quantification-bias-estimators/...',
+        name: 'QuantificationBiasEstimatorProject',
+        component: QuantificationBiasEstimatorProjectComponent,
     },
     {
         path: '/artifact-estimators/...',
@@ -134,27 +142,6 @@ export class PlasmoMapperComponent implements OnInit {
         private _plateService: PlateService,
         private _controlService: ControlService
     ) {
-        this._controlService.getControls().subscribe(
-            ctrls => {
-                console.log(ctrls);
-                this._controlService.getControl(ctrls[0].id).subscribe(
-                    ctrl => {
-                        console.log(ctrl);
-                        for(let locus_id in ctrl.alleles) {
-                            for(let bin_id in ctrl.alleles[locus_id]) {
-                                ctrl.alleles[locus_id][bin_id] = true;
-                            }
-                        }
-                        console.log(ctrl);
-                        this._controlService.updateControl(ctrl).subscribe(
-                            ctrl => {
-                                console.log("Updated", ctrl);
-                            }
-                        )
-                    }
-                )
-            }
-        );
 
     }
     
