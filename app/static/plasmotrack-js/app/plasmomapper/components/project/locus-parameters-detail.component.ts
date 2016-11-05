@@ -95,10 +95,6 @@ import { ProjectService } from '../../services/project/project.service';
                         <label>Min Peak Distance</label>
                         <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" min="0" [(ngModel)]="locusParameter.min_peak_distance">
                     </div>
-                    <div class="form-group">
-                        <label>Offscale Threshold</label>
-                        <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" min="0" [(ngModel)]="locusParameter.offscale_threshold">
-                    </div>
                     <button type="submit" class="btn btn-default" [ngClass]="{disabled: !saveResolved}">Save and Analyze</button>
                     <span *ngIf="!saveResolved" class="label label-info">Saving and Analyzing Locus...This May Take A While...</span>
                 </div>

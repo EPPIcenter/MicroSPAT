@@ -10,10 +10,13 @@ import { SampleService } from '../../services/sample/sample.service';
 @Component({
     selector: 'pm-sample-list',
     template: `
-    <pm-section-header [header]="'Samples'"></pm-section-header>
+    <br>
     <div class="row main-container">
         <div class="col-sm-6">
             <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Samples</h3>
+                </div>
                 <div class="panel-body">
                     <div *ngIf="loadingSamples">
                         <pm-progress-bar [label]="'Samples'"></pm-progress-bar>

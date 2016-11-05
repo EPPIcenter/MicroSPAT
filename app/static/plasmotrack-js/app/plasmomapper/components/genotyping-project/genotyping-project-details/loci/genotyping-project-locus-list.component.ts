@@ -84,28 +84,37 @@ interface AnnotationFilter {
                                                 <label>Crosstalk Limit</label>
                                                 <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" min="0" [(ngModel)]="selectedLocusParameter.crosstalk_filter_limit">
                                             </div>
+                                            <div class="form-group">
+                                                <label>Failure Threshold</label>
+                                                <input class="form-control input-sm" (change)="onChanged()" type="number" required step="1" min="0" [(ngModel)]="selectedLocusParameter.failure_threshold">
+                                            </div>
                                         </div>                                
                                         <div class="col-sm-6">
                                             <div *ngIf="selectedProject.artifact_estimator_id" class="form-group">
                                                 <label>Soft Artifact SD Limit</label>
-                                                <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" min="0" [(ngModel)]="selectedLocusParameter.soft_artifact_sd_limit">
+                                                <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" [(ngModel)]="selectedLocusParameter.soft_artifact_sd_limit">
                                             </div>
                                             <div  *ngIf="selectedProject.artifact_estimator_id" class="form-group">
                                                 <label>Hard Artifact SD Limit</label>
-                                                <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" min="0" [(ngModel)]="selectedLocusParameter.hard_artifact_sd_limit">
+                                                <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" [(ngModel)]="selectedLocusParameter.hard_artifact_sd_limit">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Genotyping Probability Threshold</label>
+                                                <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" min="0" [(ngModel)]="selectedLocusParameter.probability_threshold">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Bootstrap Probability Threshold</label>
+                                                <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" min="0" [(ngModel)]="selectedLocusParameter.bootstrap_probability_threshold">
                                             </div>
                                             <div class="form-group">
                                                 <label>Offscale Threshold</label>
                                                 <input class="form-control input-sm" (change)="onChanged()" type="number" required step="1" min="0" [(ngModel)]="selectedLocusParameter.offscale_threshold">
                                             </div>
-                                            <div class="form-group">
-                                                <label>Failure Threshold</label>
-                                                <input class="form-control input-sm" (change)="onChanged()" type="number" required step="1" min="0" [(ngModel)]="selectedLocusParameter.failure_threshold">
-                                            </div>
+                                            
                                         </div>
                                     </div>
                                 </div>
-                                <button type="submit" class="btn btn-default" (click)="saveLocusParams(selectedLocusParameter.locus_id)" [ngClass]="{disabled: isSubmitting}">Save and Analyze</button>
+                                <button type="submit" class="btn btn-default" (click)="saveLocusParams(selectedLocusParameter)" [ngClass]="{disabled: isSubmitting}">Save and Analyze</button>
                             </form>
                             <br>
                             <div>
@@ -170,7 +179,10 @@ interface AnnotationFilter {
                 </div>
             </div>
             <div class="col-sm-7">
-                <div *ngIf="selectedLocusParameter">
+                <div *ngIf="loadingLocusAnnotations">
+                    <pm-progress-bar [fullLabel]="'Loading Samples'"></pm-progress-bar>
+                </div>
+                <div *ngIf="selectedLocusParameter && selectedLocusAnnotation && selectedSampleChannelAnnotations">
                     <div class="row">
                         <div class="col-sm-12">
                             <div class="panel panel-default">
@@ -187,7 +199,7 @@ interface AnnotationFilter {
                             </div>
                         </div>
                     </div>
-                    <div class="row">
+                    <div *ngIf="filteredLocusAnnotations" class="row">
                         <div class="col-sm-12">
                             <div class="panel panel-default">
                                 <div class="panel-heading">
@@ -216,9 +228,9 @@ interface AnnotationFilter {
                                                     <td>{{selectedProject.sample_annotations.get(annotation.sample_annotations_id).sample.barcode}}</td>
                                                     <td>{{countOf(annotation.alleles, true)}}</td>
                                                     <td>{{annotation.annotated_peaks?.length}}</td>
-                                                    <td><span class="glyphicon glyphicon-ok" *ngIf="annotation.flags['offscale']"></span></td>
-                                                    <td><span class="glyphicon glyphicon-ok" *ngIf="annotation.flags['failure']"></span></td>
-                                                    <td><span class="glyphicon glyphicon-ok" *ngIf="annotation.flags['manual_curation']"></span></td>
+                                                    <td><span class="glyphicon glyphicon-ok" *ngIf="annotation.flags?.offscale"></span></td>
+                                                    <td><span class="glyphicon glyphicon-ok" *ngIf="annotation.flags?.failure"></span></td>
+                                                    <td><span class="glyphicon glyphicon-ok" *ngIf="annotation.flags?.manual_curation"></span></td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -244,6 +256,8 @@ export class GenotypingProjectLocusList {
     private selectedBins: Map<number, Bin>;
     private errorMessage: string;
     private isSubmitting: boolean = false;
+    private selectingLocus: boolean = false;
+
     private failureRate: number;
     
     private locusParamsCollapsed = false;
@@ -257,6 +271,7 @@ export class GenotypingProjectLocusList {
     private filters: AnnotationFilter;
 
     private loadingAnnotations = false;
+    private loadingLocusAnnotations = false;
     
     private navItems;
     private header;
@@ -312,7 +327,9 @@ export class GenotypingProjectLocusList {
             })
             .concatMap(this.getBinEstimator)
             .subscribe(
-                binEstimator => this.selectedBinEstimator = <BinEstimatorProject> binEstimator,
+                binEstimator => {
+                    this.selectedBinEstimator = <BinEstimatorProject> binEstimator;
+                },
                 err => this.errorMessage = err
             )
     }
@@ -331,10 +348,10 @@ export class GenotypingProjectLocusList {
     }
     
     private getFailureRate(locusAnnotations: SampleLocusAnnotation[]) {
-        this.failureRate = 0
+        this.failureRate = 1
         locusAnnotations.forEach(locusAnnotation => {
-            if(locusAnnotation.flags['failure']) {
-                this.failureRate += 1 / locusAnnotations.length;
+            if(locusAnnotation.flags && !locusAnnotation.flags['failure']) {
+                this.failureRate -= 1 / locusAnnotations.length;
             }
         })            
     }
@@ -355,7 +372,8 @@ export class GenotypingProjectLocusList {
             } else if(this.filters.out_of_bin) {
               for (var peak_idx = 0; peak_idx < locusAnnotation.annotated_peaks.length; peak_idx++) {
                   var peak = locusAnnotation.annotated_peaks[peak_idx];
-                  if(!peak['in_bin'] && peak['bin'] && locusAnnotation.alleles[+peak['bin_id']]) {
+                //   if(!peak['in_bin'] && peak['bin'] && locusAnnotation.alleles[+peak['bin_id']]) {
+                    if(!peak['in_bin']) {
                       this.filteredLocusAnnotations.push(locusAnnotation);
                       break;
                   }
@@ -395,7 +413,7 @@ export class GenotypingProjectLocusList {
             offscale: false,
             out_of_bin: false,
             min_allele_count: 0,
-            max_allele_count: Object.keys(this.selectedLocusAnnotations[0].alleles).length,
+            max_allele_count: this.selectedBinEstimator.locus_bin_sets.get(this.selectedLocus.id).bins.size,
             bleedthrough: 0,
             crosstalk: 0,
             main_min_peak_height: 0,
@@ -412,7 +430,7 @@ export class GenotypingProjectLocusList {
     private getLocusAnnotations(){
         return this._genotypingProjectService.getLocusAnnotations(this.selectedProject.id, this.selectedLocus.id)
             .map(
-                locusAnnotations => {  
+                locusAnnotations => {                    
                     this.selectedLocusAnnotations = locusAnnotations;
                     this.getFailureRate(locusAnnotations);
                     this.selectedLocusAnnotation = locusAnnotations[0];    
@@ -433,13 +451,6 @@ export class GenotypingProjectLocusList {
             this.filteredLocusAnnotationIndex = 0;
             this.selectedLocusAnnotation = null;
         }
-        // for (var index = 0; index < this.selectedLocusAnnotations.length; index++) {
-        //     var locusAnnotation = this.selectedLocusAnnotations[index];
-        //     if(locusAnnotation.id == id) {
-        //         this.selectedLocusAnnotation = locusAnnotation;
-        //         break;
-        //     }
-        // }
     }
     
     private eventHandler(event: KeyboardEvent) {
@@ -461,43 +472,68 @@ export class GenotypingProjectLocusList {
     }
     
     private selectLocus(locus_id: number) {
-        if(!this.isSubmitting){
+        if(!this.isSubmitting && !this.selectingLocus){
+            console.log(locus_id);
             this.errorMessage = null;
             this.selectedLocus = null;
             this.failureRate = null;
             this.selectedLocusParameter = null;
-            // this.selectedSampleChannelAnnotations = null;
             this.filteredLocusAnnotations = [];
             this.selectedLocusAnnotations = null;
             this.selectedLocusAnnotation = null;
             this.selectedSampleChannelAnnotations = [];
             this.filteredLocusAnnotationIndex = 0;
-            this.channelAnnotations = new Map<number, ChannelAnnotation[]>();
-            this.loadingAnnotations = true;
-            this._locusService.getLocus(locus_id)
-            .subscribe(locus => {
-                this.selectedLocus = locus;
-                this.selectedLocusParameter = this.selectedProject.locus_parameters.get(locus_id);
-                if(this.selectedBinEstimator.locus_bin_sets.has(this.selectedLocus.id)) {
-                    this.selectedBins = this.selectedBinEstimator.locus_bin_sets.get(this.selectedLocus.id).bins;
-                };
-                this.getLocusAnnotations().subscribe(
-                    () => this.clearFilter()
-                );
-                this._genotypingProjectService.getLocusChannelAnnotations(this.selectedProject.id, locus_id).subscribe(
-                    channelAnnotations => {
-                        channelAnnotations.forEach(channelAnnotation => {
-                            if(this.channelAnnotations.has(channelAnnotation.sample_id)) {
-                                this.channelAnnotations.get(channelAnnotation.sample_id).push(channelAnnotation)
-                            } else {
-                                this.channelAnnotations.set(channelAnnotation.sample_id, [channelAnnotation]);
-                            }
-                            this.selectLocusAnnotation();
+            this.channelAnnotations = null;
+            if(locus_id != -1) {
+                this.selectingLocus = true
+                this.channelAnnotations = new Map<number, ChannelAnnotation[]>();
+                this.loadingAnnotations = true;
+                this._locusService.getLocus(locus_id)
+                .subscribe(locus => {
+                    this.selectedLocus = locus;
+                    this.selectedLocusParameter = this.selectedProject.locus_parameters.get(locus_id);
+                    if(this.selectedBinEstimator.locus_bin_sets.has(this.selectedLocus.id)) {
+                        this.selectedBins = this.selectedBinEstimator.locus_bin_sets.get(this.selectedLocus.id).bins;
+                    };
+                    this.loadingLocusAnnotations = true;
+                    this.getLocusAnnotations().subscribe(
+                        () => {
+                            this.loadingLocusAnnotations = false
+                            this.clearFilter();
+                        }
+                    );
+                    this._genotypingProjectService.getLocusChannelAnnotations(this.selectedProject.id, locus_id).subscribe(
+                        channelAnnotations => {
+                            channelAnnotations.forEach(channelAnnotation => {
+                                if(this.channelAnnotations.has(channelAnnotation.sample_id)) {
+                                    this.channelAnnotations.get(channelAnnotation.sample_id).push(channelAnnotation)
+                                } else {
+                                    this.channelAnnotations.set(channelAnnotation.sample_id, [channelAnnotation]);
+                                }
+                                
+                                this.selectLocusAnnotation();
+                            });
                             this.loadingAnnotations = false;
-                        });
-                    }
-                )
-            })
+                        },
+                        err => {
+                            toastr.error(err);
+                        },
+                        () => {
+                            this.selectingLocus = false;
+                        }
+                    )
+                }),
+                err => {
+                    toastr.error(err);
+                }
+            } else {
+                let lp = new GenotypingLocusParameters();
+                // lp.locus_id = -1;
+                lp.initialize();
+                console.log("ALL LOCUS ANALYSIS");
+                this.selectedLocusParameter = lp;
+            }
+            
         }
         
     }
@@ -509,31 +545,52 @@ export class GenotypingProjectLocusList {
         })
     }
     
-    private saveLocusParams(id: number) {
+    private saveLocusParams(locusParameter) {
         if(!this.isSubmitting) {
-            let locusParameter = this.selectedProject.locus_parameters.get(id);
             this.isSubmitting = true;
-            this._genotypingProjectService.saveLocusParameters(locusParameter).subscribe(
-                (locusParam: GenotypingLocusParameters) => {
-                    this._genotypingProjectService.clearCache(locusParam.project_id);
-                    this._genotypingProjectService.getProject(locusParam.project_id)
-                        .subscribe(
-                            proj => {
-                                this.selectedProject = proj;
-                                this.loadLocusParameters();
-                                this.selectedLocusParameter = locusParam;
-                                this.selectLocus(locusParam.locus_id);
-                            }
-                        )
-                },
-                (error) => {
-                    this.errorMessage = error;
-                    this.isSubmitting = false;
-                },
-                () => {
-                    this.isSubmitting = false;
-                }
-            )
+            // let locusParameter = this.selectedProject.locus_parameters.get(id);
+            if(locusParameter.id) {
+                this._genotypingProjectService.saveLocusParameters(locusParameter).subscribe(
+                    (locusParam: GenotypingLocusParameters) => {
+                        this._genotypingProjectService.clearCache(locusParam.project_id);
+                        this._genotypingProjectService.getProject(locusParam.project_id)
+                            .subscribe(
+                                proj => {
+                                    this.selectedProject = proj;
+                                    this.loadLocusParameters();
+                                    this.selectedLocusParameter = locusParam;
+                                    this.selectLocus(locusParam.locus_id);
+                                }
+                            )
+                    },
+                    (error) => {
+                        this.errorMessage = error;
+                        this.isSubmitting = false;
+                    },
+                    () => {
+                        this.isSubmitting = false;
+                    }
+                )
+            } else {
+                this._genotypingProjectService.batchApplyLocusParameters(locusParameter, this.selectedProject.id).subscribe(
+                    () => {
+                        this._genotypingProjectService.clearCache(this.selectedProject.id);
+                        this._genotypingProjectService.getProject(this.selectedProject.id)
+                            .subscribe(
+                                proj => {
+                                    this.selectedProject = proj;
+                                    this.loadLocusParameters();
+                                }
+                            )
+                    },
+                    err => {
+                        toastr.error(err);
+                    },
+                    () => {
+                        this.isSubmitting = false;
+                    }
+                )
+            }
         }
         
     }

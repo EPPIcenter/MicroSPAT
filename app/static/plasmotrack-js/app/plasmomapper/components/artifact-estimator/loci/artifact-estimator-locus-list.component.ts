@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { RouteParams, Router } from '@angular/router-deprecated';
 import { FORM_DIRECTIVES } from '@angular/common';
 
@@ -23,6 +23,7 @@ import { ArtifactEstimatorProject } from '../../../services/artifact-estimator-p
 import { ArtifactEstimatorProjectService } from '../../../services/artifact-estimator-project/artifact-estimator-project.service';
 import { ArtifactEstimatorLocusParameters } from '../../../services/artifact-estimator-project/locus-parameters/artifact-estimator-locus-parameters.model';
 import { ArtifactEstimator } from '../../../services/artifact-estimator-project/locus-artifact-estimator/artifact-estimator/artifact-estimator.model';
+import { ArtifactEquationParameterSet } from '../../../services/artifact-estimator-project/locus-artifact-estimator/artifact-estimator/artifact-equation/artifact-equation-parameter-set.model';
 
 import { D3ArtifactEstimatorPanel } from '../locus-artifact-estimator/d3-artifact-estimator-panel.component';
 
@@ -59,7 +60,7 @@ import { D3ArtifactEstimatorPanel } from '../locus-artifact-estimator/d3-artifac
                                     </div>
                                 </div>
                             </div>
-                            <button type="submit" class="btn btn-default" (click)="saveLocusParams(selectedLocusParameter.locus_id)" [ngClass]="{disabled: isSubmitting}">Save and Analyze</button>
+                            <button type="submit" class="btn btn-default" (click)="saveLocusParams(selectedLocusParameter)" [ngClass]="{disabled: isSubmitting}">Save and Analyze</button>
                         </form>
                         <br>
                         <div>
@@ -68,32 +69,65 @@ import { D3ArtifactEstimatorPanel } from '../locus-artifact-estimator/d3-artifac
                     </div>
                 </div>
         </div>
-        <div *ngIf="selectedLocus" class="col-sm-6">
-            <div *ngIf="selectedArtifactEstimator" class="row" style="height: 35vh">
-                <pm-d3-artifact-estimator-panel [(bins)]="selectedBins" [(locus)]="selectedLocus" [(artifactEstimator)]="selectedArtifactEstimator"></pm-d3-artifact-estimator-panel>
-            </div>
+        <div *ngIf="selectedLocus && artifactEstimators.length > 0" class="col-sm-7">
             <div class="row">
                 <div class="panel panel-default">
                     <div class="panel-heading">
                         <h3 class="panel-title">Artifact Estimator</h3>
                     </div>
                     <div class="panel-body">
+                        <div *ngIf="selectedArtifactEstimator" style="height: 35vh">
+                            <pm-d3-artifact-estimator-panel [(bins)]="selectedBins" [(locus)]="selectedLocus" [(artifactEstimator)]="selectedArtifactEstimator"></pm-d3-artifact-estimator-panel>
+                        </div>
                         <div *ngIf="loadingEstimators">
                             <pm-progress-bar [label]="'Artifact Estimators'"></pm-progress-bar>
                         </div>
                         <div *ngIf="!loadingEstimators">
-                            <div class="row">
-                                <div class="form-group col-sm-3">
-                                    <label>Artifact Distance</label>
-                                    <select (change)="selectArtifactEstimator($event)" class="form-control">
-                                        <option *ngFor="let artifactEstimator of artifactEstimators" value={{artifactEstimator.id}}>{{artifactEstimator.artifact_distance | number}}     {{artifactEstimator.peak_data.length}}</option>
-                                    </select>
+                            <form>
+                                <div class="row">
+                                    <div class="form-group col-sm-3">
+                                        <label>Artifact Distance</label>
+                                        <select (change)="selectArtifactEstimator($event)" class="form-control">
+                                            <option *ngFor="let artifactEstimator of artifactEstimators" value={{artifactEstimator.id}}>{{artifactEstimator.label}}     {{artifactEstimator.peak_data.length}}</option>
+                                        </select>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="row">
-                                <div class="btn-group">
-                                    <button type="button" class="btn btn-warning" (click)="deleteArtifactEstimator()">Delete Estimator</button>
-                                    <button type="button" class="btn btn-warning" (click)="clearBreakpoints()">Clear Breakpoints</button>
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <button class="btn btn-warning" (click)="deleteArtifactEstimator()">Delete Estimator</button>
+                                        <button class="btn btn-warning" (click)="clearBreakpoints()">Clear Breakpoints</button>
+                                        <button class="btn btn-info" (click)="recalculateArtifactEquations()">Recalculate Equations</button>
+                                        <div *ngIf="deletingEstimator">
+                                            <pm-progress-bar [fullLabel]="'Deleting Estimator...'"></pm-progress-bar>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                            <br>
+                            <div *ngIf="selectedArtifactEstimator">
+                                <div *ngFor="let ae of selectedArtifactEstimator.artifact_equations">
+                                    <div class="panel panel-primary">
+                                        <div class="panel-body">
+                                            <div class="col-sm-4">
+                                                <h5>Start Size: <small>{{ae.start_size | number}}</small></h5>
+                                                <h5>End Size: <small>{{ae.end_size | number}}</small></h5>
+                                            </div>
+                                            <div class="col-sm-4">
+                                                <h5>Slope: <small>{{ae.slope | number}}</small></h5>
+                                                <h5>Intercept: <small>{{ae.intercept | number}}</small></h5>
+                                            </div>
+                                            <div class="col-sm-4">
+                                                <div class="form-group">
+                                                <label>Method</label>
+                                                <select [(ngModel)]="ae.method" required class="form-control">
+                                                    <option value="LSR">LSR</option>
+                                                    <option value="TSR">TSR</option>
+                                                    <option value="RANSAC">RANSAC</option>
+                                                    <option value="no_slope">No Slope</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -114,15 +148,28 @@ export class ArtifactEstimatorLocusListComponent implements OnInit {
     private selectedLocus: Locus;
     private selectedBins: Bin[];
     // private selectedLocusChannelAnnotations: ChannelAnnotation[];
-    private artifactEstimators: ArtifactEstimator[];
+    private artifactEstimators: ArtifactEstimator[] = [];
     private selectedArtifactEstimator: ArtifactEstimator;
     private errorMessage: string;
     private isSubmitting: boolean = false;
+    private selectingLocus: boolean = false;
 
     private loadingEstimators = false;
+    private deletingEstimator = false;
+
+    private static possibleMethods = ['TSR', 'LSR', 'RANSAC', 'no_slope'];
     
     private navItems
     private header;
+
+    private method_names = {
+        TSR: 'TSR',
+        LSR: 'LSR',
+        RANSAC: 'RANSAC',
+        no_slope: 'No Slope'
+    }
+
+    @ViewChild(D3ArtifactEstimatorPanel) artEstimatorPanel: D3ArtifactEstimatorPanel;
     
     constructor(
         private _genotypingProjectService: GenotypingProjectService,
@@ -182,35 +229,45 @@ export class ArtifactEstimatorLocusListComponent implements OnInit {
     }
     
     private selectLocus(locus_id: number) {
-        if(!this.isSubmitting) {
+        if(!this.isSubmitting && !this.selectingLocus) {
             this.selectedLocus = null;
             this.selectedLocusParameter = null;
             this.selectedBins = null;
             this.selectedArtifactEstimator = null;
-            this.artifactEstimators = [];
-            this.loadingEstimators = true;
-            this._locusService.getLocus(locus_id).subscribe(
-                locus => {
-                    this.selectedLocus = locus;
-                    this.selectedLocusParameter = this.selectedProject.locus_parameters.get(locus_id);
-                    if(this.selectedBinEstimator.locus_bin_sets.has(this.selectedLocus.id)) {
-                        let tmp_bins = [];
-                        this.selectedBinEstimator.locus_bin_sets.get(this.selectedLocus.id).bins.forEach((bin) => {
-                            tmp_bins.push(bin);
-                        })
-                        this.selectedBins = tmp_bins;
-                    }
-                    
-                    if(this.selectedProject.locus_artifact_estimators.has(this.selectedLocus.id)) {
-                        this.artifactEstimators = this.selectedProject.locus_artifact_estimators.get(this.selectedLocus.id).artifact_estimators;
-                        if(this.artifactEstimators) {
-                            this.selectedArtifactEstimator = this.artifactEstimators[0];
+            this.artifactEstimators = [];            
+            if(locus_id != -1) {
+                this.loadingEstimators = true;
+                this.selectingLocus = true;
+                this._locusService.getLocus(locus_id).subscribe(
+                    locus => {
+                        this.selectedLocus = locus;
+                        this.selectedLocusParameter = this.selectedProject.locus_parameters.get(locus_id);
+                        if(this.selectedBinEstimator.locus_bin_sets.has(this.selectedLocus.id)) {
+                            let tmp_bins = [];
+                            this.selectedBinEstimator.locus_bin_sets.get(this.selectedLocus.id).bins.forEach((bin) => {
+                                tmp_bins.push(bin);
+                            })
+                            this.selectedBins = tmp_bins;
                         }
+                        
+                        if(this.selectedProject.locus_artifact_estimators.has(this.selectedLocus.id)) {
+                            this.artifactEstimators = this.selectedProject.locus_artifact_estimators.get(this.selectedLocus.id).artifact_estimators;
+                            if(this.artifactEstimators) {
+                                this.selectedArtifactEstimator = this.artifactEstimators[0];
+                            }
+                        }
+                    },
+                    err => this.errorMessage = err,
+                    () => {
+                        this.loadingEstimators = false;
+                        this.selectingLocus = false;
                     }
-                    this.loadingEstimators = false;
-                },
-                err => this.errorMessage = err
-            )
+                )
+            } else {
+                let lp = new ArtifactEstimatorLocusParameters();
+                lp.initialize();
+                this.selectedLocusParameter = lp;
+            }   
         }
     }
     
@@ -222,36 +279,98 @@ export class ArtifactEstimatorLocusListComponent implements OnInit {
             }
         })
     }
-    
-    private saveLocusParams(id: number) {
+
+    private recalculateArtifactEquations() {
         if(!this.isSubmitting) {
-            let locusParameter = this.selectedProject.locus_parameters.get(id);
+            let artifact_equations = this.selectedArtifactEstimator.artifact_equations
+            console.log(this.selectedArtifactEstimator);
             this.isSubmitting = true;
-            this._artifactEstimatorProjectService.saveLocusParameters(locusParameter).subscribe(
-                (locusParam: ArtifactEstimatorLocusParameters) => {
-                    this._artifactEstimatorProjectService.clearCache(locusParam.project_id);
-                    this._artifactEstimatorProjectService.getArtifactEstimatorProject(locusParam.project_id)
-                        .subscribe(proj => {
-                            this._genotypingProjectService.artifactEstimatorChanged(proj.id);
-                            this.selectedProject = proj;
-                            this.loadLocusParameters();
-                            this.selectedLocusParameter = locusParam;
-                            this.selectLocus(locusParam.locus_id);
-                        })
-                },
-                error => {
-                    this.errorMessage = error;
-                }, 
-                () => {
-                    this.isSubmitting = false;
+            let artifact_equation_parameter_sets = artifact_equations.map((ae) => {
+                console.log(ae);
+                let p: ArtifactEquationParameterSet = {
+                    start_size: ae.start_size,
+                    end_size: ae.end_size,
+                    method: ae.method
                 }
-            )
+                return p;
+            })
+            console.log(artifact_equation_parameter_sets);
+            this._artifactEstimatorProjectService.recalculateArtifactEquations(this.selectedArtifactEstimator.id, artifact_equation_parameter_sets)
+                .subscribe(
+                    aes => {
+                        this.selectLocus(this.selectedLocus.id);
+                        let selected_estimator = this.artifactEstimators.filter(estimator => {
+                            return estimator.id === aes.id;
+                        })[0];
+                        selected_estimator.copyFromObj(aes);
+                        this.selectedArtifactEstimator = selected_estimator;
+                        this.artEstimatorPanel.rerender();
+                        toastr.success("Artifact Equations Recalculated");
+                    },
+                    err => {
+                        this.errorMessage = err;
+                    },
+                    () => {
+                        this.isSubmitting = false;
+                        console.log("FINALLY");
+                    }
+                )
+
+        }
+    }
+    
+    private saveLocusParams(locusParameter: ArtifactEstimatorLocusParameters) {
+        if(!this.isSubmitting) {
+            this.isSubmitting = true;
+            if(locusParameter.id) {
+                this._artifactEstimatorProjectService.saveLocusParameters(locusParameter).subscribe(
+                    (locusParam: ArtifactEstimatorLocusParameters) => {
+                        this._artifactEstimatorProjectService.clearCache(locusParam.project_id);
+                        this._artifactEstimatorProjectService.getArtifactEstimatorProject(locusParam.project_id)
+                            .subscribe(proj => {
+                                this._genotypingProjectService.artifactEstimatorChanged(proj.id);
+                                this.selectedProject = proj;
+                                this.loadLocusParameters();
+                                this.selectedLocusParameter = locusParam;
+                                this.selectLocus(locusParam.locus_id);
+                                toastr.success("Parameters Saved");
+                            })
+                    },
+                    error => {
+                        this.errorMessage = error;
+                    }, 
+                    () => {
+                        this.isSubmitting = false;
+                    }
+                )
+            } else {
+                this._artifactEstimatorProjectService.batchApplyLocusParameters(locusParameter, this.selectedProject.id).subscribe(
+                    () => {
+                        this._artifactEstimatorProjectService.clearCache(this.selectedProject.id)
+                        this._artifactEstimatorProjectService.getArtifactEstimatorProject(this.selectedProject.id)
+                            .subscribe(proj => {
+                                this._genotypingProjectService.artifactEstimatorChanged(proj.id);
+                                this.selectedProject = proj;
+                                this.loadLocusParameters();
+                                toastr.success("Parameters Saved");
+                                })
+                        },
+                        error => {
+                            this.errorMessage = error;
+                        }, 
+                        () => {
+                            this.isSubmitting = false;
+                        }
+                )
+            }
         }
         
     }
     
     private deleteArtifactEstimator() {
-        this._artifactEstimatorProjectService.deleteArtifactEstimator(this.selectedArtifactEstimator.id)
+        if(!this.deletingEstimator) {
+            this.deletingEstimator = true;
+            this._artifactEstimatorProjectService.deleteArtifactEstimator(this.selectedArtifactEstimator.id)
             .subscribe(
                 () => {
                     let _ : ArtifactEstimator[] = [];
@@ -265,19 +384,36 @@ export class ArtifactEstimatorLocusListComponent implements OnInit {
                     if(this.artifactEstimators.length > 0) {                        
                         this.selectedArtifactEstimator = this.artifactEstimators[0];
                     };
+                    toastr.success("Artifact Estimator Deleted");
                 },
-                err => this.errorMessage = err
+                err => toastr.error(err),
+                () => this.deletingEstimator = false
             )
+        }
     }
     
     private clearBreakpoints() {
-        this._artifactEstimatorProjectService.clearArtifactEstimatorBreakpoints(this.selectedArtifactEstimator.id)
-            .subscribe(
-                aes => {
-                    this.selectedArtifactEstimator.copyFromObj(aes);
-                },
-                err => this.errorMessage = err
-            )
+        if(!this.isSubmitting) {
+            this._artifactEstimatorProjectService.clearArtifactEstimatorBreakpoints(this.selectedArtifactEstimator.id)
+                .subscribe(
+                    aes => {
+                        this.selectLocus(this.selectedLocus.id);
+                        let selected_estimator = this.artifactEstimators.filter(estimator => {
+                            return estimator.id === aes.id;
+                        })[0];
+                        selected_estimator.copyFromObj(aes);
+                        this.selectedArtifactEstimator = selected_estimator;
+                        this.artEstimatorPanel.rerender();
+                        toastr.success("Breakpoints Cleared");
+                        // this.selectedArtifactEstimator = aes;
+                    },
+                    err => this.errorMessage = err
+                ),
+                () => {
+                    this.isSubmitting = false;
+                }
+        }
+        
     }
     
     onChanged(e) {

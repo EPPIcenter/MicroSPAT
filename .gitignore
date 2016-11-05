@@ -1,4 +1,4 @@
-migrations/versions/*
+migrations/*
 *.csv
 static/plasmotrack-js/node_modules/*
 static/plasmotrack-js/typings/*
@@ -10,8 +10,8 @@ app/static/plasmotrack-js/bootstrap/*
 test.py
 *.js.map
 *.js
-*.sqlite
-
+*.sqlite*
+.Rhistory
 
 
 ### JetBrains template

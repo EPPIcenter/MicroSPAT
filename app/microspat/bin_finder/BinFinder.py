@@ -29,14 +29,15 @@ class BinFinder(object):
 
         for cluster in clusters:
             base_size = cluster['center']
-            label = str(round(base_size))
-            peak_count = len(cluster['items'])
+            if not np.isnan(base_size):
+                label = str(int(round(base_size)))
+                peak_count = len(cluster['items'])
 
-            if not bin_buffer:
-                bin_buffer = cluster['sd']
+                if not bin_buffer:
+                    bin_buffer = cluster['sd']
 
-            if peak_count >= min_peak_frequency:
-                bins.append(Bin(label=label, base_size=base_size, bin_buffer=bin_buffer, peak_count=peak_count))
+                if peak_count >= min_peak_frequency:
+                    bins.append(Bin(label=label, base_size=base_size, bin_buffer=bin_buffer, peak_count=peak_count))
 
         return cls(bins=bins)
 

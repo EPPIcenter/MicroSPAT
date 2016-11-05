@@ -138,3 +138,13 @@ html, body {
   background-color: #4677f8;
   color: #fefefe;
 }
+
+svg text {
+    -webkit-user-select: none;
+       -moz-user-select: none;
+        -ms-user-select: none;
+            user-select: none;
+}
+svg text::selection {
+    background: none;
+}

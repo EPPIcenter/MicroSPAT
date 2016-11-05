@@ -67,7 +67,6 @@ def annotate_signal_crosstalk(other_traces, idx_dist=1, label='crosstalk_ratio')
     def fn(data, peak_index):
         crosstalk_ratio = 0
         for trace in other_traces:
-            # assert len(trace) == len(data)
             if peak_index < len(trace):
                 starting_idx = max(0, peak_index - idx_dist)
                 ending_idx = min(len(trace), peak_index + idx_dist + 1)

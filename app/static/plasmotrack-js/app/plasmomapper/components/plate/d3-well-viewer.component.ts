@@ -12,6 +12,8 @@ import { D3Canvas } from '../d3/canvas';
 import { CanvasConfig } from '../d3/canvas-config.model';
 import { Trace } from '../d3/trace.model';
 
+import { CapitalizePipe } from '../../pipes/capitalize.pipe';
+
 import * as d3 from 'd3'
 
 interface ZoomWindow {
@@ -23,6 +25,7 @@ interface ZoomWindow {
 @Component({
     inputs: ['well'],
     selector: 'pm-d3-well-viewer',
+    pipes: [CapitalizePipe],
     template: `
     <div class="col-sm-9" style="height: 25vh">
         <div style="height: 100%">
@@ -32,13 +35,17 @@ interface ZoomWindow {
     <div class="col-sm-3" style="height: 25vh">
         <div class="row">
             <div class="btn-group-vertical">
-                <button (click)="zoomIn()" type="button" class="btn btn-info"><span class="glyphicon glyphicon-plus"></span></button>
-                <button (click)="zoomOut()" type="button" class="btn btn-info"><span class="glyphicon glyphicon-minus"></span></button>
-            </div>
-            <div class="btn-group">
-                <button type="button" class="btn btn-default btn-sm" *ngFor="let trace of traces" (click)="trace.display = !trace.display; render();">{{trace.color_label}}</button>
+                <button (click)="zoomIn()" type="button" class="btn btn-info btn-xs"><span class="glyphicon glyphicon-plus"></span></button>
+                <button (click)="zoomOut()" type="button" class="btn btn-info btn-xs"><span class="glyphicon glyphicon-minus"></span></button>
             </div>
         </div>
+        <br>
+        <div class="row">
+            <div class="btn-group">
+                <button type="button" class="btn btn-default btn-xs" *ngFor="let trace of traces" (click)="trace.display = !trace.display; render();">{{trace.color_label | capitalize}}</button>
+            </div>
+        </div>
+        <br>
         <div class="row">
             <div class="form-group">
                 <select (change)="setZoomWindow($event)" class="form-control">

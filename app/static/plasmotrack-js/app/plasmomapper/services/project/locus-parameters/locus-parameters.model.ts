@@ -26,10 +26,31 @@ export class LocusParameters extends DatabaseItem implements PeakScanner {
     max_bleedthrough: number;
     max_crosstalk: number;
     min_peak_distance: number;
-    offscale_threshold: number;
     
     scanning_parameters_stale: boolean;
     filter_parameters_stale: boolean;
+
+    initialize() {
+        this.scanning_method = 'relmax';
+        this.maxima_window = 10;
+        this.argrelmax_window = 6;
+        this.trace_smoothing_window = 11;
+        this.trace_smoothing_order = 7;
+        this.tophat_factor = .005
+
+        this.cwt_min_width = 4;
+        this.cwt_max_width = 15;
+        this.min_snr = 3;
+        this.noise_perc = 13;
+
+        this.min_peak_height = 150;
+        this.max_peak_height = 40000;
+        this.min_peak_height_ratio = 0;
+        this.max_bleedthrough = 4;
+        this.max_crosstalk = 4;
+        this.min_peak_distance = 2;
+
+    }
     
     fillFromJSON(obj) {
         this.isDirty = false;

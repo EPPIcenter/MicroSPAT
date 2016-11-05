@@ -13,10 +13,13 @@ import { LadderService } from '../../services/ladder/ladder.service';
 @Component({
     selector: 'pm-ladder-list',
     template: `
-    <pm-section-header [header]="'Ladders'"></pm-section-header>
+    <br>
     <div class="row main-container">
         <div class="col-sm-5">
             <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Ladders</h3>
+                </div>
                 <div class="panel-body">
                     <div *ngIf="loadingLadders">
                         <pm-progress-bar [label]="'Ladders'"></pm-progress-bar>
@@ -217,6 +220,7 @@ export class LadderListComponent implements OnInit {
     }
 
     resetLadder() {
+        this.baseSizesString = null;
         this.newLadder = new Ladder();
         this.newLadder.sq_limit = 1;
         this.newLadder.unusable_sq_limit = 10;
@@ -297,10 +301,12 @@ export class LadderListComponent implements OnInit {
                     ladder => {
                         this.getLadders();
                         this.resetLadder();
-                        this.isSubmitting = false;
                     },
                     err => {
                         this.newLadderError = err;
+                    },
+                    () => {
+                        this.isSubmitting = false;
                     }
                 );
         }

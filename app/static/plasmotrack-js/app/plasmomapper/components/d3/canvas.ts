@@ -35,10 +35,28 @@ export class D3Canvas{
                         .attr("height", "100%")
                         .style("background-color", canvasConfig.backgroundColor || "#252830")
                         .on('dblclick', function() {
-                            let x_coord = __this.x.invert(d3.mouse(this)[0])
-                            let y_coord = __this.y.invert(d3.mouse(this)[1])
-                            __this.canvasConfig.click_handler(x_coord, y_coord);
+                            let x_coord = __this.x.invert(d3.mouse(this)[0]);
+                            let y_coord = __this.y.invert(d3.mouse(this)[1]);
+                            if(__this.canvasConfig.click_handler) {
+                                __this.canvasConfig.click_handler(x_coord, y_coord);
+                            }
                         });
+        
+        if(canvasConfig.contextMenu) {
+            let new_context_menu = [];
+            canvasConfig.contextMenu.forEach(menu_item => {
+                let context_menu_item = {
+                    title: menu_item.title,
+                    action: (d, coords, i) => {
+                        let x_coord = __this.x.invert(coords[0]);
+                        let y_coord = __this.y.invert(coords[1]);
+                        menu_item.action(x_coord, y_coord);
+                    }
+                };
+                new_context_menu.push(context_menu_item)
+            })
+            this.canvas.on("contextmenu", d3.contextMenu(new_context_menu));
+        }
                         
         this.fullWidth = parseInt(this.canvas.style("width"))
         this.fullHeight = parseInt(this.canvas.style("height"))

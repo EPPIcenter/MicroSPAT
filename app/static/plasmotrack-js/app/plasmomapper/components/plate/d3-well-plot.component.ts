@@ -87,6 +87,20 @@ export class D3WellPlotComponent implements OnChanges, OnDestroy{
             .attr("y", d => this.getRowIndex(d.well_label) * (full_height/this.colLength) + this.colPadding)
             .attr("width", width / this.rowLength)
             .attr("height", height / this.colLength)
+            .attr("stroke", d => {
+                if(d.border) {
+                    return d.border;
+                } else {
+                    return "black";
+                }
+            })
+            .attr("stroke-width", d=> {
+                if(d.border) {
+                    return 4;
+                } else {
+                    return 0;
+                }
+            })
             .attr("fill", d => d.color)
             .on('click', d => {
                 this.wellSelected.emit(d.id);

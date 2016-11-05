@@ -15,6 +15,8 @@ import { D3BinEstimatorPlot } from '../locus-bin/d3-bin-plot.component';
 import { GenotypingProjectService } from '../../../services/genotyping-project/genotyping-project.service';
 import { ArtifactEstimatorProjectService } from '../../../services/artifact-estimator-project/artifact-estimator-project.service';
 
+import { Bar } from '../../d3/bar.model';
+
 import { Bin } from '../../../services/bin-estimator-project/locus-bin-set/bin/bin.model';
 import { Locus } from '../../../services/locus/locus.model';
 import { LocusService } from '../../../services/locus/locus.service';
@@ -45,7 +47,7 @@ import { BinEstimatorProjectService } from '../../../services/bin-estimator-proj
                         </div>
                     </div>
                     <div *ngIf="!locusParamsCollapsed" class="panel-body">
-                        <form (ngSubmit)="saveLocusParams(selectedLocusParameter.locus_id)">
+                        <form>
                             <pm-common-locus-parameter-detail [(locusParameter)]="selectedLocusParameter"></pm-common-locus-parameter-detail>
                             <div class="row">
                                 <div class="col-sm-12">
@@ -62,18 +64,19 @@ import { BinEstimatorProjectService } from '../../../services/bin-estimator-proj
                                     </div>
                                 </div>
                             </div>
-                            <button type="submit" class="btn btn-default" [ngClass]="{disabled: isSubmitting}">Save and Analyze</button>
+                            <button type="submit" class="btn btn-default" (click)="saveLocusParams(selectedLocusParameter)" [ngClass]="{disabled: isSubmitting}">Save and Analyze</button>
                         </form>
                         <br>
                         <div>
                             <pm-progress-bar *ngIf="isSubmitting" [fullLabel]="'Saving and Analyzing Locus... This May Take A While'"></pm-progress-bar>
+                            <pm-progress-bar *ngIf="savingBins" [fullLabel]="'Saving Bins... This May Take A While'"></pm-progress-bar>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div *ngIf="selectedLocusChannelAnnotations && selectedLocus" class="col-sm-7" style="height: 35vh">
-            <pm-d3-bin-estimator-locus-plot [(bins)]="selectedBins" [(locus)]="selectedLocus" [(annotations)]="selectedLocusChannelAnnotations"></pm-d3-bin-estimator-locus-plot>
+        <div *ngIf="selectedLocusChannelAnnotations && selectedLocus" class="col-sm-7">
+            <pm-d3-bin-estimator-locus-plot (binsSaved)="saveBins($event)" [(project)]="selectedProject" [(bins)]="selectedBins" [(locus)]="selectedLocus" [(annotations)]="selectedLocusChannelAnnotations"></pm-d3-bin-estimator-locus-plot>
         </div>
     </div>
     `,
@@ -87,7 +90,10 @@ export class BinEstimatorLocusListComponent {
     private selectedLocusChannelAnnotations: ChannelAnnotation[] = [];
     private selectedBins: Bin[];
     private errorMessage: string;
+
     private isSubmitting: boolean = false;
+    private selectingLocus: boolean = false;
+    private savingBins: boolean = false;
 
     private locusParamsCollapsed = false;
     
@@ -156,25 +162,37 @@ export class BinEstimatorLocusListComponent {
     
     private selectLocus(locus_id: number) {
         // this.selectedLocus = null;
-        this.selectedLocusParameter = null;
-        this.selectedLocusChannelAnnotations = [];
-        if(!this.isSubmitting) {
-            this._locusService.getLocus(locus_id).subscribe(
-                locus => {
-                    this.selectedBins = [];
-                    this.selectedLocus = locus;
-                    this.selectedLocusParameter = this.selectedProject.locus_parameters.get(locus_id);
-                    if(this.selectedProject.locus_bin_sets.has(this.selectedLocus.id)){
-                        this.selectedProject.locus_bin_sets.get(this.selectedLocus.id).bins.forEach((bin) => {
-                            this.selectedBins.push(bin);
-                        });
+        if(!this.isSubmitting && !this.selectingLocus) {
+            this.selectedLocusParameter = null;
+            this.selectedLocusChannelAnnotations = [];
+            this.selectedBins = [];
+            this.selectedLocus = null;
+            if(locus_id != -1) {
+                this.selectingLocus = true;
+                this._locusService.getLocus(locus_id).subscribe(
+                    locus => {
+                        this.selectedLocus = locus;
+                        this.selectedLocusParameter = this.selectedProject.locus_parameters.get(locus_id);
+                        if(this.selectedProject.locus_bin_sets.has(this.selectedLocus.id)){
+                            this.selectedProject.locus_bin_sets.get(this.selectedLocus.id).bins.forEach((bin) => {
+                                console.log(bin);
+                                this.selectedBins.push(bin);
+                            });
+                        }
+                        this.getLocusChannelAnnotations();
+                    },
+                    err => this.errorMessage = err,
+                    () => {
+                        this.selectingLocus = false;
                     }
-                    this.getLocusChannelAnnotations();
-                },
-                err => this.errorMessage = err
-            )
-            
+                )
+            } else {
+                let lp = new BinEstimatorLocusParameters();
+                lp.initialize();
+                this.selectedLocusParameter = lp;
+            }
         }
+       
     }
     
     private locusParamsSaved() {
@@ -185,49 +203,96 @@ export class BinEstimatorLocusListComponent {
         this.selectedLocusParameter.isDirty = true;
     }
     
-    private saveLocusParams(id: number) {
-        if(!this.isSubmitting) {
-            let locusParameter = this.selectedProject.locus_parameters.get(id);
+    private saveLocusParams(locusParameter: BinEstimatorLocusParameters) {
+        if(!this.isSubmitting && !this.selectingLocus) {
             this.isSubmitting = true;
-            this._binEstimatorProjectService.saveLocusParameters(locusParameter).subscribe(
-                (locusParam: BinEstimatorLocusParameters) => {
-                    this._binEstimatorProjectService.clearCache(locusParam.project_id);
-                    this._binEstimatorProjectService.getBinEstimatorProject(locusParam.project_id)
+            if(locusParameter.id) {
+                this._binEstimatorProjectService.saveLocusParameters(locusParameter).subscribe(
+                    (locusParam: BinEstimatorLocusParameters) => {
+                        this._binEstimatorProjectService.clearCache(locusParam.project_id);
+                        this._binEstimatorProjectService.getBinEstimatorProject(locusParam.project_id)
+                            .subscribe(
+                                proj => {
+                                    this._genotypingProjectService.binEstimatorChanged(proj.id);
+                                    this._artifactEstimatorProjectService.binEstimatorChanged(proj.id);
+                                    this.selectedProject = proj;
+                                    this.loadLocusParameters();
+                                    this.selectedLocusParameter = locusParam;
+                                    this.selectLocus(locusParam.locus_id);
+                                },
+                                err => {
+                                    throw err;
+                                }
+                            )
+                    },
+                    (error) => {
+                        this.errorMessage = error
+                    },
+                    () => {
+                        this.isSubmitting = false;
+                    }
+                )
+            } else {
+                this._binEstimatorProjectService.batchApplyLocusParameters(locusParameter, this.selectedProject.id).subscribe(
+                    () => {
+                        this._binEstimatorProjectService.clearCache(this.selectedProject.id);
+                        this._binEstimatorProjectService.getBinEstimatorProject(this.selectedProject.id)
+                            .subscribe(
+                                proj => {
+                                    this._genotypingProjectService.binEstimatorChanged(proj.id);
+                                    this._artifactEstimatorProjectService.binEstimatorChanged(proj.id);
+                                    this.selectedProject = proj;
+                                    this.loadLocusParameters();
+                                }
+                            ),
+                            err => {
+                                toastr.error(err);
+                            }
+                    },
+                    err => {
+                        toastr.error(err);
+                    },
+                    () => {
+                        this.isSubmitting = false;
+                    }
+                )
+            }
+            
+        }
+    }
+
+    private saveBins(bins) {
+        if(!this.savingBins) {
+            this.savingBins = true;
+            this.selectedBins = bins; 
+            this._binEstimatorProjectService.createOrUpdateBins(this.selectedProject, this.selectedLocus.id, this.selectedBins, "Bins Saved")
+                .subscribe(res => {
+                    this._binEstimatorProjectService.clearCache(this.selectedProject.id);
+                    this._binEstimatorProjectService.getBinEstimatorProject(this.selectedProject.id)
                         .subscribe(
                             proj => {
+                                let locusParam = this.selectedLocusParameter;
                                 this._genotypingProjectService.binEstimatorChanged(proj.id);
                                 this._artifactEstimatorProjectService.binEstimatorChanged(proj.id);
                                 this.selectedProject = proj;
                                 this.loadLocusParameters();
-                                this.selectedLocusParameter = locusParam;
+                                this.selectedLocusParameter = this.locusParameters.filter((lps) => {
+                                    return lps.id === locusParam.id;
+                                })[0];
                                 this.selectLocus(locusParam.locus_id);
                             },
                             err => {
                                 throw err;
+                            },
+                            () => {
+                                this.savingBins = false;
                             }
-                        )
-                    // this.selectedProject.locus_parameters[locusParam.locus_id] = locusParam;
-                    // this.selectedLocusParameter = locusParam;
-                    // let tmpLocusParams = [];
-                    // this.locusParameters.forEach((lp) => {
-                    //     if(lp.id === locusParam.id) {
-                    //         tmpLocusParams.push(locusParam);
-                    //     } else {
-                    //         tmpLocusParams.push(lp);
-                    //     }
-                    // })
-                    // this.locusParameters = tmpLocusParams;
-                },
-                (error) => {
-                    this.errorMessage = error
-                },
-                () => {
-                    this.isSubmitting = false;
-                }
-            )
+                    )
+            });
         }
+
     }
-    
+
     ngOnInit() {
         this.getProject();
     }

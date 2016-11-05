@@ -3,7 +3,8 @@ import { RouteParams, Router } from '@angular/router-deprecated';
 
 import { LocusPipe } from '../../../../pipes/locus.pipe';
 
-import { SectionHeaderComponent } from '../../../layout/section-header.component'
+import { SectionHeaderComponent } from '../../../layout/section-header.component';
+import { ProgressBarComponent } from '../../../layout/progress-bar.component';
 
 import { GenotypingProject } from '../../../../services/genotyping-project/genotyping-project.model';
 import { GenotypingProjectService } from '../../../../services/genotyping-project/genotyping-project.service';
@@ -34,22 +35,23 @@ import { D3SampleAnnotationEditor } from '../../sample-annotation-editor.compone
                 <div class="row">
                     <div class="col-sm-12">
                         <div class="panel panel-default">
+                            <div class="panel-heading">
+                                <h6 class="panel-title">Probabilistic Peak Annotation</h6>
+                            </div>
                             <div class="panel-body">
-                                <form>
-                                    <div class="form-group">
-                                        <label>Lower Probability Limit</label>
-                                        <input type="number" class="form-control" required step="any" min="0" max="1" [(ngModel)]="selectedProject.probability_threshold">
-                                    </div>
+                                <div class="col-sm-3">
                                     <button class="btn btn-primary" (click)="calculateProbability()">Calculate</button>
-                                </form>
-                                <span *ngIf="calculatingProbability" class="label label-info">Calculating Probability...</span>
+                                </div>
+                                <div class="col-sm-9">
+                                    <pm-progress-bar *ngIf="calculatingProbability" [fullLabel]="'Calculating Probability...'"></pm-progress-bar>
+                                </div>
                             </div>
                         </div>
                     </div>
                     <div class="col-sm-12">
                         <div class="panel panel-default">
                             <div class="panel-heading">
-                                <h3 class="panel-title">Add Samples</h3>
+                                <h6 class="panel-title">Add Samples</h6>
                             </div>
                             <div class="panel-body">
                                 <form>
@@ -58,9 +60,9 @@ import { D3SampleAnnotationEditor } from '../../sample-annotation-editor.compone
                                     </div>
                                     <button class="btn btn-primary" type="button" (click)="upload()">Upload</button>
                                 </form>
-                                <span *ngIf="uploading" class="label label-info">Uploading Files...</span>
-                                <span *ngIf="uploadComplete" class="label label-success">Upload Successful</span>
-                                <span class="label label-danger">{{newPlateError}}</span>
+                                <br>
+                                <pm-progress-bar *ngIf="uploading" [fullLabel]="'Uploading File...'"></pm-progress-bar>
+                                <span class="label label-danger">{{uploadError}}</span>
                             </div>
                         </div>
                     </div>
@@ -159,7 +161,7 @@ import { D3SampleAnnotationEditor } from '../../sample-annotation-editor.compone
             </div>
         </div>
     `,
-    directives: [SampleListComponent, SectionHeaderComponent, D3SampleAnnotationEditor]
+    directives: [SampleListComponent, SectionHeaderComponent, D3SampleAnnotationEditor, ProgressBarComponent]
 })
 export class GenotypingProjectSampleList implements OnInit {
     public selectedProject: GenotypingProject;
@@ -170,7 +172,7 @@ export class GenotypingProjectSampleList implements OnInit {
     private selectedBinEstimator: BinEstimatorProject;
     private selectedBins: Map<number, Bin>;
     
-    private filesToUpload: File[] = [];
+    private sampleFileCSV: File[] = [];
     private uploading = false;
     private uploadComplete = false;
     private uploadError: string;
@@ -178,8 +180,8 @@ export class GenotypingProjectSampleList implements OnInit {
     private sampleSortingParam: string = 'barcode';
     private reverseSampleSorting = true;
     
-    public navItems;
-    public header;
+    private navItems: [{label: string, click: Function, active: boolean}]
+    private header;
     
     private _sampleAnnotations: SampleAnnotation[] = [];
     private selectedLocusAnnotationIndex = 0;
@@ -197,13 +199,11 @@ export class GenotypingProjectSampleList implements OnInit {
     ) {}
     
     private getBinEstimator = (proj: GenotypingProject) => {
-        
         return this._binEstimatorProjectService.getBinEstimatorProject(proj.bin_estimator_id);
     }
     
     private selectLocusAnnotation() {
         let annotation = this.selectedSampleLocusAnnotations[this.selectedLocusAnnotationIndex];
-        // if(annotation.reference_run_id) {}
         this.selectedBins = null;
         this.selectedLocusAnnotation = annotation;
         this.selectedLocusChannelAnnotations = this.channelAnnotations.get(this.selectedLocusAnnotation.locus_id);
@@ -250,32 +250,37 @@ export class GenotypingProjectSampleList implements OnInit {
                 })
                 .concatMap(this.getBinEstimator)
                 .subscribe(
-                    binEstimator => this.selectedBinEstimator = <BinEstimatorProject> binEstimator,
+                    binEstimator => this.selectedBinEstimator = binEstimator,
                     err => this.errorMessage = err
                 )
     }
     
     fileChangeEvent(fileInput: any){
-        this.filesToUpload = <Array<File>> fileInput.target.files;
+        this.sampleFileCSV = <Array<File>> fileInput.target.files;
     }
     
     upload() {
-        this.uploading = true;
-        this.uploadComplete = false
-        this._genotypingProjectService.addSamples(this.filesToUpload, this.selectedProject.id).subscribe(
-            project => {
-                this.selectedProject = project;
-            }, 
-            error => {
-                this.uploadError = error
-                this.uploading = false;
-            },
-            () => {
-                // this.getProject();
-                this.uploading = false;
-                this.uploadComplete = true;
-            }
-        )
+        if(!this.uploading) {
+            this.uploading = true;
+            this.uploadComplete = false
+            this._genotypingProjectService.addSamples(this.sampleFileCSV, this.selectedProject.id).subscribe(
+                project => {
+                    this.selectedProject = project;
+                    this._sampleAnnotations = [];
+                    project.sample_annotations.forEach(sampleAnnotation => {
+                            this._sampleAnnotations.push(sampleAnnotation);
+                        });
+                    this.sortSamples();
+                    toastr.success("Succesfully Uploaded Sample List");
+                }, 
+                error => {
+                    this.uploadError = error
+                },
+                () => {
+                    this.uploading = false;
+                }
+            )
+        }
     }
     
     private countOf(object: Object, status) {

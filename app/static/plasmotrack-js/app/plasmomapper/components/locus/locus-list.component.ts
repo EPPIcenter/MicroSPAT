@@ -11,10 +11,14 @@ import { LocusDetailComponent } from './locus-detail.component';
 @Component({
     selector: 'pm-locus-list',
     template: `
-    <pm-section-header [header]="'Loci'"></pm-section-header>
+    <br>
     <div class="row main-container">
+        
         <div class="col-sm-6">
             <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Loci</h3>
+                </div>
                 <div class="panel-body">
                     <div *ngIf="loadingLoci">
                         <pm-progress-bar [label]="'Loci'"></pm-progress-bar>
@@ -47,7 +51,23 @@ import { LocusDetailComponent } from './locus-detail.component';
                 </div>
             </div>
         </div>
+        
         <div class="col-sm-6">
+        
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Load From CSV</h3>
+                </div>
+                <div class="panel-body">
+                    <form>
+                        <div class="form-group">
+                            <input type="file" (change)="fileChangeEvent($event)" placeholder="Upload file..." multiple />
+                        </div>
+                        <button class="btn btn-primary" type="button" (click)="uploadCSV()">Upload</button>
+                    </form>
+                </div>
+            </div>
+            
             <div class="panel panel-default">
                 <div class="panel-heading">
                     <h3 class="panel-title">New Locus</h3>
@@ -68,8 +88,7 @@ import { LocusDetailComponent } from './locus-detail.component';
                         </div>
                         <div class="form-group">
                             <label>Nucleotide Repeat Length</label>
-                            <input type="number" class="form-control" min="0" required [(ngModel)]="newLocus.nucleotide_repeat_length">
-                            
+                            <input type="number" class="form-control" min="0" required [(ngModel)]="newLocus.nucleotide_repeat_length"> 
                         </div>
                         <div class="form-group">
                             <label>Color</label>
@@ -85,6 +104,7 @@ import { LocusDetailComponent } from './locus-detail.component';
                     </form>
                     <span class="label label-danger">{{newLocusError}}</span>
                 </div>
+
             </div>
         </div>
     </div>
@@ -98,6 +118,8 @@ export class LocusListComponent implements OnInit{
     private newLocusError: string;
     private locusListError: string;
     private newLocus: Locus;
+
+    private locusCSV: File;
     
     private reversed = false;
     private sortingParam = 'label';
@@ -118,11 +140,13 @@ export class LocusListComponent implements OnInit{
         this.loadingLoci = true;
         this._locusService.getLoci().subscribe(
             loci => {
-                this.loadingLoci = false;
                 this.loci = loci;
                 this.sortLoci();
             },
-            err => this.constructorErrors.push(err)
+            err => this.constructorErrors.push(err),
+            () => {
+                this.loadingLoci = false;
+            }
         )
     }
     
@@ -144,10 +168,10 @@ export class LocusListComponent implements OnInit{
     removeLocus(id: number) {
         this.locusListError = null;
         this._locusService.deleteLocus(id).subscribe(
-        () => this.getLoci(),
-        err => {
-            this.locusListError = err;
-        })
+            () => this.getLoci(),
+            err => {
+                toastr.error(err);
+            })
     }
     
     submitNewLocus() {
@@ -159,13 +183,26 @@ export class LocusListComponent implements OnInit{
                 this.newLocus = new Locus();
             },
             (err) => {
-                this.newLocusError = err;
-            }
+                toastr.error(err);
+            },
+            () => this.isSubmitting = false
         )
-        this.isSubmitting = false;
     }
     
-    
+    fileChangeEvent(fileInput: any){
+        console.log(fileInput);
+        this.locusCSV = <File> fileInput.target.files[0];
+    }
+
+    uploadCSV() {
+        this._locusService.postLocusCSV(this.locusCSV)
+            .subscribe(loci => {
+                this.getLoci();
+            },
+            err => {
+                toastr.error(err);
+            })
+    }
     
     ngOnInit() {
         this.getLoci();

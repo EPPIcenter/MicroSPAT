@@ -1,9 +1,10 @@
 # coding=utf-8
 import numpy as np
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LinearRegression, TheilSenRegressor
+from sklearn.metrics import mean_squared_error, r2_score
 
 
-def calculate_beta(peak_sets):
+def calculate_beta(peak_sets, regressor='lsr'):
     """
     Given a list of sets of paired peaks with known proportions annotated, will regress the quantification bias
     factor β that can be used to correct relative peak height estimations.
@@ -16,7 +17,12 @@ def calculate_beta(peak_sets):
     :return: β coefficient (float)
     """
 
-    lm = LinearRegression(fit_intercept=False)
+    regressors = {
+        'lsr': LinearRegression(fit_intercept=False),
+        'tsr': TheilSenRegressor(fit_intercept=False)
+    }
+
+    lm = regressors[regressor]
 
     X = []
     y = []
@@ -25,20 +31,31 @@ def calculate_beta(peak_sets):
         peak_one = peak_set[0]
         peak_two = peak_set[1]
 
-        y_i = np.log(peak_one['peak_height'] / float(peak_two['peak_height'])) - np.log(
-            peak_one['true_proportion'] / float(peak_two['true_proportion'])
-        )
+        y_i1 = np.log((peak_one['peak_height'] - peak_one.get('artifact_contribution', 0)) / float(peak_two['peak_height'] - peak_two.get('artifact_contribution', 0))) - np.log(
+            peak_one['true_proportion'] / float(peak_two['true_proportion']))
 
-        x_i = peak_one['peak_size'] - peak_two['peak_size']
+        y_i2 = np.log((peak_two['peak_height'] - peak_two.get('artifact_contribution', 0)) / float(
+            peak_one['peak_height'] - peak_one.get('artifact_contribution', 0))) - np.log(
+            peak_two['true_proportion'] / float(peak_one['true_proportion']))
 
-        y.append(y_i)
-        X.append(x_i)
+        x_i1 = peak_one['peak_size'] - peak_two['peak_size']
+        x_i2 = peak_two['peak_size'] - peak_one['peak_size']
+
+        y.append(y_i1)
+        X.append(x_i1)
+        y.append(y_i2)
+        X.append(x_i2)
 
     X = np.array(X)
     X = X.reshape(-1, 1)
     y = np.array(y)
     lm.fit(X, y)
-    return lm.coef_[0]
+    sd = mean_squared_error(y, lm.predict(X)) ** .5
+    r2 = r2_score(y, lm.predict(X))
+    if isinstance(lm, TheilSenRegressor):
+        return lm.coef_, sd, r2
+    else:
+        return lm.coef_[0], sd, r2
 
 
 def correct_peak_proportion(beta, peak_set):
@@ -52,6 +69,7 @@ def correct_peak_proportion(beta, peak_set):
 
     peak = {
         'peak_height': int,
+        'artifact_contribution': float, (optional)
         'peak_size': float
     }
 
@@ -59,22 +77,26 @@ def correct_peak_proportion(beta, peak_set):
 
     peak = {
         'peak_height': int,
+        'artifact_contribution': float, (optional)
         'peak_size': float,
-        'relative_proportion': float,
-        'corrected_relative_proportion': float
+        'relative_quantification': float,
+        'corrected_relative_quantification': float
     }
     """
 
-    total_peak_height = sum([_['peak_height'] for _ in peak_set])
+    total_peak_height = sum([_['peak_height'] - _.get('artifact_contribution', 0) for _ in peak_set])
 
     for peak in peak_set:
-        peak_height = peak['peak_height']
+        peak_height = peak['peak_height'] - peak.get('artifact_contribution', 0)
 
-        corrected_total_peak_height = sum(
-            map(lambda _: _['peak_height'] * np.e ** (beta * (peak['peak_size'] - _['peak_size'])), peak_set)
-        )
-
-        peak['relative_proportion'] = peak_height / float(total_peak_height)
-        peak['corrected_relative_proportion'] = peak_height / float(corrected_total_peak_height)
+        if beta:
+            corrected_total_peak_height = sum(
+                map(lambda _: (_['peak_height'] - peak.get('artifact_contribution', 0)) * np.e ** (
+                    beta * (peak['peak_size'] - _['peak_size'])), peak_set)
+            )
+        else:
+            corrected_total_peak_height = total_peak_height
+        peak['relative_quantification'] = peak_height / float(total_peak_height)
+        peak['corrected_relative_quantification'] = peak_height / float(corrected_total_peak_height)
 
     return peak_set

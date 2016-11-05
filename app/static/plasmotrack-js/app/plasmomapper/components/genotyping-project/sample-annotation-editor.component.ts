@@ -168,15 +168,15 @@ export class D3SampleAnnotationEditor implements OnChanges {
                 color = 'yellow';
             }
             
-            if(peak['flags']['crosstalk'] || peak['flags']['bleedthrough']){
+            else if(peak['flags']['crosstalk'] || peak['flags']['bleedthrough']){
                 color = 'green';
             }
             
-            if(peak['flags']['below_relative_threshold']) {
+            else if(peak['flags']['below_relative_threshold']) {
                 color = 'yellow';
             }
             
-            if(!peak['in_bin']){
+            else if(!peak['in_bin']){
                 color = 'red';
             }
             

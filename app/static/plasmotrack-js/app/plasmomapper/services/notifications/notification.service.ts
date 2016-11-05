@@ -12,7 +12,11 @@ export class NotificationService {
         console.log("Creating NotificationService");
         
         this._socket.on('message', msg => {
-            console.log(msg);
+            toastr.success(msg);
+        });
+
+        this._socket.on('notification', msg => {
+            toastr[msg.type](msg.msg);
         })
     }
 }

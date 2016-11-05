@@ -14,17 +14,18 @@ import { LocusSet } from '../../services/locus-set/locus-set.model';
     selector: 'pm-bin-estimator-list',
     template: `
     <div class="row">
-        <pm-section-header [header]="'Bin Estimator Projects'"></pm-section-header>
-    </div>
-    <div class="row">
         <div *ngFor="let err of constructorErrors">
             <span class="label label-danger">{{err}}</span>
             <br/>
         </div>
     </div>
+    <br>
     <div class="row main-container">
         <div class="col-sm-6">
             <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Bin Estimator Projects</h3>
+                </div>
                 <div class="panel-body">
                     <div *ngIf="loadingProjects">
                         <pm-progress-bar [label]="'Bin Estimators'"></pm-progress-bar>

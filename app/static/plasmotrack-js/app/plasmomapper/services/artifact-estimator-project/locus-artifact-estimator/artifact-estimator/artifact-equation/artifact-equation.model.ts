@@ -8,6 +8,7 @@ export class ArtifactEquation extends DatabaseItem {
     intercept; number;
     start_size: number;
     end_size: number;
+    method: "TSR" | "LSR" | "RANSAC" | "no_slope";
     
     fillFromJSON(obj) {
         this.isDirty = false;

@@ -18,6 +18,7 @@ import * as d3 from 'd3';
 
 @Component({
     inputs: ['bins', 'locus', 'artifactEstimator'],
+    outputs: ['render'],
     selector: 'pm-d3-artifact-estimator-panel',
     template: `
     <div style="height:100%" id="plot-container"></div>
@@ -39,6 +40,7 @@ export class D3ArtifactEstimatorPanel implements OnInit, OnDestroy {
         private _elementRef: ElementRef,
         private _artifactEstimatorProjectService: ArtifactEstimatorProjectService
     ){}
+    
     
     findRange() {
         this.max_height = 1;
@@ -73,6 +75,7 @@ export class D3ArtifactEstimatorPanel implements OnInit, OnDestroy {
         })
     }
     
+    
     createLines() {
         this.lines = [];
         this.artifactEstimator.artifact_equations.forEach(artifactEquation => {
@@ -96,6 +99,11 @@ export class D3ArtifactEstimatorPanel implements OnInit, OnDestroy {
     }
     
     ngOnInit(){        
+        this.rerender();
+    }
+
+    rerender() {
+        console.log("Rerendering");
         this.findRange();
         this.createBars();
         this.createCircles();
@@ -125,8 +133,9 @@ export class D3ArtifactEstimatorPanel implements OnInit, OnDestroy {
                     this.ngOnInit();
                 },
                 err => console.log(err)
-            )
+            );
     }
+    
     
     ngOnChanges() {
         this.ngOnInit();

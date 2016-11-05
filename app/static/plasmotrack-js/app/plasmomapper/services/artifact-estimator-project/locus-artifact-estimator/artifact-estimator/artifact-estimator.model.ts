@@ -2,6 +2,7 @@ import { DatabaseItem } from '../../../DatabaseItem';
 import { ArtifactEquation } from './artifact-equation/artifact-equation.model'
 
 export class ArtifactEstimator extends DatabaseItem {
+    label: string;
     artifact_distance: number;
     artifact_distance_buffer: number;
     locus_artifact_estimator_id: number;
