@@ -3,9 +3,15 @@ from collections import defaultdict
 from datetime import datetime
 from itertools import groupby
 
+from ..custom_sql_types.custom_types import JSONEncodedData, MutableDict, MutableList, CompressedJSONEncodedData
+
+from app import db, socketio
 from app.microspat.statistics import calculate_moi
 from app.microspat.statistics.utils import calculate_prob_negative, calculate_prob_pos_if_observed
 from quantification_bias.BiasCalculator import correct_peak_proportion, calculate_beta
+from fsa_extractor.PlateExtractor import PlateExtractor, WellExtractor, ChannelExtractor
+from statistics import calculate_allele_frequencies, calculate_peak_probability
+import bin_finder.BinFinder as BinFinder
 from config import Config
 
 # from sklearn.externals import joblib
@@ -14,21 +20,16 @@ from sqlalchemy.orm import validates, deferred, reconstructor, joinedload, subqu
 from sqlalchemy import event
 from sqlalchemy.orm.util import object_state
 from sqlalchemy.orm.session import attributes, make_transient
-
 from sqlalchemy.engine import Engine
 
-from app import db, socketio
 from flask import current_app as app
 from flask_sqlalchemy import SignallingSession
 
-from fsa_extractor.PlateExtractor import PlateExtractor, WellExtractor, ChannelExtractor
-from statistics import calculate_allele_frequencies, calculate_peak_probability
-import bin_finder.BinFinder as BinFinder
 import artifact_estimator.ArtifactEstimator as AE
 
 import eventlet
 
-from ..custom_sql_types.custom_types import JSONEncodedData, MutableDict, MutableList, CompressedJSONEncodedData
+
 from peak_annotator.PeakFilters import *
 
 
@@ -112,7 +113,7 @@ class Flaggable(object):
 class LocusSetAssociatedMixin(object):
     @declared_attr
     def locus_set_id(self):
-        #TODO: add index to sqlite
+        # TODO: add index to sqlite
         return db.Column(db.Integer, db.ForeignKey('locus_set.id'), nullable=False, index=True)
 
     @declared_attr
@@ -663,7 +664,7 @@ class SampleBasedProject(Project, BinEstimating):
         full_sample_ids = list(set(sample_ids) - present_sample_ids)
         print full_sample_ids
         n = 0
-        while n * 100 < len(full_sample_ids):
+        while n * 100 < len(full_sample_ids) + 100:
             sample_ids = full_sample_ids[n * 100: (n + 1) * 100]
             channel_ids_query = Channel.query.join(Sample).join(Locus).join(locus_set_association_table).join(
                 LocusSet).join(Project).filter(Project.id == self.id)
@@ -671,6 +672,7 @@ class SampleBasedProject(Project, BinEstimating):
             for sample_id in sample_ids:
                 channel_ids += [x[0] for x in channel_ids_query.filter(Sample.id == sample_id).values(Channel.id)]
                 sample_annotation = ProjectSampleAnnotations(sample_id=sample_id)
+                db.session.add(sample_annotation)
                 self.sample_annotations.append(sample_annotation)
                 for locus in self.locus_set.loci:
                     locus_sample_annotation = SampleLocusAnnotation(locus_id=locus.id, project_id=self.id)
@@ -1492,7 +1494,7 @@ class BadProportions(Exception):
     pass
 
 
-class QuantificationBiasEstimatorProject(SampleBasedProject):
+class QuantificationBiasEstimatorProject(SampleBasedProject, ArtifactEstimating):
     id = db.Column(db.Integer, db.ForeignKey('sample_based_project.id'), primary_key=True)
     locus_parameters = db.relationship('QuantificationBiasLocusParams',
                                        backref=db.backref('quantification_bias_estimator_project'),
@@ -1586,14 +1588,29 @@ class QuantificationBiasEstimatorProject(SampleBasedProject):
         if locus_params.scanning_parameters_stale or locus_params.filter_parameters_stale:
             locus_params.quantification_bias_parameters_stale = True
 
-        super(SampleBasedProject, self).analyze_locus(locus_id)
+        super(QuantificationBiasEstimatorProject, self).analyze_locus(locus_id)
 
         if locus_params.quantification_bias_parameters_stale:
             self.analyze_samples(locus_id)
             locus_params.quantification_bias_parameters_stale = False
 
         self.calculate_beta(locus_id)
+        self.analyze_samples(locus_id)
         return self
+
+    def annotate_channel(self, channel_annotation):
+        assert isinstance(channel_annotation, ProjectChannelAnnotations)
+        super(QuantificationBiasEstimatorProject, self).annotate_channel(channel_annotation)
+
+        if channel_annotation.annotated_peaks:
+            if self.artifact_estimator:
+                for peak in channel_annotation.annotated_peaks:
+                    peak['artifact_contribution'] = 0
+                    peak['artifact_error'] = 0
+                channel_annotation.annotated_peaks = self.artifact_estimator.annotate_artifact(
+                    channel_annotation.channel.locus_id,
+                    channel_annotation.annotated_peaks)
+            channel_annotation.annotated_peaks.changed()
 
     def analyze_samples(self, locus_id):
         self.clear_sample_annotations(locus_id)
@@ -1627,15 +1644,24 @@ class QuantificationBiasEstimatorProject(SampleBasedProject):
                     ControlSampleAssociation.sample_annotation_id == locus_annotation.sample_annotations_id).values(
                     ControlSampleAssociation.control_id, ControlSampleAssociation.proportion)
 
+                true_peak_indices = set()
+                true_peaks = []
+
                 for control_id, proportion in controls_and_props:
                     control = Control.query.get(control_id)
                     assert isinstance(control, Control)
                     bin_id = str(control.alleles[str(locus_annotation.locus_id)])
-                    true_peaks = [_ for _ in peaks if str(_['bin_id']) == bin_id]
-                    if true_peaks:
-                        true_peak = max(true_peaks, key=lambda _: _.get('peak_height'))
+                    control_peaks = [_ for _ in peaks if str(_['bin_id']) == bin_id]
+                    if control_peaks:
+                        true_peak = max(control_peaks, key=lambda _: _.get('peak_height'))
                         true_peak['true_proportion'] += proportion
+                        if true_peak['peak_index'] not in true_peak_indices:
+                            true_peaks.append(true_peak)
+                            true_peak_indices.add(true_peak['peak_index'])
+
                     locus_annotation.alleles[bin_id] = True
+
+                self.annotate_quantification_bias(locus_annotation.locus_id, true_peaks)
 
                 locus_annotation.annotated_peaks = peaks
             else:
@@ -1748,14 +1774,14 @@ class GenotypingProject(SampleBasedProject, ArtifactEstimating, QuantificationBi
         super(GenotypingProject, self).annotate_channel(channel_annotation)
 
         if channel_annotation.annotated_peaks:
-            if self.bin_estimator:
-                for peak in channel_annotation.annotated_peaks:
-                    peak['in_bin'] = False
-                    peak['bin'] = ""
-                    peak['bin_id'] = None
-                channel_annotation.annotated_peaks = self.bin_estimator.annotate_bins(
-                    channel_annotation.channel.locus_id,
-                    channel_annotation.annotated_peaks)
+            # if self.bin_estimator:
+            #     for peak in channel_annotation.annotated_peaks:
+            #         peak['in_bin'] = False
+            #         peak['bin'] = ""
+            #         peak['bin_id'] = None
+            #     channel_annotation.annotated_peaks = self.bin_estimator.annotate_bins(
+            #         channel_annotation.channel.locus_id,
+            #         channel_annotation.annotated_peaks)
 
             if self.artifact_estimator:
                 for peak in channel_annotation.annotated_peaks:
@@ -2476,6 +2502,9 @@ class ProjectSampleAnnotations(TimeStamped, db.Model):
         return psa
 
     def serialize(self):
+        if self.sample_id and not self.sample:
+            self.sample = Sample.query.get(self.sample_id)
+        print self.sample_id
         res = {
             'id': self.id,
             'sample': self.sample.serialize(),
@@ -2897,6 +2926,11 @@ class Channel(ChannelExtractor, TimeStamped, Colored, Flaggable, db.Model):
     def init_on_load(self):
         super(Channel, self).__init__(color=self.color, wavelength=self.wavelength)
 
+    @property
+    def other_channels(self):
+        other_channels = [_ for _ in self.well.channels if _.id != self.id]
+        return other_channels
+
     def reinitialize(self):
         self.max_data_point = 0
         self.sample_id = None
@@ -2975,10 +3009,17 @@ class Channel(ChannelExtractor, TimeStamped, Colored, Flaggable, db.Model):
         }
         return res
 
-    def serialize_details(self):
+    def non_recursive_details(self):
         res = self.serialize()
         res.update({
             'data': self.data
+        })
+
+    def serialize_details(self):
+        res = self.serialize()
+        res.update({
+            'data': self.data,
+            'other_channels': [_.non_recursive_details() for _ in self.other_channels]
         })
         return res
 
@@ -3018,7 +3059,9 @@ def broadcast_delete(mapper, connection, target):
 def set_sqlite_pragma(dbapi_connection, connection_record):
     if db.engine.url.drivername == 'sqlite':
         cursor = dbapi_connection.cursor()
+        # cursor.execute("VACUUM")
         cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.execute("PRAGMA cache_size=-1000000")
         cursor.close()
 
 

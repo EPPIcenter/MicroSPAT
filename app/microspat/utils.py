@@ -50,7 +50,8 @@ def load_samples_and_controls_from_csv(f, qbe_proj_id):
     sample_ids = control_map.keys()
     qbe.add_samples(sample_ids)
     db.session.flush()
-    sample_annotation_ids = qbe.sample_annotations.values(ProjectSampleAnnotations.id, ProjectSampleAnnotations.sample_id)
+    sample_annotation_ids = qbe.sample_annotations.values(ProjectSampleAnnotations.id,
+                                                          ProjectSampleAnnotations.sample_id)
     for sa_id, sample_id in sample_annotation_ids:
         qbe.assign_controls(sa_id, control_map[sample_id])
 
@@ -118,10 +119,22 @@ def load_samples_from_csv(f):
     return samples
 
 
-def load_plate_zips(zips, ladder):
-    extracted_plates = PlateExtractor.parallel_from_zip(zips, ladder=ladder.base_sizes, color=ladder.color,
-                                                        base_size_precision=ladder.base_size_precision,
-                                                        sq_limit=ladder.sq_limit,
-                                                        filter_parameters=ladder.filter_parameters,
-                                                        scanning_parameters=ladder.scanning_parameters)
+def load_plate_zips(zips, ladder, parallel=True):
+    extracted_plates = []
+    if parallel:
+        extracted_plates = PlateExtractor.parallel_from_zip(zips, ladder=ladder.base_sizes, color=ladder.color,
+                                                            base_size_precision=ladder.base_size_precision,
+                                                            sq_limit=ladder.sq_limit,
+                                                            filter_parameters=ladder.filter_parameters,
+                                                            scanning_parameters=ladder.scanning_parameters)
+    else:
+        for z in zips:
+            extracted_plate = PlateExtractor.from_zip_and_calculate_base_sizes(z, ladder=ladder.base_sizes,
+                                                                               color=ladder.color,
+                                                                               base_size_precision=ladder.base_size_precision,
+                                                                               sq_limit=ladder.sq_limit,
+                                                                               filter_parameters=ladder.filter_parameters,
+                                                                               scanning_parameters=ladder.scanning_parameters)
+            extracted_plates.append(extracted_plate)
+
     return extracted_plates

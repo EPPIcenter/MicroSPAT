@@ -39,17 +39,21 @@ import * as d3 from 'd3';
                         <td>Size</td>
                         <td>{{selectedPeak['peak_size'] | number}}</td>
                     </tr>
-                    <tr>
-                        <td>Crosstalk</td>
-                        <td>{{selectedPeak['crosstalk_ratio'] | number}}</td>
-                    </tr>
-                    <tr>
-                        <td>Bleedthrough</td>
-                        <td>{{selectedPeak['bleedthrough_ratio'] | number}}</td>
+                    <tr *ngIf="selectedPeak.artifact_contribution">
+                        <td>Artifact Contribution</td>
+                        <td>{{selectedPeak['artifact_contribution'] | number}}</td>
                     </tr>
                     <tr>
                         <td>True Proportion</td>
                         <td>{{selectedPeak['true_proportion'] | number}}</td>
+                    </tr>
+                    <tr *ngIf="selectedPeak.relative_quantification">
+                        <td>Relative Quantification</td>
+                        <td>{{selectedPeak['relative_quantification'] | number}}</td>
+                    </tr>
+                    <tr *ngIf="selectedPeak.corrected_relative_quantification">
+                        <td>Corrected Quantification</td>
+                        <td>{{selectedPeak['corrected_relative_quantification'] | number}}</td>
                     </tr>
                 </tbody>
             </table>
@@ -148,6 +152,12 @@ export class D3SampleAnnotationEditor implements OnChanges {
         this.circles = [];
         this.locusAnnotation.annotated_peaks.forEach(peak => {
             let color = 'yellow';
+            let outline = null;
+
+            if(this.selectedPeak && peak['peak_index'] == this.selectedPeak['peak_index']) {
+                outline = 'white';
+            }
+
             if(peak['true_proportion'] > 0) {
                 color = 'blue';
             }
@@ -156,6 +166,7 @@ export class D3SampleAnnotationEditor implements OnChanges {
                 radius: 6,
                 color: color,
                 opacity: 1,
+                outline: outline,
                 id: peak['peak_index']
             }
             this.circles.push(p);
@@ -202,6 +213,7 @@ export class D3SampleAnnotationEditor implements OnChanges {
             var peak = this.locusAnnotation.annotated_peaks[peak_index];
             if (peak['peak_index'] == index) {
                 this.selectedPeak = peak;
+                this.render();
                 break;
             }
         }

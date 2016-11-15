@@ -164,6 +164,12 @@ export class D3SampleAnnotationEditor implements OnChanges {
         this.circles = [];
         this.locusAnnotation.annotated_peaks.forEach(peak => {
             let color = 'blue';
+            let outline = null;
+            
+            if(this.selectedPeak && peak['peak_index'] == this.selectedPeak['peak_index']){
+                outline = 'white';
+            }
+
             if(peak['flags']['artifact']) {
                 color = 'yellow';
             }
@@ -185,6 +191,7 @@ export class D3SampleAnnotationEditor implements OnChanges {
                 radius: 6,
                 color: color,
                 opacity: 1,
+                outline: outline,
                 id: peak['peak_index']
             }
             this.circles.push(p);
@@ -230,6 +237,7 @@ export class D3SampleAnnotationEditor implements OnChanges {
             var peak = this.locusAnnotation.annotated_peaks[peak_index];
             if (peak['peak_index'] == index) {
                 this.selectedPeak = peak;
+                this.render();
                 break;
             }
         }

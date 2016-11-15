@@ -167,7 +167,6 @@ class ArtifactEstimator(object):
 
         :return: ArtifactEquation[]
         """
-        print "REGENERATING ESTIMATING EQUATIONS"
         if peak_data:
             self.peak_data = peak_data
         artifact_equations = []

@@ -47,138 +47,143 @@ interface AnnotationFilter {
     template: `
         <pm-section-header [header]="header" [navItems]="navItems"></pm-section-header>
         <div class="row">
-            <div *ngIf="selectedProject" class="col-sm-1">
-                <pm-locus-parameter-list class="list-panel" [(locusParameters)]="locusParameters" (locusClicked)="selectLocus($event)">
-                </pm-locus-parameter-list>
-            </div>
-            <div *ngIf="selectedLocusParameter" class="col-sm-4">
+            <div class="col-sm-4">
                 <div class="row">
-                    <div class="panel panel-default">
-                        <div (click)="locusParamsCollapsed = !locusParamsCollapsed" class="panel-heading">
-                            <div class="h3 panel-title">
-                                <span>{{selectedLocusParameter.locus_id | locus | async}}</span> <span *ngIf="selectedLocusAnnotations"> | {{selectedLocusAnnotations.length}} Samples </span> <span *ngIf="failureRate"> | Failure Rate: {{failureRate | number}}</span>
-                                <span *ngIf="locusParamsCollapsed" class="glyphicon glyphicon-menu-right pull-right"></span>
-                                <span *ngIf="!locusParamsCollapsed" class="glyphicon glyphicon-menu-down pull-right"></span> 
+                    <div class="col-sm-12">
+                        <div class="panel panel-default">
+                            <div (click)="locusParamsCollapsed = !locusParamsCollapsed" class="panel-heading">
+                                <div *ngIf="selectedLocusParameter" class="h3 panel-title">
+                                    <span>{{selectedLocusParameter.locus_id | locus | async}}</span> <span *ngIf="selectedLocusAnnotations"> | {{selectedLocusAnnotations.length}} Samples </span> <span *ngIf="failureRate"> | Failure Rate: {{failureRate | number}}</span>
+                                    <span *ngIf="locusParamsCollapsed" class="glyphicon glyphicon-menu-right pull-right"></span>
+                                    <span *ngIf="!locusParamsCollapsed" class="glyphicon glyphicon-menu-down pull-right"></span> 
+                                </div>
+                                <div *ngIf="!selectedLocusParameter" class="h3 panel-title">
+                                    <span>Select a Locus</span>
+                                </div>
                             </div>
-                        </div>
-                        <div *ngIf="!locusParamsCollapsed" class="panel-body">
-                            <form>
-                                <pm-common-locus-parameter-detail [(locusParameter)]="selectedLocusParameter"></pm-common-locus-parameter-detail>
-                                <div class="row">
-                                    <div class="col-sm-12">
-                                        <h4>Genotyping Settings</h4>
-                                        <div class="col-sm-6">
-                                            <div class="form-group">
-                                                <label>Min Relative Peak Height</label>
-                                                <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" min="0" max="1" [(ngModel)]="selectedLocusParameter.relative_peak_height_limit">
+                            <div *ngIf="!locusParamsCollapsed" class="panel-body">
+                                <pm-locus-parameter-list class="list-panel" [(locusParameters)]="locusParameters" (locusClicked)="selectLocus($event)">
+                                </pm-locus-parameter-list>
+                                <form *ngIf="selectedLocusParameter">
+                                    <pm-common-locus-parameter-detail [(locusParameter)]="selectedLocusParameter"></pm-common-locus-parameter-detail>
+                                    <div class="row">
+                                        <div class="col-sm-12">
+                                            <h4>Genotyping Settings</h4>
+                                            <div class="col-sm-6">
+                                                <div class="form-group">
+                                                    <label>Min Relative Peak Height</label>
+                                                    <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" min="0" max="1" [(ngModel)]="selectedLocusParameter.relative_peak_height_limit">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Min Absolute Peak Height</label>
+                                                    <input class="form-control input-sm" (change)="onChanged()" type="number" required step="1" min="0" [(ngModel)]="selectedLocusParameter.absolute_peak_height_limit">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Bleedthrough Limit</label>
+                                                    <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" min="0" [(ngModel)]="selectedLocusParameter.bleedthrough_filter_limit">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Crosstalk Limit</label>
+                                                    <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" min="0" [(ngModel)]="selectedLocusParameter.crosstalk_filter_limit">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Failure Threshold</label>
+                                                    <input class="form-control input-sm" (change)="onChanged()" type="number" required step="1" min="0" [(ngModel)]="selectedLocusParameter.failure_threshold">
+                                                </div>
+                                            </div>                                
+                                            <div class="col-sm-6">
+                                                <div *ngIf="selectedProject.artifact_estimator_id" class="form-group">
+                                                    <label>Soft Artifact SD Limit</label>
+                                                    <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" [(ngModel)]="selectedLocusParameter.soft_artifact_sd_limit">
+                                                </div>
+                                                <div  *ngIf="selectedProject.artifact_estimator_id" class="form-group">
+                                                    <label>Hard Artifact SD Limit</label>
+                                                    <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" [(ngModel)]="selectedLocusParameter.hard_artifact_sd_limit">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Genotyping Probability Threshold</label>
+                                                    <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" min="0" [(ngModel)]="selectedLocusParameter.probability_threshold">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Bootstrap Probability Threshold</label>
+                                                    <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" min="0" [(ngModel)]="selectedLocusParameter.bootstrap_probability_threshold">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Offscale Threshold</label>
+                                                    <input class="form-control input-sm" (change)="onChanged()" type="number" required step="1" min="0" [(ngModel)]="selectedLocusParameter.offscale_threshold">
+                                                </div>
+                                                
                                             </div>
-                                            <div class="form-group">
-                                                <label>Min Absolute Peak Height</label>
-                                                <input class="form-control input-sm" (change)="onChanged()" type="number" required step="1" min="0" [(ngModel)]="selectedLocusParameter.absolute_peak_height_limit">
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Bleedthrough Limit</label>
-                                                <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" min="0" [(ngModel)]="selectedLocusParameter.bleedthrough_filter_limit">
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Crosstalk Limit</label>
-                                                <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" min="0" [(ngModel)]="selectedLocusParameter.crosstalk_filter_limit">
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Failure Threshold</label>
-                                                <input class="form-control input-sm" (change)="onChanged()" type="number" required step="1" min="0" [(ngModel)]="selectedLocusParameter.failure_threshold">
-                                            </div>
-                                        </div>                                
-                                        <div class="col-sm-6">
-                                            <div *ngIf="selectedProject.artifact_estimator_id" class="form-group">
-                                                <label>Soft Artifact SD Limit</label>
-                                                <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" [(ngModel)]="selectedLocusParameter.soft_artifact_sd_limit">
-                                            </div>
-                                            <div  *ngIf="selectedProject.artifact_estimator_id" class="form-group">
-                                                <label>Hard Artifact SD Limit</label>
-                                                <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" [(ngModel)]="selectedLocusParameter.hard_artifact_sd_limit">
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Genotyping Probability Threshold</label>
-                                                <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" min="0" [(ngModel)]="selectedLocusParameter.probability_threshold">
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Bootstrap Probability Threshold</label>
-                                                <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" min="0" [(ngModel)]="selectedLocusParameter.bootstrap_probability_threshold">
-                                            </div>
-                                            <div class="form-group">
-                                                <label>Offscale Threshold</label>
-                                                <input class="form-control input-sm" (change)="onChanged()" type="number" required step="1" min="0" [(ngModel)]="selectedLocusParameter.offscale_threshold">
-                                            </div>
-                                            
                                         </div>
                                     </div>
+                                    <button type="submit" class="btn btn-default" (click)="saveLocusParams(selectedLocusParameter)" [ngClass]="{disabled: isSubmitting}">Save and Analyze</button>
+                                </form>
+                                <br>
+                                <div>
+                                    <pm-progress-bar *ngIf="isSubmitting" [fullLabel]="'Saving and Analyzing Locus... This May Take A While'"></pm-progress-bar>
                                 </div>
-                                <button type="submit" class="btn btn-default" (click)="saveLocusParams(selectedLocusParameter)" [ngClass]="{disabled: isSubmitting}">Save and Analyze</button>
-                            </form>
-                            <br>
-                            <div>
-                                <pm-progress-bar *ngIf="isSubmitting" [fullLabel]="'Saving and Analyzing Locus... This May Take A While'"></pm-progress-bar>
+                                <div *ngIf="errorMessage" class="alert alert-danger" role="alert">{{errorMessage}}</div>
                             </div>
-                            <div *ngIf="errorMessage" class="alert alert-danger" role="alert">{{errorMessage}}</div>
                         </div>
                     </div>
                 </div>
-                <div *ngIf="selectedLocusAnnotations" class="row">
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <div class="h3 panel-title">
-                                Annotations Filters
+                <div class="col-sm-12">
+                    <div *ngIf="selectedLocusAnnotations" class="row">
+                        <div class="panel panel-default">
+                            <div class="panel-heading">
+                                <div class="h3 panel-title">
+                                    Annotations Filters
+                                </div>
                             </div>
-                        </div>
-                        <div class="panel-body">
-                            <form>
-                                <div class="col-sm-6">
-                                    <div class="form-group">
-                                        <input type="checkbox" (change)="filters.offscale=false" [(ngModel)]="filters.failures"> Failures Only
+                            <div class="panel-body">
+                                <form>
+                                    <div class="col-sm-6">
+                                        <div class="form-group">
+                                            <input type="checkbox" (change)="filters.offscale=false" [(ngModel)]="filters.failures"> Failures Only
+                                        </div>
+                                        <div class="form-group">
+                                            <input type="checkbox" (change)="filters.failures=false" [(ngModel)]="filters.offscale"> Offscale Only
+                                        </div>
+                                        <div class="form-group">
+                                            <input type="checkbox" (change)="filters.out_of_bin=false" [(ngModel)]="filters.out_of_bin"> Out Of Bin Peaks
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Crosstalk Limit</label>
+                                            <input class="form-control" type="number" step="any" min=0 [(ngModel)]="filters.crosstalk" [disabled]="filters.failures || filters.offscale || filters.out_of_bin">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Bleedthrough Limit</label>
+                                            <input class="form-control" type="number" step="any" min=0 [(ngModel)]="filters.bleedthrough" [disabled]="filters.failures || filters.offscale || filters.out_of_bin">
+                                        </div>
                                     </div>
-                                    <div class="form-group">
-                                        <input type="checkbox" (change)="filters.failures=false" [(ngModel)]="filters.offscale"> Offscale Only
+                                    <div class="col-sm-6">
+                                        <div class="form-group">
+                                            <label>Min Allele Count</label>
+                                            <input class="form-control" type="number" [(ngModel)]="filters.min_allele_count" [disabled]="filters.failures || filters.offscale">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Max Allele Count</label>
+                                            <input class="form-control" type="number" [(ngModel)]="filters.max_allele_count" [disabled]="filters.failures || filters.offscale">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Min Main Peak Height</label>
+                                            <input class="form-control" type="number" [(ngModel)]="filters.main_min_peak_height" [disabled]="filters.failures || filters.offscale">    
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Max Main Peak Height</label>
+                                            <input class="form-control" type="number" [(ngModel)]="filters.main_max_peak_height" [disabled]="filters.failures || filters.offscale">
+                                        </div>
                                     </div>
-                                    <div class="form-group">
-                                        <input type="checkbox" (change)="filters.out_of_bin=false" [(ngModel)]="filters.out_of_bin"> Out Of Bin Peaks
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Crosstalk Limit</label>
-                                        <input class="form-control" type="number" step="any" min=0 [(ngModel)]="filters.crosstalk" [disabled]="filters.failures || filters.offscale || filters.out_of_bin">
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Bleedthrough Limit</label>
-                                        <input class="form-control" type="number" step="any" min=0 [(ngModel)]="filters.bleedthrough" [disabled]="filters.failures || filters.offscale || filters.out_of_bin">
-                                    </div>
-                                </div>
-                                <div class="col-sm-6">
-                                    <div class="form-group">
-                                        <label>Min Allele Count</label>
-                                        <input class="form-control" type="number" [(ngModel)]="filters.min_allele_count" [disabled]="filters.failures || filters.offscale">
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Max Allele Count</label>
-                                        <input class="form-control" type="number" [(ngModel)]="filters.max_allele_count" [disabled]="filters.failures || filters.offscale">
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Min Main Peak Height</label>
-                                        <input class="form-control" type="number" [(ngModel)]="filters.main_min_peak_height" [disabled]="filters.failures || filters.offscale">    
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Max Main Peak Height</label>
-                                        <input class="form-control" type="number" [(ngModel)]="filters.main_max_peak_height" [disabled]="filters.failures || filters.offscale">
-                                    </div>
-                                </div>
-                                <button class="btn btn-default" (click)="filterLocusAnnotations()">Filter Annotations</button>
-                                <button class="btn btn-default" (click)="clearFilter()">Clear Filter</button>
-                                <button class="btn btn-default" (click)="saveAnnotations()">Save Annotations</button>
-                            </form>
+                                    <button class="btn btn-default" (click)="filterLocusAnnotations()">Filter Annotations</button>
+                                    <button class="btn btn-default" (click)="clearFilter()">Clear Filter</button>
+                                    <button class="btn btn-default" (click)="saveAnnotations()">Save Annotations</button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="col-sm-7">
+            <div class="col-sm-8">
                 <div *ngIf="loadingLocusAnnotations">
                     <pm-progress-bar [fullLabel]="'Loading Samples'"></pm-progress-bar>
                 </div>
@@ -373,7 +378,7 @@ export class GenotypingProjectLocusList {
               for (var peak_idx = 0; peak_idx < locusAnnotation.annotated_peaks.length; peak_idx++) {
                   var peak = locusAnnotation.annotated_peaks[peak_idx];
                 //   if(!peak['in_bin'] && peak['bin'] && locusAnnotation.alleles[+peak['bin_id']]) {
-                    if(!peak['in_bin']) {
+                    if(!peak['in_bin'] && !peak['flags']['below_relative_threshold'] && !peak['flags']['artifact']) {
                       this.filteredLocusAnnotations.push(locusAnnotation);
                       break;
                   }

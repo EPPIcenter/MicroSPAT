@@ -1,8 +1,12 @@
 import hashlib
 import zipfile
 from functools import partial
-import dill
-from pathos import multiprocessing
+
+import os
+if os.name != 'nt':
+    import dill
+    from pathos import multiprocessing
+
 # import multiprocessing
 
 from app.microspat.peak_annotator.PeakAnnotators import *
@@ -589,7 +593,7 @@ class WellExtractor(object):
         try:
             self.base_sizes = l.get_base_sizes(peak_indices=peak_indices)
             self.sizing_quality = l.sizing_quality
-            self.ladder_peak_indices = l.peaks
+            self.ladder_peak_indices = map(int, l.peaks)
             self.static_pre_annotators['base_size'] = self.base_size_annotator()
             ladder_channel.set_peak_indices(l.peaks)
         except NoLadderException as e:

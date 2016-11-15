@@ -3,5 +3,6 @@ export interface Circle {
     radius: number,
     color: string,
     opacity: number,
-    id?: number
+    id?: number,
+    outline?: string
 }

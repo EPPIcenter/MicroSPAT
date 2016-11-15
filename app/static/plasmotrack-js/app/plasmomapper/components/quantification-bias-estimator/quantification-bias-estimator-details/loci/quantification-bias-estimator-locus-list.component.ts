@@ -48,23 +48,25 @@ interface AnnotationFilter {
     template: `
         <pm-section-header [header]="header" [navItems]="navItems"></pm-section-header>
         <div class="row">
-            <div *ngIf="selectedProject" class="col-sm-1">
-                <pm-locus-parameter-list class="list-panel" [(locusParameters)]="locusParameters" (locusClicked)="selectLocus($event)"></pm-locus-parameter-list>
-            </div>
-            <div *ngIf="selectedLocusParameter" class="col-sm-4">
+            <div class="col-sm-4">
                 <div class="row">
                     <div class="panel panel-default">
                         <div (click)="locusParamsCollapsed = !locusParamsCollapsed" class="panel-heading">
-                            <div class="h3 panel-title">
+                            <div *ngIf="selectedLocusParameter" class="h3 panel-title">
                                 <span>{{selectedLocusParameter.locus_id | locus | async}}</span> 
                                 <span *ngIf="selectedLocusAnnotations"> | {{selectedLocusAnnotations.length}} Samples </span> 
                                 <span *ngIf="failureRate"> | Failure Rate: {{failureRate | number}}</span>
                                 <span *ngIf="locusParamsCollapsed" class="glyphicon glyphicon-menu-right pull-right"></span>
                                 <span *ngIf="!locusParamsCollapsed" class="glyphicon glyphicon-menu-down pull-right"></span>
                             </div>
+                             <div *ngIf="!selectedLocusParameter" class="h3 panel-title">
+                                <span>Select a Locus</span>
+                            </div>
                         </div>
                         <div *ngIf="!locusParamsCollapsed" class="panel-body">
-                            <form>
+                            <pm-locus-parameter-list class="list-panel" [(locusParameters)]="locusParameters" (locusClicked)="selectLocus($event)">
+                            </pm-locus-parameter-list>
+                            <form *ngIf="selectedLocusParameter">
                                 <pm-common-locus-parameter-detail [(locusParameter)]="selectedLocusParameter"></pm-common-locus-parameter-detail>
                                 <div class="row">
                                     <h4>Quantification Bias Estimator Settings</h4>
@@ -160,7 +162,7 @@ interface AnnotationFilter {
                     </div>
                 </div>
             </div>
-            <div class="col-sm-7">
+            <div class="col-sm-8">
                 <div *ngIf="loadingLocusAnnotations">
                     <pm-progress-bar [fullLabel]="'Loading Samples'"></pm-progress-bar>
                 </div>

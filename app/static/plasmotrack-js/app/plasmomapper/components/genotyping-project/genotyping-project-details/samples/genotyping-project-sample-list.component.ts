@@ -274,7 +274,8 @@ export class GenotypingProjectSampleList implements OnInit {
                     toastr.success("Succesfully Uploaded Sample List");
                 }, 
                 error => {
-                    this.uploadError = error
+                    this.uploadError = error;
+                    this.uploading = false;
                 },
                 () => {
                     this.uploading = false;

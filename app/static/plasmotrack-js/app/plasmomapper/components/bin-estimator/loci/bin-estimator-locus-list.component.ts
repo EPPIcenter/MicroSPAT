@@ -32,50 +32,49 @@ import { BinEstimatorProjectService } from '../../../services/bin-estimator-proj
     template: `
     <pm-section-header [header]="header" [navItems]="navItems"></pm-section-header>
     <div class="row">
-        <div *ngIf="selectedProject" class="col-sm-1">
-            <pm-locus-parameter-list class="list-panel" [(locusParameters)]="locusParameters" (locusClicked)="selectLocus($event)">
-            </pm-locus-parameter-list>
-        </div>
-        <div *ngIf="selectedLocusParameter" class="col-sm-4">
-            <div class="row">
-                <div class="panel panel-default">
-                    <div (click)="locusParamsCollapsed = !locusParamsCollapsed" class="panel-heading">
-                        <div class="h3 panel-title">
-                            <span>{{selectedLocusParameter.locus_id | locus | async}}</span>
-                            <span *ngIf="locusParamsCollapsed" class="glyphicon glyphicon-menu-right pull-right"></span>
-                            <span *ngIf="!locusParamsCollapsed" class="glyphicon glyphicon-menu-down pull-right"></span>
-                        </div>
+        <div class="col-sm-4">
+            <div class="panel panel-default">
+                <div (click)="locusParamsCollapsed = !locusParamsCollapsed" class="panel-heading">
+                    <div *ngIf="selectedLocusParameter" class="h3 panel-title">
+                        <span>{{selectedLocusParameter.locus_id | locus | async}}</span>
+                        <span *ngIf="locusParamsCollapsed" class="glyphicon glyphicon-menu-right pull-right"></span>
+                        <span *ngIf="!locusParamsCollapsed" class="glyphicon glyphicon-menu-down pull-right"></span>
                     </div>
-                    <div *ngIf="!locusParamsCollapsed" class="panel-body">
-                        <form>
-                            <pm-common-locus-parameter-detail [(locusParameter)]="selectedLocusParameter"></pm-common-locus-parameter-detail>
-                            <div class="row">
-                                <div class="col-sm-12">
-                                    <h4>Bin Estimator Settings</h4>
-                                    <div class="col-sm-6">
-                                        <div class="form-group">
-                                            <label>Min. Peak Frequency</label>
-                                            <input class="form-control input-sm" (change)="locusParamsChanged()" type="number" required step="1" min="1" [(ngModel)]="selectedLocusParameter.min_peak_frequency">
-                                        </div>
-                                        <div class="form-group">
-                                            <label>Default Bin Buffer</label>
-                                            <input class="form-control input-sm" (change)="locusParamsChanged()" type="number" required step="any" [(ngModel)]="selectedLocusParameter.default_bin_buffer">
-                                        </div>
+                    <div *ngIf="!selectedLocusParameter" class="h3 panel-title">
+                        <span>Select a Locus</span>
+                    </div>
+                </div>
+                <div *ngIf="!locusParamsCollapsed" class="panel-body">
+                    <pm-locus-parameter-list class="list-panel" [(locusParameters)]="locusParameters" (locusClicked)="selectLocus($event)">
+                    </pm-locus-parameter-list>
+                    <form *ngIf="selectedLocusParameter">
+                        <pm-common-locus-parameter-detail [(locusParameter)]="selectedLocusParameter"></pm-common-locus-parameter-detail>
+                        <div class="row">
+                            <div class="col-sm-12">
+                                <h4>Bin Estimator Settings</h4>
+                                <div class="col-sm-6">
+                                    <div class="form-group">
+                                        <label>Min. Peak Frequency</label>
+                                        <input class="form-control input-sm" (change)="locusParamsChanged()" type="number" required step="1" min="1" [(ngModel)]="selectedLocusParameter.min_peak_frequency">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Default Bin Buffer</label>
+                                        <input class="form-control input-sm" (change)="locusParamsChanged()" type="number" required step="any" [(ngModel)]="selectedLocusParameter.default_bin_buffer">
                                     </div>
                                 </div>
                             </div>
-                            <button type="submit" class="btn btn-default" (click)="saveLocusParams(selectedLocusParameter)" [ngClass]="{disabled: isSubmitting}">Save and Analyze</button>
-                        </form>
-                        <br>
-                        <div>
-                            <pm-progress-bar *ngIf="isSubmitting" [fullLabel]="'Saving and Analyzing Locus... This May Take A While'"></pm-progress-bar>
-                            <pm-progress-bar *ngIf="savingBins" [fullLabel]="'Saving Bins... This May Take A While'"></pm-progress-bar>
                         </div>
+                        <button type="submit" class="btn btn-default" (click)="saveLocusParams(selectedLocusParameter)" [ngClass]="{disabled: isSubmitting}">Save and Analyze</button>
+                    </form>
+                    <br>
+                    <div>
+                        <pm-progress-bar *ngIf="isSubmitting" [fullLabel]="'Saving and Analyzing Locus... This May Take A While'"></pm-progress-bar>
+                        <pm-progress-bar *ngIf="savingBins" [fullLabel]="'Saving Bins... This May Take A While'"></pm-progress-bar>
                     </div>
                 </div>
             </div>
         </div>
-        <div *ngIf="selectedLocusChannelAnnotations && selectedLocus" class="col-sm-7">
+        <div *ngIf="selectedLocusChannelAnnotations && selectedLocus" class="col-sm-8">
             <pm-d3-bin-estimator-locus-plot (binsSaved)="saveBins($event)" [(project)]="selectedProject" [(bins)]="selectedBins" [(locus)]="selectedLocus" [(annotations)]="selectedLocusChannelAnnotations"></pm-d3-bin-estimator-locus-plot>
         </div>
     </div>

@@ -33,17 +33,16 @@ import { D3ArtifactEstimatorPanel } from '../locus-artifact-estimator/d3-artifac
     template: `
     <pm-section-header [header]="header" [navItems]="navItems"></pm-section-header>
     <div class="row">
-        <div *ngIf="selectedProject" class="col-sm-1">
-            <pm-locus-parameter-list class="list-panel" [(locusParameters)]="locusParameters" (locusClicked)="selectLocus($event)">
-            </pm-locus-parameter-list>
-        </div>
-        <div *ngIf="selectedLocusParameter" class="col-sm-4">
+        <div  class="col-sm-4">
                 <div class="panel panel-default">
                     <div class="panel-heading">
-                        <h3 class="panel-title">{{selectedLocusParameter.locus_id | locus | async}} Parameters</h3>
+                        <h3 *ngIf="selectedLocusParameter" class="panel-title">{{selectedLocusParameter.locus_id | locus | async}} Parameters</h3>
+                        <h3 *ngIf="!selectedLocusParameter" class="panel-title">Select a Locus</h3>
                     </div>
                     <div class="panel-body">
-                        <form>
+                        <pm-locus-parameter-list [(locusParameters)]="locusParameters" (locusClicked)="selectLocus($event)">
+                        </pm-locus-parameter-list>
+                        <form *ngIf="selectedLocusParameter">
                             <pm-common-locus-parameter-detail [(locusParameter)]="selectedLocusParameter"></pm-common-locus-parameter-detail>
                             <div class="row">
                                 <div class="col-sm-12">
@@ -69,11 +68,11 @@ import { D3ArtifactEstimatorPanel } from '../locus-artifact-estimator/d3-artifac
                     </div>
                 </div>
         </div>
-        <div *ngIf="selectedLocus && artifactEstimators.length > 0" class="col-sm-7">
+        <div *ngIf="selectedLocus && artifactEstimators.length > 0" class="col-sm-8">
             <div class="row">
                 <div class="panel panel-default">
                     <div class="panel-heading">
-                        <h3 class="panel-title">Artifact Estimator</h3>
+                        <h3 class="panel-title">{{selectedLocusParameter.locus_id | locus | async}} Artifact Estimator</h3>
                     </div>
                     <div class="panel-body">
                         <div *ngIf="selectedArtifactEstimator" style="height: 35vh">

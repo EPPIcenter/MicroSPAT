@@ -30,7 +30,7 @@ def create_app(config_name):
 
     from app.microspat.events import microspat
     app.register_blueprint(microspat)
-    app.logger.debug("PlasmoMapper Initialized")
+    app.logger.debug("MicroSPAT Initialized")
 
     db.create_all()
 

@@ -244,8 +244,8 @@ def load_plate_map(plate_map_file, plate, create_samples_if_not_exist=False):
                 channel.add_locus(locus.id)
                 channel.add_sample(sample.id)
                 for project_id in projects:
-                    if not db.session.query(exists().where(ProjectChannelAnnotations.project_id == 2).where(
-                                    ProjectChannelAnnotations.channel_id == 137)).scalar():
+                    if not db.session.query(exists().where(ProjectChannelAnnotations.project_id == project_id).where(
+                                    ProjectChannelAnnotations.channel_id == channel.id)).scalar():
                         new_channels[project_id].append(channel.id)
 
                     if not (project_id, locus.id,) in stale_tracker:
@@ -441,7 +441,7 @@ def get_peak_data(id):
     try:
         gp_title = GenotypingProject.query.filter(GenotypingProject.id == id).value(GenotypingProject.title)
         results = []
-        header = ["Sample", "Locus", "Peak Height", "Relative Peak Height", "Peak Size", "Peak Area", "Left Tail",
+        header = ["Sample", "Locus", "Peak Height", "Relative Peak Height", "Corrected Proportion", "Peak Size", "Peak Area", "Left Tail",
                   "Right Tail", "Artifact Contribution", "Artifact Error", "In Bin", "Called Allele", "Allele Label",
                   "Bleedthrough Ratio", "Crosstalk Ratio", "Probability", "Well", "Artifact Flag",
                   "Below Relative Threshold Flag", "Bleedthrough Flag", "Crosstalk Flag"]
@@ -459,12 +459,13 @@ def get_peak_data(id):
                 res["Sample"] = sample_ids[la[1]]
                 res["Locus"] = la[2]
                 res["Peak Height"] = peak['peak_height']
+                res["Corrected Proportion"] = peak.get('corrected_relative_quantification', 'NA')
                 res["Peak Size"] = peak['peak_size']
                 res["Peak Area"] = peak['peak_area']
                 res["Left Tail"] = peak['left_tail']
                 res["Right Tail"] = peak['right_tail']
-                res["Artifact Contribution"] = peak['artifact_contribution']
-                res["Artifact Error"] = peak['artifact_error']
+                res["Artifact Contribution"] = peak.get('artifact_contribution', 'NA')
+                res["Artifact Error"] = peak.get('artifact_error', 'NA')
                 res["Artifact Flag"] = peak['flags']['artifact']
                 res["Below Relative Threshold Flag"] = peak['flags']['below_relative_threshold']
                 res["Crosstalk Flag"] = peak['flags']['crosstalk']
@@ -546,7 +547,10 @@ def genotyping_project_add_samples(id):
             return handle_error("File header not valid")
 
         for sample_entry in r:
-            sample_ids.add(Sample.query.filter(Sample.barcode == sample_entry['barcode']).value(Sample.id))
+            sample_id = Sample.query.filter(Sample.barcode == sample_entry['barcode']).value(Sample.id)
+            if not sample_id:
+                return handle_error("{} Does not yet exist.".format(sample_entry))
+            sample_ids.add(sample_id)
 
     gp.add_samples(list(sample_ids))
     return jsonify(wrap_data(gp.serialize_details()))
@@ -832,6 +836,7 @@ def batch_update_locus_parameters():
             for p in locus_parameters:
                 send_notification('info', 'Beginning Analysis: {}'.format(p.locus.label))
                 project.analyze_locus(p.locus_id)
+
                 send_notification('success', 'Completed Analysis: {}'.format(p.locus.label))
             return jsonify(wrap_data({'Status': 'Success'}))
         except SQLAlchemyError as e:
@@ -846,6 +851,7 @@ def get_or_update_locus_parameters(id):
         'artifact_estimator_locus_params': update_artifact_locus_params,
         'genotyping_locus_params': update_genotyping_locus_params,
         'bin_estimator_locus_params': update_bin_estimator_locus_params,
+        'quantification_bias_locus_params': update_quantification_bias_estimator_locus_params,
         'base_locus_params': update_locus_params
     }
     if request.method == 'GET':
@@ -1058,19 +1064,19 @@ def save_plate():
                 filename = str(i)
                 f.save(os.path.join('./tmp', filename))
                 files.append(os.path.join('./tmp', filename))
-                # plate_ids = []
-                # for plate_zip in plate_zips:
-                # p = Plate.from_zip(plate_zip, ladder_id, add_to_db=False)
-                # plate_ids.append(p_id)
-            # db.session.expire_all()
             ladder = Ladder.query.get(ladder_id)
-            plate_zips = map(open, files)
+            plate_zips = [open(_, 'rb') for _ in files]
             print plate_zips
             try:
-                extracted_plates = load_plate_zips(plate_zips, ladder)
+                if os.name == 'nt':  # Currently no support for multiprocessing in windows at this time.
+                    extracted_plates = load_plate_zips(plate_zips, ladder, parallel=False)
+                else:
+                    extracted_plates = load_plate_zips(plate_zips, ladder)
             except Exception as e:
-                map(lambda x: x.close, plate_zips)
                 raise e
+            finally:
+                for z in plate_zips:
+                    z.close()
             plates = []
             for extracted_plate in extracted_plates:
                 if Plate.query.filter(Plate.plate_hash == extracted_plate.plate_hash).count():
@@ -1097,11 +1103,10 @@ def save_plate():
                         db.session.add(c)
                 plates.append(p)
             db.session.flush()
+            map(lambda x: os.remove(os.path.join('./tmp', x)), os.listdir('./tmp'))
             return jsonify(wrap_data([Plate.query.get(plate.id).serialize() for plate in plates]))
         except Exception as e:
             return handle_error(e)
-        finally:
-            map(lambda x: os.remove(os.path.join('./tmp', x)), os.listdir('./tmp'))
     else:
         res = jsonify(error="Nothing Uploaded")
         res.status_code = 404
@@ -1145,8 +1150,6 @@ def get_plate_or_post_plate_map(id):
         return table_get_details(Plate, id)
     elif request.method == 'POST':
         plate_map_list = request.files.getlist('files')
-        print request.form
-        print request.form['create_samples_if_not_exist'] == 'true'
         if plate_map_list:
             try:
                 plate_map = plate_map_list[0]

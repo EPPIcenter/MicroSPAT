@@ -31,15 +31,15 @@ def calculate_beta(peak_sets, regressor='lsr'):
         peak_one = peak_set[0]
         peak_two = peak_set[1]
 
-        y_i1 = np.log((peak_one['peak_height'] - peak_one.get('artifact_contribution', 0)) / float(peak_two['peak_height'] - peak_two.get('artifact_contribution', 0))) - np.log(
+        y_i1 = np.log((max(1, peak_one['peak_height'] - peak_one.get('artifact_contribution', 0))) / float(max(1, peak_two['peak_height'] - peak_two.get('artifact_contribution', 0)))) - np.log(
             peak_one['true_proportion'] / float(peak_two['true_proportion']))
 
-        y_i2 = np.log((peak_two['peak_height'] - peak_two.get('artifact_contribution', 0)) / float(
-            peak_one['peak_height'] - peak_one.get('artifact_contribution', 0))) - np.log(
+        y_i2 = np.log((max(1, peak_two['peak_height'] - peak_two.get('artifact_contribution', 0))) / float(
+            max(1, peak_one['peak_height'] - peak_one.get('artifact_contribution', 0)))) - np.log(
             peak_two['true_proportion'] / float(peak_one['true_proportion']))
 
-        x_i1 = peak_one['peak_size'] - peak_two['peak_size']
-        x_i2 = peak_two['peak_size'] - peak_one['peak_size']
+        x_i2 = peak_one['peak_size'] - peak_two['peak_size']
+        x_i1 = peak_two['peak_size'] - peak_one['peak_size']
 
         y.append(y_i1)
         X.append(x_i1)
@@ -84,19 +84,32 @@ def correct_peak_proportion(beta, peak_set):
     }
     """
 
-    total_peak_height = sum([_['peak_height'] - _.get('artifact_contribution', 0) for _ in peak_set])
+    total_peak_height = sum([max(1, _['peak_height'] - _.get('artifact_contribution', 0)) for _ in peak_set])
+
+    pivot_point = np.mean(list(set([_['peak_size'] for _ in peak_set])))
+
+    if beta:
+        corrected_total_peak_height = sum(
+            map(lambda _: max(1, (_['peak_height'] - _.get('artifact_contribution', 0))) * np.e ** (
+                beta * (_['peak_size'] - pivot_point)), peak_set)
+        )
+    else:
+        corrected_total_peak_height = total_peak_height
+
+    print peak_set
+
+    print "Corrected Total: {}".format(corrected_total_peak_height)
 
     for peak in peak_set:
-        peak_height = peak['peak_height'] - peak.get('artifact_contribution', 0)
+        peak_height = max(1, peak['peak_height'] - peak.get('artifact_contribution', 0))
 
         if beta:
-            corrected_total_peak_height = sum(
-                map(lambda _: (_['peak_height'] - peak.get('artifact_contribution', 0)) * np.e ** (
-                    beta * (peak['peak_size'] - _['peak_size'])), peak_set)
-            )
+            corrected_peak_height = peak_height * np.e ** (beta * (peak['peak_size'] - pivot_point))
+            print "Corrected Peak Height: {}".format(corrected_peak_height)
         else:
-            corrected_total_peak_height = total_peak_height
+            corrected_peak_height = peak_height
+
         peak['relative_quantification'] = peak_height / float(total_peak_height)
-        peak['corrected_relative_quantification'] = peak_height / float(corrected_total_peak_height)
+        peak['corrected_relative_quantification'] = corrected_peak_height / float(corrected_total_peak_height)
 
     return peak_set

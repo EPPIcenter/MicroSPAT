@@ -7,10 +7,12 @@ import { ProgressBarComponent } from '../layout/progress-bar.component';
 import { QuantificationBiasEstimatorProjectService } from '../../services/quantification-bias-estimator-project/quantification-bias-estimator-project.service'
 import { LocusSetService } from '../../services/locus-set/locus-set.service';
 import { BinEstimatorProjectService } from '../../services/bin-estimator-project/bin-estimator-project.service';
+import { ArtifactEstimatorProjectService } from '../../services/artifact-estimator-project/artifact-estimator-project.service';
 
 import { QuantificationBiasEstimatorProject } from '../../services/quantification-bias-estimator-project/quantification-bias-estimator-project.model'
 import { LocusSet } from '../../services/locus-set/locus-set.model';
 import { BinEstimatorProject } from '../../services/bin-estimator-project/bin-estimator-project.model';
+import { ArtifactEstimatorProject } from '../../services/artifact-estimator-project/artifact-estimator-project.model';
 
 @Component({
     selector: 'quantification-bias-estimator-project-list',
@@ -80,6 +82,13 @@ import { BinEstimatorProject } from '../../services/bin-estimator-project/bin-es
                                 <option *ngFor="let binEstimator of validBinEstimators" value={{binEstimator.id}}>{{binEstimator.title}}</option>
                             </select>
                         </div>
+                        <div class="form-group">
+                            <label>Artifact Estimator (Optional)</label>
+                            <select [(ngModel)]="newProject.artifact_estimator_id" class="form-control" [disabled]="artifactEstimatorsDisabled">
+                                <option value={{null}}>None</option>
+                                <option *ngFor="let artifactEstimator of validArtifactEstimators" value={{artifactEstimator.id}}>{{artifactEstimator.title}}</option>
+                            </select>
+                        </div>
                         <button class="btn btn-default" [ngClass]="{disabled: isSubmitting}" (click)="submitNewProject()">Save</button>
                     </form>
                 </div>
@@ -95,18 +104,23 @@ export class QuantificationBiasEstimatorProjectListComponent implements OnInit {
     private locusSets: LocusSet[] = [];
     private binEstimators: BinEstimatorProject[] = [];
     private validBinEstimators: BinEstimatorProject[] = [];
+    private artifactEstimators: ArtifactEstimatorProject[] = [];
+    private validArtifactEstimators: ArtifactEstimatorProject[] = [];
     private binEstimatorsDisabled = true;
+    private artifactEstimatorsDisabled = true;
     private sortingParam = 'last_updated';
     private reversed = false;
     private isSubmitting = false;
 
     private loadingProjects = false;
     private loadingBinEstimators = false;
+    private loadingArtifactEstimators = false;
 
     constructor(
         private _qbeProjectService: QuantificationBiasEstimatorProjectService,
         private _locusSetService: LocusSetService,
         private _binEstimatorService: BinEstimatorProjectService,
+        private _artifactEstimatorService: ArtifactEstimatorProjectService,
         private _router: Router
     ) {
         this.newProject = new QuantificationBiasEstimatorProject();
@@ -124,6 +138,14 @@ export class QuantificationBiasEstimatorProjectListComponent implements OnInit {
             err => toastr.error(err),
             () => this.loadingBinEstimators = false
         );
+
+        this._artifactEstimatorService.getArtifactEstimatorProjects().subscribe(
+            art_estimators => {
+                this.artifactEstimators = art_estimators;
+            },
+            err => toastr.error(err),
+            () => this.loadingArtifactEstimators = false
+        )
 
         this.loadingProjects = true;
         this._qbeProjectService.getProjects().subscribe(
@@ -174,6 +196,7 @@ export class QuantificationBiasEstimatorProjectListComponent implements OnInit {
     locusSetChange(e) {
         let locus_set_id = +e.target.value;
         this.binEstimatorsDisabled = true;
+        this.artifactEstimatorsDisabled = true;
         this.validBinEstimators = [];
         
         this.binEstimators.forEach((binEstimator) => {
@@ -185,13 +208,31 @@ export class QuantificationBiasEstimatorProjectListComponent implements OnInit {
                     }
                 })
                 if(all_clean) {
-                    this.validBinEstimators.push(binEstimator)
+                    this.validBinEstimators.push(binEstimator);
                 }
             }
         });
+
+        this.artifactEstimators.forEach(artifactEstimator => {
+            if(artifactEstimator.locus_set_id == locus_set_id) {
+                let all_clean = true;
+                artifactEstimator.locus_parameters.forEach(lp => {
+                    if(lp.filter_parameters_stale || lp.scanning_parameters_stale) {
+                        all_clean = false;
+                    }
+                })
+                if(all_clean) {
+                    this.validArtifactEstimators.push(artifactEstimator);
+                }
+            }
+        })
         
         if(this.validBinEstimators.length > 0) {
             this.binEstimatorsDisabled = false;
+        }
+
+        if(this.validArtifactEstimators.length > 0) {
+            this.artifactEstimatorsDisabled = false;
         }
     }
 

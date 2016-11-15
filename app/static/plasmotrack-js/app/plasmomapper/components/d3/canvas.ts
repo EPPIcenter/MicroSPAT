@@ -113,7 +113,11 @@ export class D3Canvas{
             .attr("width", (d) => this.x(d.center + d.half_width) - this.x(d.center - d.half_width))
             .attr("opacity", (d) => d.opacity)
             .attr("fill", (d) => d.color)
-            .on('click', (d) => clickHandler(d));
+            .on('click', (d) => {
+                if(clickHandler) {
+                    clickHandler(d);
+                }
+            });
     }
     
     addCircles(circles: Circle[], mouseOverHandler?: (id: number) => void) {
@@ -128,6 +132,7 @@ export class D3Canvas{
             .attr("cx", (d) => this.x(d.center[0]))
             .attr("cy", (d) => this.y(d.center[1]))
             .style("fill", (d) => d.color)
+            .style("stroke", (d) => d.outline)
             .attr("opacity", (d) => d.opacity)
             .on("mouseover", (d) => mouseOverHandler(d.id))
     }
