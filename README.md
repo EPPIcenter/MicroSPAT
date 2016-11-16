@@ -7,7 +7,23 @@ MicroSPAT is a collection of tools for semi-automated analysis of raw capillary 
 Under Very Heavy Development -- Features will change, things WILL break
 
 ## Installation
+<<<<<<< HEAD
+Download the latest build zip, unzip, and navigate to the folder.  Using either pip or conda, install the required packages either through requirements.txt or using the conda environment manager and the environment.yml file.
+
+```
+pip install -r requirements.txt
+```
+
+### conda
+```
+conda env create -f environment.yml
+source activate microspat
+```
+
+If you plan to install through pip, I highly suggest using an environment manager, but this is beyond the scope of this tutorial. Once all packages are installed, execute the following
+=======
 Download the latest build zip, unzip, and navigate to the folder.  Using either pip or conda, install the required packages either through requirements.txt or using the conda environment manager and the environment.yml file.  If you plan to install through pip, I highly suggest using an environment manager, but this is beyond the scope of this tutorial. Once all packages are installed, execute the following
+>>>>>>> master
 
 ```
 python manage.py initDB
