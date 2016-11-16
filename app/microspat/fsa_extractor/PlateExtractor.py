@@ -209,7 +209,6 @@ class PlateExtractor(object):
                           filter_parameters, scanning_parameters, creator=None, comments=None):
 
         pool = multiprocessing.Pool()
-        print "MultiProcessing Plate Loading with {} Processes".format(pool._processes)
         fn = partial(cls.from_zip_and_calculate_base_sizes, ladder=ladder, color=color,
                      base_size_precision=base_size_precision,
                      sq_limit=sq_limit,

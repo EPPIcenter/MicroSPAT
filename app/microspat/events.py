@@ -87,9 +87,6 @@ def update_peak_scanner(target, update_dict):
     :type update_dict: dict
     :type target: PeakScanner
     """
-    print update_dict
-    print type(update_dict)
-    print update_dict['scanning_method']
     if update_dict['scanning_method'] == 'relmax':
         target.scanning_method = 'relmax'
         target.argrelmax_window = update_dict['argrelmax_window']
@@ -258,7 +255,6 @@ def load_plate_map(plate_map_file, plate, create_samples_if_not_exist=False):
     plate.check_contamination()
     for project_id in new_channels.keys():
         project = Project.query.get(project_id)
-        print "Adding New Channels"
         project.add_channels(new_channels[project_id])
     db.session.commit()
     plate = Plate.query.get(plate.id)
@@ -298,7 +294,6 @@ def test_message(message=None):
 
 @socketio.on('client_test')
 def client_test(message=None):
-    print message
     emit('server_test', 'Success')
 
 
@@ -322,7 +317,6 @@ def get_or_post_genotyping_projects():
         return table_list_all(GenotypingProject)
     elif request.method == 'POST':
         project_params = json.loads(request.get_json())
-        print project_params
         try:
             project = GenotypingProject(**project_params)
             db.session.add(project)
@@ -473,7 +467,6 @@ def get_peak_data(id):
                 res["In Bin"] = bool(peak['bin_id'])
                 res["Relative Peak Height"] = peak['relative_peak_height']
                 if res["In Bin"]:
-                    print peak['bin_id']
                     res["Called Allele"] = str(peak['bin_id']) in bin_ids
                     res["Allele Label"] = str(peak['bin'])
                 res["Bleedthrough Ratio"] = peak['bleedthrough_ratio']
@@ -562,7 +555,6 @@ def get_or_post_bias_estimator_projects():
         return table_list_all(QuantificationBiasEstimatorProject)
     elif request.method == 'POST':
         project_params = json.loads(request.get_json())
-        print project_params
         try:
             project = QuantificationBiasEstimatorProject(**project_params)
             db.session.add(project)
@@ -715,7 +707,6 @@ def get_or_create_bin_estimators():
     elif request.method == 'POST':
         project_params = json.loads(request.get_json())
         try:
-            print "Adding a new project"
             project = BinEstimatorProject(**project_params)
             db.session.add(project)
             db.session.flush()
@@ -777,7 +768,6 @@ def create_or_update_bins(id, locus_id):
     # Remove deleted bins
     old_bin_ids = [_['id'] for _ in old_bins]
     for b in locus_bin_set.bins:
-        print b.id
         if b.id not in old_bin_ids:
             db.session.delete(b)
 
@@ -823,7 +813,6 @@ def batch_update_locus_parameters():
     proj_id = locus_params_update_dict['project_id']
     project = Project.query.get(proj_id)
     locus_parameters = ProjectLocusParams.query.filter(ProjectLocusParams.project_id == proj_id).all()
-    print project, locus_parameters
     if locus_parameters:
         try:
             updater = update_fns.get(locus_parameters[0].discriminator, update_locus_params)
@@ -858,7 +847,6 @@ def get_or_update_locus_parameters(id):
         return table_get_details(ProjectLocusParams, id)
     elif request.method == 'PUT':
         locus_params_update_dict = json.loads(request.get_json())
-        print type(locus_params_update_dict)
         locus_params = ProjectLocusParams.query.get(id)
         assert isinstance(locus_params, ProjectLocusParams)
         project = Project.query.get(locus_params.project_id)
@@ -868,7 +856,6 @@ def get_or_update_locus_parameters(id):
                 try:
                     locus_params = updater(locus_params, locus_params_update_dict)
                 except StaleParametersError as e:
-                    print "STALE PARAMETER ERROR"
                     return handle_error("{} is stale at locus {}, analyze that first!".format(e.project, e.locus))
                 db.session.flush()
                 send_notification('info', 'Beginning Analysis: {}'.format(locus_params.locus.label))
@@ -938,8 +925,6 @@ def get_or_post_locus_sets():
         return table_list_all(LocusSet)
     elif request.method == 'POST':
         request_json = request.get_json()
-        print request_json
-        print type(request_json)
         locus_set_params = json.loads(request_json['locus_set'])
         locus_ids = request_json['locus_ids']
         try:
@@ -979,7 +964,6 @@ def get_or_post_ladders():
     elif request.method == 'POST':
         ladder_params = json.loads(request.get_json())
         try:
-            print ladder_params
             if ladder_params.get('id', None):
                 l = Ladder.query.get(ladder_params['id'])
             else:
@@ -1066,7 +1050,6 @@ def save_plate():
                 files.append(os.path.join('./tmp', filename))
             ladder = Ladder.query.get(ladder_id)
             plate_zips = [open(_, 'rb') for _ in files]
-            print plate_zips
             try:
                 if os.name == 'nt':  # Currently no support for multiprocessing in windows at this time.
                     extracted_plates = load_plate_zips(plate_zips, ladder, parallel=False)
@@ -1243,7 +1226,6 @@ def get_project_sample_locus_annotations_by_sample(project_id, sample_id):
 def update_locus_annotations():
     annotations = map(json.loads, request.get_json())
     for annotation in annotations:
-        print annotation
         sample_annotation = SampleLocusAnnotation.query.get(annotation['id'])
         assert isinstance(sample_annotation, SampleLocusAnnotation)
         sample_annotation.alleles = annotation['alleles']
@@ -1259,7 +1241,6 @@ def get_controls():
     elif request.method == 'POST':
         try:
             ctrl_info = json.loads(request.get_json())
-            print ctrl_info
             ctrl = Control(barcode=ctrl_info['barcode'], bin_estimator_id=ctrl_info['bin_estimator_id'])
             for k in ctrl_info['alleles'].keys():
                 if ctrl_info['alleles'][k] == 'null':
@@ -1284,8 +1265,6 @@ def get_control(id):
             for k in update_control['alleles'].keys():
                 if update_control['alleles'][k] == 'null':
                     update_control['alleles'][k] = None
-            print ctrl
-            print update_control
             ctrl.bin_estimator_id = update_control['bin_estimator_id']
             db.session.flush()
             ctrl.initialize_alleles()
@@ -1296,7 +1275,6 @@ def get_control(id):
             handle_error(e)
     elif request.method == 'DELETE':
         ctrl = Control.query.get(id)
-        print ctrl
         db.session.delete(ctrl)
         db.session.flush()
         return jsonify(wrap_data({'status': 'Success'}))

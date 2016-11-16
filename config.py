@@ -29,11 +29,24 @@ class Config:
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URL') or \
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    if os.name == 'nt':
+        SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URL') or \
+                                  'sqlite:///' + os.path.join(basedir, 'win-data-dev.sqlite')
+        CELERY_RESULT_BACKEND = os.environ.get('DEV_RESULT_BACKEND_URL') or \
+                                'db+sqlite:///' + os.path.join(basedir, 'win-result-backend-dev.sqlite')
+
+    else:
+        SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URL') or \
                               'sqlite:///' + os.path.join(basedir, 'data-dev.sqlite')
 
-    CELERY_RESULT_BACKEND = os.environ.get('DEV_RESULT_BACKEND_URL') or \
+        CELERY_RESULT_BACKEND = os.environ.get('DEV_RESULT_BACKEND_URL') or \
                             'db+sqlite:///' + os.path.join(basedir, 'result-backend-dev.sqlite')
+
+    # SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'data-dev.sqlite')
+    # CELERY_RESULT_BACKEND = 'db+sqlite:///' + os.path.join(basedir, 'result-backend-dev.sqlite')
+
     SQLALCHEMY_ECHO = False
     LOGGING_LEVEL = logging.DEBUG
 

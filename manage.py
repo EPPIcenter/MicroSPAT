@@ -10,7 +10,7 @@ if os.path.exists('.env'):
             os.environ[var[0]] = var[1]
 
 from app import socketio, create_app, db, microspat
-import webbrowser
+
 from flask_script import Manager, Shell
 from flask_migrate import Migrate, MigrateCommand
 
@@ -51,6 +51,18 @@ def runsockets(addr='localhost:5000'):
     # webbrowser.open("http://localhost:{}/".format(port))
     socketio.run(app, host=host, port=port)
 
+
+@manager.command
+def vacuum():
+    if db.engine.url.drivername == 'sqlite':
+
+        print "Beginning Vacuum of Database."
+        db.engine.execute("VACUUM")
+        print "Vacuum Completed."
+    else:
+        print "Database does not support VACUUM command."
+
+
 @manager.command
 def initDB():
     db.create_all()
@@ -59,8 +71,26 @@ def initDB():
                                                  360, 380, 400],
                                      color='red')
     db.session.add(ladder)
-    db.session.commit()
 
+    base_path = './fixtures'
+    d = "LocusSets"
+    for locus_set in os.listdir(os.path.join(base_path, d)):
+        if not locus_set[0] == '.' and locus_set :
+            with open(os.path.join(base_path, d, locus_set)) as f:
+                loci = microspat.utils.load_loci_from_csv(f)
+                map(db.session.add, loci)
+                ls = microspat.models.LocusSet(label=os.path.splitext(locus_set)[0])
+                db.session.add(ls)
+                ls.loci = loci
+
+    d = "Samples"
+    for sample_set in os.listdir(os.path.join(base_path, d)):
+        if not sample_set[0] == '.':
+            with open(os.path.join(base_path, d, sample_set)) as f:
+                samples = microspat.utils.load_samples_from_csv(f)
+                map(db.session.add, samples)
+
+    db.session.commit()
 
 
 if __name__ == '__main__':

@@ -6,8 +6,7 @@ from itertools import groupby
 from ..custom_sql_types.custom_types import JSONEncodedData, MutableDict, MutableList, CompressedJSONEncodedData
 
 from app import db, socketio
-from app.microspat.statistics import calculate_moi
-from app.microspat.statistics.utils import calculate_prob_negative, calculate_prob_pos_if_observed
+from app.microspat.statistics import calculate_moi, calculate_prob_negative, calculate_prob_pos_if_observed
 from quantification_bias.BiasCalculator import correct_peak_proportion, calculate_beta
 from fsa_extractor.PlateExtractor import PlateExtractor, WellExtractor, ChannelExtractor
 from statistics import calculate_allele_frequencies, calculate_peak_probability
@@ -659,10 +658,7 @@ class SampleBasedProject(Project, BinEstimating):
 
     def add_samples(self, sample_ids):
         present_sample_ids = set([_.id for _ in self.associated_samples])
-        print present_sample_ids
-        print set(sample_ids)
         full_sample_ids = list(set(sample_ids) - present_sample_ids)
-        print full_sample_ids
         n = 0
         while n * 100 < len(full_sample_ids) + 100:
             sample_ids = full_sample_ids[n * 100: (n + 1) * 100]
@@ -1327,7 +1323,7 @@ class LocusArtifactEstimator(AE.ArtifactEstimatorSet, db.Model):
             artifact_estimator = ArtifactEstimator(artifact_distance=estimator.artifact_distance,
                                                    artifact_distance_buffer=estimator.artifact_distance_buffer,
                                                    peak_data=estimator.peak_data, label=estimator.label)
-            print artifact_estimator.label
+
             for eqn in estimator.artifact_equations:
                 eventlet.sleep()
                 assert isinstance(eqn, AE.ArtifactEquation)
@@ -1679,8 +1675,6 @@ class QuantificationBiasEstimatorProject(SampleBasedProject, ArtifactEstimating)
         return res
 
     def serialize_details(self):
-        print "Serializing QBE"
-        print self.locus_parameters.all()
         res = super(QuantificationBiasEstimatorProject, self).serialize_details()
         res.update({
             'locus_parameters': {_.locus_id: _.serialize() for _ in self.locus_parameters.all()},
@@ -1939,7 +1933,6 @@ class GenotypingProject(SampleBasedProject, ArtifactEstimating, QuantificationBi
         while alleles_changed:
 
             cycles += 1
-            print cycles
             alleles_changed = False
             allele_frequency_locus_annotations = format_locus_annotations(all_locus_annotations, peak_filters)
             allele_frequencies = calculate_allele_frequencies(allele_frequency_locus_annotations)
@@ -2055,7 +2048,6 @@ class GenotypingProject(SampleBasedProject, ArtifactEstimating, QuantificationBi
             sample_annotation.moi = moi_dict[sample_annotation.id]
             locus_annotations = locus_annotation_dict[sample_annotation.id]
 
-            verbose = False
 
             for locus_annotation in locus_annotations:
                 for peak in locus_annotation.annotated_peaks:
@@ -2064,10 +2056,8 @@ class GenotypingProject(SampleBasedProject, ArtifactEstimating, QuantificationBi
                     locus_annotation.annotated_peaks = calculate_prob_negative(locus_annotation.annotated_peaks,
                                                                                sample_annotation.moi,
                                                                                allele_frequencies[
-                                                                                   locus_annotation.locus.label],
-                                                                               verbose)
-                    locus_annotation.annotated_peaks = calculate_prob_pos_if_observed(locus_annotation.annotated_peaks,
-                                                                                      verbose)
+                                                                                   locus_annotation.locus.label])
+                    locus_annotation.annotated_peaks = calculate_prob_pos_if_observed(locus_annotation.annotated_peaks)
                     self.recalculate_alleles(locus_annotation)
         return self
 
@@ -2425,7 +2415,6 @@ class QuantificationBiasLocusParams(ProjectLocusParams):
             'min_bias_quantifier_peak_proportion': self.min_bias_quantifier_peak_proportion,
             'quantification_bias_paramters_stale': self.quantification_bias_parameters_stale
         })
-        print res
         return res
 
 
@@ -2504,7 +2493,6 @@ class ProjectSampleAnnotations(TimeStamped, db.Model):
     def serialize(self):
         if self.sample_id and not self.sample:
             self.sample = Sample.query.get(self.sample_id)
-        print self.sample_id
         res = {
             'id': self.id,
             'sample': self.sample.serialize(),

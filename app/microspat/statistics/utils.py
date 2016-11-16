@@ -125,7 +125,7 @@ def calculate_peak_probability(peak_set, num_possible, locus_allele_frequencies=
     return recalculated_probabilities
 
 
-def calculate_prob_pos_if_observed(peak_set, verbose=False):
+def calculate_prob_pos_if_observed(peak_set):
     for peak in peak_set:
         prob_neg = peak['prob_negative']
         prob_observed_if_neg = st.norm.sf((peak['peak_height'] - peak['artifact_contribution']) / float(max(peak['artifact_error'], 1e-6)))
@@ -133,13 +133,10 @@ def calculate_prob_pos_if_observed(peak_set, verbose=False):
         prob_neg_if_observed = (prob_observed_if_neg * prob_neg) / float(max(((prob_observed_if_neg * prob_neg) + 1 - prob_neg), 1e-6))
 
         peak['probability'] = max(1 - prob_neg_if_observed, 0)
-        if verbose:
-            print "Peak Height: {}   Artifact: {}   Error: {}".format(peak['peak_height'], peak['artifact_contribution'], peak['artifact_error'])
-            print "Prob neg: {}  Prob Observed if Neg: {}  Prob Neg if Observed: {}".format(prob_neg, prob_observed_if_neg, prob_neg_if_observed)
     return peak_set
 
 
-def calculate_prob_negative(peak_set, moi, allele_frequencies, verbose=False):
+def calculate_prob_negative(peak_set, moi, allele_frequencies):
 
     prob_all_perms = sum([_['probability'] * allele_frequencies.get(str(_['bin_id']), 0) for _ in peak_set]) ** moi
     if prob_all_perms < 1e-6:

@@ -96,16 +96,11 @@ def correct_peak_proportion(beta, peak_set):
     else:
         corrected_total_peak_height = total_peak_height
 
-    print peak_set
-
-    print "Corrected Total: {}".format(corrected_total_peak_height)
-
     for peak in peak_set:
         peak_height = max(1, peak['peak_height'] - peak.get('artifact_contribution', 0))
 
         if beta:
             corrected_peak_height = peak_height * np.e ** (beta * (peak['peak_size'] - pivot_point))
-            print "Corrected Peak Height: {}".format(corrected_peak_height)
         else:
             corrected_peak_height = peak_height
 
