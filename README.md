@@ -102,7 +102,7 @@ Navigate to the **Locus** tab on the left side. Populate the relevant informatio
 |**Color**| Color of dye that locus will be labeled with. Must be one of (Red, Green, Yellow, Blue, Orange)|
 
 ### Load From CSV
-You may load several loci all at once by uploading a csv file with a header containing [Label, Min. Base Length, Max. Base Length, Nucleotide Repeat Length, Color] and where each row is a new locus entry. A demo file is located at demo_files/load_loci.csv
+You may load several loci all at once by uploading a csv file with a header containing [Label, Min. Base Length, Max. Base Length, Nucleotide Repeat Length, Color] and where each row is a new locus entry. A demo file is located at `demo_files/load_loci.csv`
 
 ## Creating Locus Set
 All analysis in MicroSPAT revolves around **Locus Sets**.  A locus set is a predetermined set of loci that you wish to analyze together.  Every project is assigned a locus set and is used to determine the relevant run data for that project.  This allows for analysis of different sets of loci in different contexts.
@@ -121,7 +121,7 @@ After a plate has been uploaded, a **Plate Map** may be used to assign each chan
 | A01| P1-Sample1 | P1-Sample1 | P1-Sample1 |
 | ... | ... | ... | ... |
 
-A demo file showing how a plate where different markers are used in different wells can be found at demo_files/96_well_plate_map.csv. In order to upload a **Plate Map**, select a plate, and in the right pane press "Choose File" to select the Plate Map CSV. If you are adding new samples, select "Create Samples If They Don't Exist" to add new samples to the database. **Note**: Any new samples containing 'NTC' will be negative controls and will be used for contamination flagging of the plate and in other downstream analysis. Once uploaded, MicroSPAT will analyze each assigned channel and do a rudimentary quality check.
+A demo file showing how a plate where different markers are used in different wells can be found at `demo_files/96_well_plate_map.csv`. In order to upload a **Plate Map**, select a plate, and in the right pane press "Choose File" to select the Plate Map CSV. If you are adding new samples, select "Create Samples If They Don't Exist" to add new samples to the database. **Note**: Any new samples containing 'NTC' will be negative controls and will be used for contamination flagging of the plate and in other downstream analysis. Once uploaded, MicroSPAT will analyze each assigned channel and do a rudimentary quality check.
 
 ### Quality Checking
 After a plate is selected from the list of uploaded plates, the pane to the right will populate with the plate status, indicating any wells where the ladder failed colored as red (failure defined as the sizing quality falls below the ladder **SQ Flagging Limit**).  These may be manually checked and have their ladder peaks called by hand.  If there is a systemic issue with ladder peak calling that is better resolved globally, the ladder settings may be changed under the **Ladder** tab to the left, and the "Recalculate Ladder" button may be pressed to recalculate the ladder across the entire plate.
