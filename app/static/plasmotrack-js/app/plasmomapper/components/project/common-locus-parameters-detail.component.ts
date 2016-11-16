@@ -35,6 +35,10 @@ import { LocusParameters } from '../../services/project/locus-parameters/locus-p
                     <label>Noise Percentile</label>
                     <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" min="0" [(ngModel)]="locusParameter.noise_perc">
                 </div>
+                <div class="form-group">
+                    <label>Gap Threshold</label>
+                    <input class="form-control input-sm" type="number" required step="1" min="0" [(ngModel)]="locusParameter.gap_threshold" (change)="onChanged()">
+                </div>
             </div>
             <div *ngIf="locusParameter.scanning_method == 'relmax'">
                 <div class="form-group">

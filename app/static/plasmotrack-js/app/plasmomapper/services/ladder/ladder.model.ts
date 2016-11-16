@@ -27,6 +27,7 @@ export class Ladder extends DatabaseItem implements Colored, PeakScanner {
     cwt_max_width: number;
     min_snr: number;
     noise_perc: number;
+    gap_threshold: number;
     
     fillFromJSON(obj) {
         this.isDirty = false;

@@ -15,6 +15,7 @@ export class LocusParameters extends DatabaseItem implements PeakScanner {
     cwt_max_width: number;
     min_snr: number;
     noise_perc: number;
+    gap_threshold: number;
     
     locus_id: number;
     project_id: number;
@@ -42,6 +43,7 @@ export class LocusParameters extends DatabaseItem implements PeakScanner {
         this.cwt_max_width = 15;
         this.min_snr = 3;
         this.noise_perc = 13;
+        this.gap_threshold = 2;
 
         this.min_peak_height = 150;
         this.max_peak_height = 40000;

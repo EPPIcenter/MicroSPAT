@@ -56,6 +56,7 @@ class PeakScanner(object):
     cwt_max_width = db.Column(db.Integer, default=15, nullable=False)
     min_snr = db.Column(db.Float, default=3, nullable=False)
     noise_perc = db.Column(db.Float, default=13, nullable=False)
+    gap_threshold = db.Column(db.Integer, default=2)
 
     @validates('scanning_method')
     def validate_scanning_method(self, _, scanning_method):
@@ -74,7 +75,8 @@ class PeakScanner(object):
             'cwt_min_width': self.cwt_min_width,
             'cwt_max_width': self.cwt_max_width,
             'min_snr': self.min_snr,
-            'noise_perc': self.noise_perc
+            'noise_perc': self.noise_perc,
+            'gap_threshold': self.gap_threshold
         }
 
 

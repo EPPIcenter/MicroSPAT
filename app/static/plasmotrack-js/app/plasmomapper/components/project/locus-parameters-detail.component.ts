@@ -45,6 +45,7 @@ import { ProjectService } from '../../services/project/project.service';
                             <label>Noise Percentile</label>
                             <input class="form-control input-sm" (change)="onChanged()" type="number" required step="any" min="0" [(ngModel)]="locusParameter.noise_perc" ngControl="noise_perc">
                         </div>
+
                     </div>
                     <div *ngIf="locusParameter.scanning_method == 'relmax'">
                         <div class="form-group">

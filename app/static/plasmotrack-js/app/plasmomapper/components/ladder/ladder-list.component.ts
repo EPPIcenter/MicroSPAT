@@ -128,15 +128,15 @@ import { LadderService } from '../../services/ladder/ladder.service';
                             </div>
                             <h4>Scanning Parameters</h4>
                             <div class="form-group">
+                                <label>Maxima Window</label>
+                                <input type="number" class="form-control" required [(ngModel)]="newLadder.maxima_window" (change)="onChanged()">
+                            </div>
+                            <div class="form-group">
                                 <label>Scanning Method</label>
                                 <select [(ngModel)]="newLadder.scanning_method" class="form-control">
                                     <option value="relmax">Relative Maximum</option>
                                     <option value="cwt">Continuous Wavelet Transform</option>
                                 </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Maxima Window</label>
-                                <input type="number" class="form-control" required [(ngModel)]="newLadder.maxima_window" (change)="onChanged()">
                             </div>
                             <div *ngIf="newLadder.scanning_method == 'cwt'">
                                 <div class="form-group">
@@ -154,6 +154,10 @@ import { LadderService } from '../../services/ladder/ladder.service';
                                 <div class="form-group">
                                     <label>Noise Percentile</label>
                                     <input class="form-control input-sm" type="number" required step="any" min="0" [(ngModel)]="newLadder.noise_perc" (change)="onChanged()">
+                                </div>
+                                <div class="form-group">
+                                    <label>Gap Threshold</label>
+                                    <input class="form-control input-sm" type="number" required step="1" min="0" [(ngModel)]="newLadder.gap_threshold" (change)="onChanged()">
                                 </div>
                             </div>
                             <div *ngIf="newLadder.scanning_method == 'relmax'">

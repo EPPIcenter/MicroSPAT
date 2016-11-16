@@ -35,7 +35,7 @@ class GenericChannelProcessor(object):
             self.widths = np.arange(4, 15)
         self.min_snr = scanning_parameters.get('min_snr', 3)
         self.noise_perc = scanning_parameters.get('noise_perc', 13)
-        self.gap_threshold = scanning_parameters.get('gap_threshold', 1)
+        self.gap_threshold = scanning_parameters.get('gap_threshold', 2)
 
     def find_peak_local_maxima(self, peak_indices):
         trace = self.channel.data
