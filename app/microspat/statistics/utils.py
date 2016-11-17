@@ -1,3 +1,5 @@
+# coding=utf-8
+
 """
     MicroSPAT is a collection of tools for the analysis of Capillary Electrophoresis Data
     Copyright (C) 2016  Maxwell Murphy
@@ -16,7 +18,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-# coding=utf-8
 from collections import defaultdict
 from itertools import groupby
 import scipy.stats as st

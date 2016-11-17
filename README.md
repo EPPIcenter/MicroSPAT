@@ -66,6 +66,7 @@ Navigate to the **Ladders** tab on the left side. Populate the fields to the rig
 |**Color**| The color of the channel used for the ladder|
 
 ## Scanning Parameters
+Scanning Parameters control the initial identification and coarse filtering of peaks.
 
 |Parameter|Description|
 |:--------|:----------|
@@ -90,6 +91,18 @@ There are currently two different algorithms available for use to determine peak
 |**Noise Percentile**| Used in Min SNR calculation|
 |**Gap Threshold**| A ridge line is discontinued if there are more than **Gap Threshold** points without connecting a new relative maximum.|
 
+## Filter Parameters
+Filter Parameters provide more nuanced filtering of peaks, allowing for quick iteration on peak identification without having to rescan the signal for peaks.
+
+|Parameter|Description|
+|:--------|:----------|
+|**Min Peak Height**| Peaks with peak height lower than **Min Peak Height** are filtered out|
+|**Max Peak Height**| Peaks with peak height greater than **Max Peak Height** are filtered out|
+|**Min Peak Height Ratio**| Secondary peaks with a height ratio compared to the primary peak less than **Min Peak Height Ratio** are filtered out|
+|**Max Bleedthrough Ratio**| Let signal strength be the sum of the signal from -1 to +1 indices of a peak. Bleedthrough ratio is defined as the peak signal strength divided by the maximum signal strength of other channels in the same well at the same peak index. Peaks with a bleedthrough ratio greater than **Max Bleedthrough Ratio** are filtered out|
+|**Max Crosstalk Ratio**| Crosstalk ratio is defined as the peak signal strength divided by the maximum signal strength of other channels in the same color in surrounding wells (surrounding wells defined as surrounding capillaries as they feed into the machine, not surrounding wells within the plate.)|
+|**Min Peak Distance**| Peaks that are less than **Min Peak Distance** away (in nucleotides) are filtered out, leaving only the tallest peaks|
+
 ## Adding New Loci
 Navigate to the **Locus** tab on the left side. Populate the relevant information in the panel and press save to save the new locus. Label must be unique for every locus.
 
@@ -104,7 +117,7 @@ Navigate to the **Locus** tab on the left side. Populate the relevant informatio
 ### Load From CSV
 You may load several loci all at once by uploading a csv file with a header containing [Label, Min. Base Length, Max. Base Length, Nucleotide Repeat Length, Color] and where each row is a new locus entry. A demo file is located at `demo_files/load_loci.csv`
 
-## Creating Locus Set
+## Registering New Locus Set
 All analysis in MicroSPAT revolves around **Locus Sets**.  A locus set is a predetermined set of loci that you wish to analyze together.  Every project is assigned a locus set and is used to determine the relevant run data for that project.  This allows for analysis of different sets of loci in different contexts.
 To create a new locus set, navigate to the **Locus Sets** tab on the left side. Create a unique label for the locus set, and select the loci to be in the locus set by clicking each row.  Active loci will be highlighted green. Once all loci are chosen, press save at the bottom and the locus set will be added to the locus set pane.
 
@@ -130,8 +143,36 @@ After a plate is selected from the list of uploaded plates, the pane to the righ
 After selecting a failed well, a plot will appear showing the ladder channel, the automatically determined peaks, and the calculated sizing quality for that well.  The peaks may be selected and deselected by hand, and the ladder recalculated by clicking "Recalculate Ladder" to the right of the ladder pane.
 
 #### Locus Performance
-After a plate map has been used to assign loci to each well, the wells will be colorized by a rudimentary measure of success. If there is no signal detected in a channel for an expected locus base size range, the channel will be colored red.  If there is signal, based on the intensity the channel will change to green for optimal signal, and approach blue as the signal becomes too strong and approaches being offscale.  This view provides a quick measure of plate performance and is useful for identifying plate effects and other potential problems at the experimental level.
+After a plate map has been used to assign loci to each well, the wells will be colorized by a rudimentary measure of success. If no signal is detected in a channel for an expected locus base size range, the channel will be colored red.  If there is signal, the channel will change to green for optimal signal range, and approach blue as the signal becomes too strong and approaches being offscale.  This view provides a quick measure of plate performance and is useful for identifying plate effects and other potential problems at the experimental level.
 
 ![Quality Check Demo](https://cdn.rawgit.com/Greenhouse-Lab/MicroSPAT/gh-assets/imgs/plate_qa.png)
 
 This for example shows that all ladders have been called adequately, but there appear to be some problems in the blue and green channels, indicating there were likely some issues in setting up the experiment such as not mixing well enough or inconsistent transfer of material. The red channel has no peaks identified because the ladder in this case was run in the red channel.
+
+## Bin Estimator Project
+**Bin Estimator Projects** are used to create bin sets, the ranges of expected peak sizes that correspond to different alleles.
+
+### New Bin Estimator Project
+To create a new **Bin Estimator Project**, select the **Bin Estimators** tab in the left panel. Fill in the relevant information, including a unique title and the locus set to be analyzed.
+
+### Analyze Loci
+After creating a new **Bin Estimator Project**, select the project and navigate to the **Loci** tab. From here, each locus may be individually analyzed to create a new bin set. Currently, all data for a given locus available at the time of project creation is used. In the future, the user will have the option of choosing which samples to include in a **Bin Estimator Project**.
+
+### Bin Estimator Settings
+
+|Parameter|Description|
+|:--------|:----------|
+|**Min. Peak Frequency**| The minimum number of peaks present before a bin is created|
+|**Default Bin Buffer**| The default bin buffer size each bin is created with|
+
+After analysis a view will be presented that shows where every non filtered peak falls, the x-axis is the peak base size, the y-axis is the peak relative height (1 indicates that the peak is the primary, or tallest, peak). The user at this point may manipulate the bins manually by selecting a bin and shifting the buffer size or moving the center. After changes are made, press "Save All Changes" to persist the changes to the database.
+
+![Bin Estimator Demo](https://cdn.rawgit.com/Greenhouse-Lab/MicroSPAT/gh-assets/imgs/bin_estimator_view.png)
+
+## Artifact Estimator Project
+
+### New Artifact Estimator Project
+
+### Analyze Loci
+
+### Artifact Estimator Settings

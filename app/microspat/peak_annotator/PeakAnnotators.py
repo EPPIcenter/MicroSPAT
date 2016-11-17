@@ -87,7 +87,7 @@ def annotate_signal_crosstalk(other_traces, idx_dist=1, label='crosstalk_ratio')
         for trace in other_traces:
             if peak_index < len(trace):
                 starting_idx = max(0, peak_index - idx_dist)
-                ending_idx = min(len(trace), peak_index + idx_dist + 1)
+                ending_idx = min(len(trace), peak_index + idx_dist)
                 signal_strength = float(sum(data[starting_idx:ending_idx]))
                 bleedthrough_strength = float(sum(trace[starting_idx:ending_idx]))
                 crosstalk_ratio = max(crosstalk_ratio, abs(bleedthrough_strength) / (abs(signal_strength) + 1))
