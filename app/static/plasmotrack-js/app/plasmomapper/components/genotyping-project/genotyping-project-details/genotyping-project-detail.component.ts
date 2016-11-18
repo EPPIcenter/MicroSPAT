@@ -50,6 +50,7 @@ import { GenotypingProjectService } from '../../../services/genotyping-project/g
                 <button class="btn btn-warning" (click)="deleteProject()">Delete</button>
                 <button class="btn btn-default" [ngClass]="{disabled: gettingAlleles}" (click)="getAlleles()">Save Called Alleles</button>
                 <button class="btn btn-default" [ngClass]="{disabled: gettingAlleles}" (click)="getDominantAlleles()">Save Dominant Alleles</button>
+                <button class="btn btn-default" [ngClass]="{disabled: gettingAlleles}" (click)="getPeakData()">Save All Peak Data</button>
                 <pm-progress-bar *ngIf="gettingAlleles" [fullLabel]="'Collecting Allele Data...'"></pm-progress-bar>
                 <pm-progress-bar *ngIf="savingProject" [fullLabel]="'Saving Project...'"></pm-progress-bar>
                 <pm-progress-bar *ngIf="deletingProject" [fullLabel]="'Deleting Project...'"></pm-progress-bar>
@@ -151,6 +152,17 @@ export class GenotypingProjectDetailComponent implements OnInit {
         if(!this.gettingAlleles) {
             this.gettingAlleles = true;
             this._genotypingProjectService.getDominantAlleles(this.selectedProject.id).subscribe(
+                null,
+                err => toastr.error(err),
+                () => this.gettingAlleles = false
+            )
+        }
+    }
+
+    getPeakData() {
+        if(!this.gettingAlleles) {
+            this.gettingAlleles = true;
+            this._genotypingProjectService.getPeakData(this.selectedProject.id).subscribe(
                 null,
                 err => toastr.error(err),
                 () => this.gettingAlleles = false

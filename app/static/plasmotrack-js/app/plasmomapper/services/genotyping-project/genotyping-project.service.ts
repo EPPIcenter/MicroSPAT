@@ -41,6 +41,7 @@ export class GenotypingProjectService extends SampleBasedProjectService {
     public saveAnnotations: (annotations: SampleLocusAnnotation[]) => Observable<any>;
     public getAlleles: (id: number) => Observable<any>;
     public getDominantAlleles: (id: number) => Observable<any>;
+    public getPeakData: (id: number) => Observable<any>;
     
     public addSamples: (files: File[], id: number) => Observable<GenotypingProject>;
 
@@ -107,6 +108,10 @@ export class GenotypingProjectService extends SampleBasedProjectService {
 
         this.getDominantAlleles = (id: number) => {
             return this._commonServerMethods.getFile(this._projectsUrl + id + "/get-dominant-alleles/")
+        }
+
+        this.getPeakData = (id: number) => {
+            return this._commonServerMethods.getFile(this._projectsUrl + id + "/get-peak-data/")
         }
         
         this.calculateProbability = (project: GenotypingProject) => {

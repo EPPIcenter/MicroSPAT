@@ -109,10 +109,8 @@ import { LocusBinSet } from '../../services/bin-estimator-project/locus-bin-set/
                                 </div>
                             </div>
                             <div class="row">
-                                <div class="col-sm-1">
+                                <div class="btn-group col-sm-6">
                                     <button class="btn btn-default" (click)="saveControl()">Save Control</button>
-                                </div>
-                                <div class="col-sm-1">
                                     <button class="btn btn-default" [ngClass]="{'disabled': !selectedControl?.id}" (click)="deleteControl()">Delete Control</button>
                                 </div>
                             </div>
