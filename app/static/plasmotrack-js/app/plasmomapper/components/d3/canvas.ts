@@ -140,11 +140,8 @@ export class D3Canvas{
     addCircles(circles: Circle[], mouseOverHandler?: (id: number) => void) {
         let c = this.canvas.append("svg:g")
                     .attr("class", 'peak')
-        
-        let a = this.canvas.append("svg:g")
-                    .attr("class", "peak-annotation")
-        
-        let annotations = [].concat(circles.map(c => c.annotations)).filter(a => a !== null);
+                
+        let annotations = [].concat(circles.map(c => c.annotations)).filter(a => a);
         annotations = [].concat.apply([], annotations)
 
         c.selectAll(".peak")
@@ -159,12 +156,19 @@ export class D3Canvas{
             .attr("opacity", (d) => d.opacity)
             .on("mouseover", (d) => mouseOverHandler(d.id))
         
-        a.selectAll(".peak-annotation")
+        if(annotations.length > 0) {
+            console.log(annotations)
+            let a = this.canvas.append("svg:g")
+                .attr("class", "peak-annotation")
+            
+            a.selectAll(".peak-annotation")
             .data(annotations).enter()
             .append("svg:text")
             .attr("x", d => this.x(d.x))
             .attr("y", d => this.y(d.y))
             .text(d => d.text)
+        }
+        
 
     }
     
