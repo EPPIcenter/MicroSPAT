@@ -237,7 +237,7 @@ Prior to creating a **Quantification Bias Estimator Project**, controls must be 
 |MIXC-DS1-DC1|V1S;0.5|U659;0.5|
 |...|...|...|
 
-Currently, **Quantification Bias Estimator Projects** require that the samples be mixtures of only two separate strains to calculate the quantification bias factor, however samples containing multiple strains may be used in the project to measure how effective the correction is, they will simply be ignored during factor estimation. The proportions of each strain must add up to 1. A demonstration file may be found in `demo_files\control_samples.csv`
+The proportions of each strain must add up to 1. A demonstration file may be found in `demo_files\control_samples.csv`
 
 ### Quantification Bias Estimator Settings
 After creating a new **Quantification Bias Estimator Project** and assigning **Control** samples, navigate to the **Loci** tab.  From here, each locus may be individually analyzed to determine the **Quantification Bias Factor** that can be used to correct for amplification bias.
@@ -245,7 +245,7 @@ After creating a new **Quantification Bias Estimator Project** and assigning **C
 |Parameter|Description|
 |:--------|:----------|
 |Min Peak Height| Minimum peak height for the peak to be included in estimation|
-|Min True Peak Proportion| Minimum proportion an allele must contribute for it to be included in **Quantification Bias Factor** estimation|
+|Min True Peak Proportion| Minimum proportion an allele must contribute for it to be included in **Quantification Bias Factor** estimation (also excludes anything greater than 1 - min true peak proportion)|
 |Offscale Threshold| Maximum peak height before a run is discarded because the peak height will not be representative of original DNA composition|
 
 ## Genotyping Project
@@ -272,3 +272,5 @@ After creating a new **Genotyping Project** and adding **Samples**, navigate to 
 |**Genotyping Probability Threshold**| Peaks with a probability less than the **Genotyping Probability Threshold** are classified as artifact|
 |**Bootstrap Probability Threshold**| Peaks with a probability less than the **Bootstrap Probability Threshold** are culled during the iterative peak frequency and sample MOI estimation steps during probabilistic peak annotation|
 |**Offscale Threshold**| Runs with a peak that exceeds the **Offscale Threshold** are flagged as offscale and are avoided if possible|
+
+### Probabilistic Peak Annotation

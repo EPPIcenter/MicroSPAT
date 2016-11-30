@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import { Observable } from 'rxjs/Observable'
 import { CanvasConfig } from './canvas-config.model';
 import { Trace } from './trace.model';
 import { Bar } from './bar.model';
@@ -139,6 +140,12 @@ export class D3Canvas{
     addCircles(circles: Circle[], mouseOverHandler?: (id: number) => void) {
         let c = this.canvas.append("svg:g")
                     .attr("class", 'peak')
+        
+        let a = this.canvas.append("svg:g")
+                    .attr("class", "peak-annotation")
+        
+        let annotations = [].concat(circles.map(c => c.annotations)).filter(a => a !== null);
+        annotations = [].concat.apply([], annotations)
 
         c.selectAll(".peak")
             .data(circles).enter()
@@ -151,6 +158,14 @@ export class D3Canvas{
             .style("stroke", (d) => d.outline)
             .attr("opacity", (d) => d.opacity)
             .on("mouseover", (d) => mouseOverHandler(d.id))
+        
+        a.selectAll(".peak-annotation")
+            .data(annotations).enter()
+            .append("svg:text")
+            .attr("x", d => this.x(d.x))
+            .attr("y", d => this.y(d.y))
+            .text(d => d.text)
+
     }
     
     addLine(line: Line) {

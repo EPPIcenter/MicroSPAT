@@ -780,6 +780,7 @@ class SampleBasedProject(Project, BinEstimating):
             sample_annotation.annotated_peaks = []
             sample_annotation.reference_run_id = None
             sample_annotation.clear_flags()
+            sample_annotation.clear_alleles()
         return self
 
     def analyze_samples(self, locus_id):
@@ -1518,6 +1519,11 @@ class QuantificationBiasEstimatorProject(SampleBasedProject, ArtifactEstimating)
 
     __mapper_args__ = {'polymorphic_identity': 'quantification_bias_estimator_project'}
 
+    def artifact_estimator_changed(self, locus_id):
+        lp = self.get_locus_parameters(locus_id)
+        lp.set_filter_parameters_stale()
+        return self
+
     def filter_parameters_set_stale(self, locus_id):
         self.parameters_changed(locus_id)
 
@@ -1579,9 +1585,11 @@ class QuantificationBiasEstimatorProject(SampleBasedProject, ArtifactEstimating)
             peak_sets = [filter(lambda _: _['true_proportion'] > lp.min_bias_quantifier_peak_proportion and
                                           _['peak_height'] > lp.min_bias_quantifier_peak_height,
                                 locus_annotation.annotated_peaks) for locus_annotation in locus_annotations]
-            peak_sets = [_ for _ in peak_sets if len(_) == 2 and sum([peak['true_proportion'] for peak in _]) == 1]
-            if peak_sets and all(map(lambda _: len(_) == 2, peak_sets)):  # Algorithm currently only supports 2 peaks
-                lp.beta, lp.sd, lp.r_squared = calculate_beta(peak_sets)
+            # peak_sets = [_ for _ in peak_sets if len(_) == 2 and sum([peak['true_proportion'] for peak in _]) == 1]
+            peak_sets = [_ for _ in peak_sets if abs(sum([peak['true_proportion'] for peak in _]) - 1) < .0001 and len(_) > 1]
+            # if peak_sets and all(map(lambda _: len(_) == 2, peak_sets)):  # Algorithm currently only supports 2 peaks
+            if peak_sets:
+                lp.beta, lp.sd, lp.r_squared = calculate_beta(peak_sets, min_peak_proportion = lp.min_bias_quantifier_peak_proportion)
             else:
                 lp.beta = None
         return self
@@ -1664,22 +1672,24 @@ class QuantificationBiasEstimatorProject(SampleBasedProject, ArtifactEstimating)
                 true_peaks = []
 
                 for control_id, proportion in controls_and_props:
+
                     control = Control.query.get(control_id)
                     assert isinstance(control, Control)
-                    bin_id = str(control.alleles[str(locus_annotation.locus_id)])
-                    control_peaks = [_ for _ in peaks if str(_['bin_id']) == bin_id]
-                    if control_peaks:
-                        true_peak = max(control_peaks, key=lambda _: _.get('peak_height'))
-                        true_peak['true_proportion'] += proportion
-                        if true_peak['peak_index'] not in true_peak_indices:
-                            true_peaks.append(true_peak)
-                            true_peak_indices.add(true_peak['peak_index'])
+                    if control.alleles[str(locus_annotation.locus_id)]:
+                        bin_id = str(control.alleles[str(locus_annotation.locus_id)])
+                        control_peaks = [_ for _ in peaks if str(_['bin_id']) == bin_id]
+                        if control_peaks:
+                            true_peak = max(control_peaks, key=lambda _: _.get('peak_height'))
+                            true_peak['true_proportion'] += proportion
+                            if true_peak['peak_index'] not in true_peak_indices:
+                                true_peaks.append(true_peak)
+                                true_peak_indices.add(true_peak['peak_index'])
 
-                    locus_annotation.alleles[bin_id] = True
+                        locus_annotation.alleles[bin_id] = True
 
                 self.annotate_quantification_bias(locus_annotation.locus_id, true_peaks)
 
-                locus_annotation.annotated_peaks = peaks
+                locus_annotation.annotated_peaks = true_peaks
             else:
                 locus_annotation.reference_run = None
                 locus_annotation.annotated_peaks = []

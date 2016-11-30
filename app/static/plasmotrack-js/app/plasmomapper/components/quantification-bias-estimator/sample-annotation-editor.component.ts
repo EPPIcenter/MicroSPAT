@@ -20,7 +20,7 @@ import { D3Canvas } from '../d3/canvas';
 import { CanvasConfig } from '../d3/canvas-config.model';
 import { Bar } from '../d3/bar.model';
 import { Trace } from '../d3/trace.model';
-import { Circle } from '../d3/circle.model';
+import { Circle, Annotation } from '../d3/circle.model';
 
 
 import { SampleLocusAnnotation } from '../../services/sample-based-project/sample-annotation/locus-annotation/sample-locus-annotation.model';
@@ -183,8 +183,19 @@ export class D3SampleAnnotationEditor implements OnChanges {
                 color: color,
                 opacity: 1,
                 outline: outline,
-                id: peak['peak_index']
+                id: peak['peak_index'],
+                annotations: null
             }
+
+            if(peak['true_proportion']) {
+                p.annotations = [
+                    {x: peak['peak_size'] + .25,
+                     y: peak['peak_height'],
+                     text: peak['true_proportion'].toFixed(2)
+                    }
+                ]
+            }
+
             this.circles.push(p);
         })
     }

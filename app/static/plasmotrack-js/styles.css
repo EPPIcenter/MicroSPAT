@@ -148,3 +148,9 @@ svg text {
 svg text::selection {
     background: none;
 }
+
+.peak-annotation {
+    font-family: sans-serif;
+    font-size: 12px;
+    fill: #fefefe;
+}

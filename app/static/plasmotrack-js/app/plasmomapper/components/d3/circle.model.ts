@@ -14,11 +14,18 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+export interface Annotation {
+    x: number,
+    y: number,
+    text: string
+}
+
 export interface Circle {
     center: number[],
     radius: number,
     color: string,
     opacity: number,
     id?: number,
-    outline?: string
+    outline?: string,
+    annotations?: Annotation[]
 }

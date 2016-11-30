@@ -449,7 +449,7 @@ def get_dominant_alleles(id):
 
 
 @microspat.route('/genotyping-project/<int:id>/get-peak-data/', methods=['GET'])
-def get_peak_data(id):
+def get_genotyping_peak_data(id):
     try:
         gp_title = GenotypingProject.query.filter(GenotypingProject.id == id).value(GenotypingProject.title)
         results = []
@@ -499,6 +499,58 @@ def get_peak_data(id):
             w.writeheader()
             w.writerows(results)
         return send_file(temp_path, as_attachment=True, attachment_filename="{} Peak Data.csv".format(gp_title))
+    except Exception as e:
+        return handle_error(e)
+
+
+@microspat.route('/quantification-bias-estimator-project/<int:id>/get-peak-data/', methods=['GET'])
+def get_quantification_bias_estimator_peak_data(id):
+    try:
+        qbe_title = QuantificationBiasEstimatorProject.query.filter(QuantificationBiasEstimatorProject.id == id).value(QuantificationBiasEstimatorProject.title)
+        results = []
+        header = ["Sample", "Locus", "Peak Height", "Relative Peak Height", "True Proportion", "Proportion", "Corrected Proportion", "Peak Size",
+                  "Peak Area", "Left Tail", "Right Tail", "Artifact Contribution", "Artifact Error", "In Bin",
+                  "Called Allele", "Allele Label", "Bleedthrough Ratio", "Crosstalk Ratio", "Well"]
+        locus_annotations = SampleLocusAnnotation.query.filter(SampleLocusAnnotation.project_id == id).join(
+            SampleLocusAnnotation.locus).join(ProjectChannelAnnotations).join(Channel).join(Well).values(
+            SampleLocusAnnotation.annotated_peaks, SampleLocusAnnotation.sample_annotations_id, Locus.label, Well.well_label, SampleLocusAnnotation.alleles)
+        sample_ids = dict(ProjectSampleAnnotations.query.distinct().join(Sample).filter(
+            ProjectSampleAnnotations.project_id == id).values(ProjectSampleAnnotations.id, Sample.barcode))
+        for la in locus_annotations:
+            alleles = la[4].items()
+            bin_ids = [str(x[0]) for x in alleles if x[1]]
+            for peak in la[0]:
+                res = dict()
+                res["Sample"] = sample_ids[la[1]]
+                res["Locus"] = la[2]
+                res["Peak Height"] = peak['peak_height']
+                res["Relative Peak Height"] = peak['relative_peak_height']
+                res["Proportion"] = peak.get('relative_quantification', 'NA')
+                res["Corrected Proportion"] = peak.get('corrected_relative_quantification', 'NA')
+                res["True Proportion"] = peak.get('true_proportion', 'NA')
+                res["Peak Size"] = peak['peak_size']
+                res["Peak Area"] = peak['peak_area']
+                res["Left Tail"] = peak['left_tail']
+                res["Right Tail"] = peak['right_tail']
+                res["Artifact Contribution"] = peak.get('artifact_contribution', 'NA')
+                res["Artifact Error"] = peak.get('artifact_error', 'NA')
+                res["In Bin"] = bool(peak['bin_id'])
+                if res["In Bin"]:
+                    res["Called Allele"] = str(peak['bin_id']) in bin_ids
+                    res["Allele Label"] = str(peak['bin'])
+                res["Bleedthrough Ratio"] = peak['bleedthrough_ratio']
+                res["Crosstalk Ratio"] = peak['crosstalk_ratio']
+                res["Well"] = la[3]
+                if 'probability' in peak:
+                    res["Probability"] = peak['probability']
+                results.append(res)
+        handle, temp_path = tempfile.mkstemp(suffix='csv', prefix=qbe_title)
+        with open(temp_path, 'w') as f:
+            w = csv.DictWriter(f, fieldnames=header)
+            w.writeheader()
+            w.writerows(results)
+        return send_file(temp_path, as_attachment=True, attachment_filename="{} Peak Data.csv".format(qbe_title))
+
     except Exception as e:
         return handle_error(e)
 
