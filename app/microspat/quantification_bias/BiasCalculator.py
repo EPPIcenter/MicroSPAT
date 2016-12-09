@@ -225,9 +225,15 @@ def correct_peak_proportion(beta, peak_set):
         peak['relative_quantification'] = peak_height / float(peak_size_total)
 
         if beta:
-            f = np.e ** (beta * size_diff - np.log(peak['relative_quantification'] + 1e-6) + np.log((1 - peak['relative_quantification']) + 1e-6))
+            f = np.e ** (beta * size_diff - np.log(peak['relative_quantification'] + 1e-240) + np.log((1 - peak['relative_quantification']) + 1e-240))
             peak['corrected_relative_quantification'] = 1 / (1 + f)
         else:
             peak['corrected_relative_quantification'] = peak['relative_quantification']
+
+    unnormalized_quantification = sum([_['corrected_relative_quantification'] for _ in peak_set])
+    for peak in peak_set:
+        peak['corrected_relative_quantification'] = peak['corrected_relative_quantification'] / unnormalized_quantification
+    # print abs(sum([_['corrected_relative_quantification'] for _ in peak_set]) - 1)
+    # assert abs(sum([_['corrected_relative_quantification'] for _ in peak_set]) - 1) < 1e-3
 
     return peak_set
