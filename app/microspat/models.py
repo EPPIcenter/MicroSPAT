@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import csv
+import csv, json
 from collections import defaultdict
 from datetime import datetime
 from itertools import groupby
@@ -43,11 +43,16 @@ from flask import current_app as app
 from flask_sqlalchemy import SignallingSession
 
 import artifact_estimator.ArtifactEstimator as AE
+import numpy as np
 
 import eventlet
 
 
 from peak_annotator.PeakFilters import *
+
+
+class BadProportions(Exception):
+    pass
 
 
 class Colored(object):
@@ -132,7 +137,6 @@ class Flaggable(object):
 class LocusSetAssociatedMixin(object):
     @declared_attr
     def locus_set_id(self):
-        # TODO: add index to sqlite
         return db.Column(db.Integer, db.ForeignKey('locus_set.id'), nullable=False, index=True)
 
     @declared_attr
@@ -270,6 +274,7 @@ class Project(LocusSetAssociatedMixin, TimeStamped, db.Model):
     description = db.Column(db.Text, nullable=True)
     channel_annotations = db.relationship('ProjectChannelAnnotations', backref=db.backref('project'), lazy='dynamic')
     discriminator = db.Column('type', db.String(255))
+    # locked = db.Column(db.Boolean, default=False)
     __mapper_args__ = {'polymorphic_on': discriminator,
                        'polymorphic_identity': 'base_project'}
 
@@ -359,7 +364,6 @@ class Project(LocusSetAssociatedMixin, TimeStamped, db.Model):
         return locus_param
 
     def add_channel(self, channel_id):
-
         channel_locus_id = Channel.query.filter(Channel.id == channel_id).value(Channel.locus_id)
 
         if not channel_locus_id:
@@ -679,23 +683,42 @@ class SampleBasedProject(Project, BinEstimating):
     def add_samples(self, sample_ids):
         present_sample_ids = set([_.id for _ in self.associated_samples])
         full_sample_ids = list(set(sample_ids) - present_sample_ids)
+
         n = 0
+
+        sample_ids_map = defaultdict(list)
+        channel_and_sample_ids = Channel.query.join(Sample).join(Locus).join(locus_set_association_table).join(LocusSet).join(
+            Project).filter(Project.id == self.id).values(Channel.id, Channel.sample_id)
+        for channel_id, sample_id in channel_and_sample_ids:
+            sample_ids_map[sample_id].append(channel_id)
+
+        bins_map = defaultdict(list)
+        bin_and_locus_ids = Bin.query.join(LocusBinSet).join(BinEstimatorProject).filter(
+            BinEstimatorProject.id == self.bin_estimator_id).values(Bin.id, LocusBinSet.locus_id)
+        for bin_id, locus_id in bin_and_locus_ids:
+            bins_map[locus_id].append(bin_id)
+
         while n * 100 < len(full_sample_ids) + 100:
+            print n
             sample_ids = full_sample_ids[n * 100: (n + 1) * 100]
-            channel_ids_query = Channel.query.join(Sample).join(Locus).join(locus_set_association_table).join(
-                LocusSet).join(Project).filter(Project.id == self.id)
+            # channel_ids_query = Channel.query.join(Sample).join(Locus).join(locus_set_association_table).join(
+            #     LocusSet).join(Project).filter(Project.id == self.id)
             channel_ids = []
             for sample_id in sample_ids:
-                channel_ids += [x[0] for x in channel_ids_query.filter(Sample.id == sample_id).values(Channel.id)]
+                # channel_ids += [x[0] for x in channel_ids_query.filter(Sample.id == sample_id).values(Channel.id)]
+                channel_ids += sample_ids_map[sample_id]
+
                 sample_annotation = ProjectSampleAnnotations(sample_id=sample_id)
                 db.session.add(sample_annotation)
                 self.sample_annotations.append(sample_annotation)
                 for locus in self.locus_set.loci:
                     locus_sample_annotation = SampleLocusAnnotation(locus_id=locus.id, project_id=self.id)
-                    bin_ids = Bin.query.join(LocusBinSet).join(BinEstimatorProject).filter(
-                        BinEstimatorProject.id == self.bin_estimator_id).filter(
-                        LocusBinSet.locus_id == locus.id).values(Bin.id)
-                    locus_sample_annotation.alleles = dict([(str(bin_id[0]), False) for bin_id in bin_ids])
+                    # bin_ids = Bin.query.join(LocusBinSet).join(BinEstimatorProject).filter(
+                    #     BinEstimatorProject.id == self.bin_estimator_id).filter(
+                    #     LocusBinSet.locus_id == locus.id).values(Bin.id)
+                    # locus_sample_annotation.alleles = dict([(str(bin_id[0]), False) for bin_id in bin_ids])
+                    bin_ids = bins_map[locus.id]
+                    locus_sample_annotation.alleles = dict([(str(bin_id), False) for bin_id in bin_ids])
                     sample_annotation.locus_annotations.append(locus_sample_annotation)
             self.bulk_create_channel_annotations(channel_ids)
             db.session.flush()
@@ -1507,10 +1530,6 @@ class ArtifactEquation(Flaggable, AE.ArtifactEquation, db.Model):
         return res
 
 
-class BadProportions(Exception):
-    pass
-
-
 class QuantificationBiasEstimatorProject(SampleBasedProject, ArtifactEstimating):
     id = db.Column(db.Integer, db.ForeignKey('sample_based_project.id'), primary_key=True)
     locus_parameters = db.relationship('QuantificationBiasLocusParams',
@@ -2059,6 +2078,10 @@ class GenotypingProject(SampleBasedProject, ArtifactEstimating, QuantificationBi
         if not allele_frequencies:
             allele_frequencies = self.bootstrap_allele_frequencies()
 
+        # peak_filters = {}
+        # for lp in self.locus_parameters:
+        #     peak_filters[lp.locus.label] = compose_filters(bin_filter(in_bin=True), flags_filter(['bleedthrough', 'crosstalk']))
+
         moi_dict = self.bootstrap_moi(allele_frequencies)
 
         all_locus_annotations = SampleLocusAnnotation.query.join(ProjectSampleAnnotations).join(Sample).filter(
@@ -2078,7 +2101,6 @@ class GenotypingProject(SampleBasedProject, ArtifactEstimating, QuantificationBi
             sample_annotation.moi = moi_dict[sample_annotation.id]
             locus_annotations = locus_annotation_dict[sample_annotation.id]
 
-
             for locus_annotation in locus_annotations:
                 for peak in locus_annotation.annotated_peaks:
                     peak['probability'] = 1
@@ -2088,6 +2110,26 @@ class GenotypingProject(SampleBasedProject, ArtifactEstimating, QuantificationBi
                                                                                allele_frequencies[
                                                                                    locus_annotation.locus.label])
                     locus_annotation.annotated_peaks = calculate_prob_pos_if_observed(locus_annotation.annotated_peaks)
+
+                    for peak in locus_annotation.annotated_peaks:
+                        if peak['flags']['bleedthrough'] or peak['flags']['crosstalk']:
+                            peak['probability'] = 0
+
+                    # possible_peaks = peak_filters[locus_annotation.locus.label](locus_annotation.annotated_peaks)
+                    #
+                    # for peak in locus_annotation.annotated_peaks:
+                    #     peak['probability'] = 0
+                    #
+                    # possible_peaks = calculate_prob_negative(possible_peaks, sample_annotation.moi, allele_frequencies[
+                    #     locus_annotation.locus.label
+                    # ])
+                    # prob_annotated_possible_peaks = calculate_prob_pos_if_observed(possible_peaks)
+                    # recalculated_peak_probabilities = {p['peak_index']: p['probability'] for p in prob_annotated_possible_peaks}
+                    #
+                    # for peak in locus_annotation.annotated_peaks:
+                    #     if peak['peak_index'] in recalculated_peak_probabilities:
+                    #         peak['probability'] = recalculated_peak_probabilities[peak['peak_index']]
+
                     self.recalculate_alleles(locus_annotation)
         return self
 
@@ -2101,10 +2143,13 @@ class GenotypingProject(SampleBasedProject, ArtifactEstimating, QuantificationBi
                 if not any(peak['flags'].values()):
                     if peak['probability'] >= locus_param.probability_threshold or (
                                 (peak['peak_height'] - peak['artifact_contribution']) /
-                                peak['artifact_error']) > locus_param.soft_artifact_sd_limit:
+                                max(peak['artifact_error'], 1)) > locus_param.soft_artifact_sd_limit:
                         locus_annotation.alleles[str(peak['bin_id'])] = True
                         true_peaks.append(peak)
             if self.quantification_bias_estimator:
+                for peak in locus_annotation.annotated_peaks:
+                    peak['relative_quantification'] = None
+                    peak['corrected_relative_quantification'] = None
                 self.quantification_bias_estimator.annotate_quantification_bias(locus_annotation.locus_id, true_peaks)
         locus_annotation.alleles.changed()
         locus_annotation.annotated_peaks.changed()
@@ -2150,6 +2195,7 @@ class GenotypingProject(SampleBasedProject, ArtifactEstimating, QuantificationBi
                         peak['probability'] = 0
                 locus_annotation.annotated_peaks.changed()
 
+
     def serialize(self):
         res = super(GenotypingProject, self).serialize()
         res.update({
@@ -2176,12 +2222,12 @@ class ProjectLocusParams(PeakScanner, db.Model):
     locus = db.relationship('Locus', lazy='immediate')
 
     # Peak Filter Params
-    min_peak_height = db.Column(db.Integer, default=150, nullable=False)
+    min_peak_height = db.Column(db.Integer, default=0, nullable=False)
     max_peak_height = db.Column(db.Integer, default=40000, nullable=False)
     min_peak_height_ratio = db.Column(db.Float, default=0, nullable=False)
-    max_bleedthrough = db.Column(db.Float, default=4, nullable=False)
-    max_crosstalk = db.Column(db.Float, default=4, nullable=False)
-    min_peak_distance = db.Column(db.Float, default=2, nullable=False)
+    max_bleedthrough = db.Column(db.Float, default=10, nullable=False)
+    max_crosstalk = db.Column(db.Float, default=10, nullable=False)
+    min_peak_distance = db.Column(db.Float, default=2.2, nullable=False)
 
     scanning_parameters_stale = db.Column(db.Boolean, default=True, nullable=False)
     filter_parameters_stale = db.Column(db.Boolean, default=True, nullable=False)
@@ -2300,11 +2346,11 @@ class GenotypingLocusParams(ProjectLocusParams):
     bleedthrough_filter_limit = db.Column(db.Float, default=2, nullable=False)
     crosstalk_filter_limit = db.Column(db.Float, default=2, nullable=False)
     relative_peak_height_limit = db.Column(db.Float, default=0.01, nullable=False)
-    absolute_peak_height_limit = db.Column(db.Integer, default=50, nullable=False)
+    absolute_peak_height_limit = db.Column(db.Integer, default=300, nullable=False)
     failure_threshold = db.Column(db.Integer, default=500, nullable=False)
 
-    probability_threshold = db.Column(db.Float, default=0, nullable=False)
-    bootstrap_probability_threshold = db.Column(db.Float, default=0, nullable=False)
+    probability_threshold = db.Column(db.Float, default=0.9, nullable=False)
+    bootstrap_probability_threshold = db.Column(db.Float, default=0.99, nullable=False)
 
     genotyping_parameters_stale = db.Column(db.Boolean, default=True, nullable=False)
 
@@ -2461,6 +2507,7 @@ class ProjectChannelAnnotations(TimeStamped, Flaggable, db.Model):
     # peak_indices = db.Column(MutableList.as_mutable(CompressedJSONEncodedData))
     annotated_peaks = db.Column(MutableList.as_mutable(JSONEncodedData), default=[])
     peak_indices = db.Column(MutableList.as_mutable(JSONEncodedData))
+    # baseline = db.Column(db.Integer)
     __table_args__ = (db.UniqueConstraint('project_id', 'channel_id', name='_project_channel_uc'),)
 
     def reinitialize(self):
@@ -2610,6 +2657,33 @@ class LocusSet(db.Model):
     def __repr__(self):
         return "<LocusSet {}>".format(self.label)
 
+    def to_json(self):
+        """
+        Dump locus set to json string
+        :return: string representation of locus set
+        """
+        dump = {
+            'label': self.label,
+            'loci': [{
+                'label': locus.label,
+                'max_base_length': locus.max_base_length,
+                'min_base_length': locus.min_base_length,
+                'nucleotide_repeat_length': locus.nucleotide_repeat_length,
+                'color': locus.color
+            } for locus in self.loci]
+        }
+        return json.dumps(dump)
+
+    @classmethod
+    def from_json(cls, json_string):
+        parsed_locus_set = json.loads(json_string)
+        loci = []
+        for locus in parsed_locus_set['loci']:
+            l = Locus(**locus)
+            loci.append(l)
+        locus_set = LocusSet(label=parsed_locus_set['label'], loci=loci)
+        return locus_set
+
     def serialize(self):
         res = {
             'id': self.id,
@@ -2630,6 +2704,14 @@ class Locus(Colored, db.Model):
     def __repr__(self):
         return "<Locus {} {}>".format(self.label, self.color.capitalize())
 
+    def __init__(self, color, label, max_base_length, min_base_length, nucleotide_repeat_length, locus_metadata=None):
+        self.locus_metadata = locus_metadata or {}
+        self.color = color
+        self.label = label
+        self.max_base_length = max_base_length
+        self.min_base_length = min_base_length
+        self.nucleotide_repeat_length = nucleotide_repeat_length
+
     def serialize(self):
         res = {
             'id': self.id,
@@ -2637,7 +2719,7 @@ class Locus(Colored, db.Model):
             'max_base_length': self.max_base_length,
             'min_base_length': self.min_base_length,
             'nucleotide_repeat_length': self.nucleotide_repeat_length,
-            'locus_metadata': self.locus_metadata,
+            # 'locus_metadata': self.locus_metadata,
             'color': self.color
         }
         return res

@@ -21,7 +21,6 @@
 from collections import defaultdict
 from itertools import groupby
 import scipy.stats as st
-import numpy as np
 
 
 _FREQUENCIES_REQUIRED = ValueError("Locus Allele Frequencies must be provided.")
@@ -73,10 +72,10 @@ def __extract_features(p):
     return p['probability'], p['peak_height'], p['artifact_contribution'], max(p['artifact_error'], 1e-6)
 
 
-def cdf_weighted_probability(p, _):
-    probability, peak_height, artifact, error = __extract_features(p)
-    cdf_val = st.norm.cdf((peak_height - artifact) / error)
-    return cdf_val * probability
+# def cdf_weighted_probability(p, _):
+#     probability, peak_height, artifact, error = __extract_features(p)
+#     cdf_val = st.norm.cdf((peak_height - artifact) / error)
+#     return cdf_val * probability
 
 
 def allele_frequency_weighted_probability(p, locus_allele_frequencies):
@@ -87,16 +86,16 @@ def allele_frequency_weighted_probability(p, locus_allele_frequencies):
     return allele_frequency * probability
 
 
-def combo_weighted_probability(p, locus_allele_frequencies):
-    if not isinstance(locus_allele_frequencies, dict):
-        raise _FREQUENCIES_REQUIRED
-    probability, peak_height, artifact, error = __extract_features(p)
-    cdf_val = st.norm.cdf((peak_height - artifact) / error)
-    allele_frequency = locus_allele_frequencies.get(str(p['bin_id']), 0)
-    return cdf_val * allele_frequency * probability
+# def combo_weighted_probability(p, locus_allele_frequencies):
+#     if not isinstance(locus_allele_frequencies, dict):
+#         raise _FREQUENCIES_REQUIRED
+#     probability, peak_height, artifact, error = __extract_features(p)
+#     cdf_val = st.norm.cdf((peak_height - artifact) / error)
+#     allele_frequency = locus_allele_frequencies.get(str(p['bin_id']), 0)
+#     return cdf_val * allele_frequency * probability
 
 
-def calculate_peak_probability(peak_set, num_possible, locus_allele_frequencies=None, method='allele_frequency_weighted'):
+def calculate_peak_probability(peak_set, num_possible, locus_allele_frequencies=None):
     """
     Calculate the probability of a peak for a given MOI and set of allele frequencies.  3 different weighting methods
     available.  Allele_frequency_weighted weights peaks by allele frequency.  CDF_weighted weights peaks by how far they
@@ -119,24 +118,14 @@ def calculate_peak_probability(peak_set, num_possible, locus_allele_frequencies=
     :param method: Weighting method to be used.
     :return:
     """
-    methods = {
-        'allele_frequency_weighted': allele_frequency_weighted_probability,
-        'cdf_weighted': cdf_weighted_probability,
-        'combo_weighted': combo_weighted_probability
-    }
-
-    if method not in methods.keys():
-        raise KeyError("Method {} is not a valid method.  Please use one of {}".format(methods.keys()))
-
-    method = methods[method]
 
     recalculated_probabilities = {}
 
-    total_probability = (sum([method(_, locus_allele_frequencies) for _ in peak_set])) ** num_possible
+    total_probability = (sum([allele_frequency_weighted_probability(_, locus_allele_frequencies) for _ in peak_set])) ** num_possible
 
     for peak in peak_set:
         other_peaks = [_ for _ in peak_set if _['peak_index'] != peak['peak_index']]
-        other_peak_freqs = [method(_, locus_allele_frequencies) for _ in other_peaks]
+        other_peak_freqs = [allele_frequency_weighted_probability(_, locus_allele_frequencies) for _ in other_peaks]
         recalculated_probability = (total_probability - (sum(other_peak_freqs) ** num_possible)) / float(total_probability)
         print recalculated_probability
         recalculated_probabilities[peak['peak_index']] = recalculated_probability

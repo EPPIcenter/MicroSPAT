@@ -61,11 +61,11 @@ export class LocusParameters extends DatabaseItem implements PeakScanner {
         this.noise_perc = 13;
         this.gap_threshold = 2;
 
-        this.min_peak_height = 150;
+        this.min_peak_height = 0;
         this.max_peak_height = 40000;
         this.min_peak_height_ratio = 0;
-        this.max_bleedthrough = 4;
-        this.max_crosstalk = 4;
+        this.max_bleedthrough = 10;
+        this.max_crosstalk = 10;
         this.min_peak_distance = 2;
 
     }

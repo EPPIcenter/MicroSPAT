@@ -27,7 +27,7 @@ class BinFinder(object):
         self.bins = bins
 
     @classmethod
-    def calculate_bins(cls, peaks, nucleotide_repeat_length=3, min_peak_frequency=20, bin_buffer=.75):
+    def calculate_bins(cls, peaks, nucleotide_repeat_length=3, min_peak_frequency=1, bin_buffer=.75):
         """
         Calculate bins for a given set of peaks.
 

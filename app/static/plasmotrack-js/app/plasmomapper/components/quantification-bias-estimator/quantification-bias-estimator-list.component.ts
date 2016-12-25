@@ -94,7 +94,7 @@ import { ArtifactEstimatorProject } from '../../services/artifact-estimator-proj
                         </div>
                         <div class="form-group">
                             <label>Bin Set</label>
-                            <select [(ngModel)]="newProject.bin_estimator_id" required class="form-control" [disabled]="binEstimatorsDisabled">
+                            <select (change)="binSetChange($event)" [(ngModel)]="newProject.bin_estimator_id" required class="form-control" [disabled]="binEstimatorsDisabled">
                                 <option *ngFor="let binEstimator of validBinEstimators" value={{binEstimator.id}}>{{binEstimator.title}}</option>
                             </select>
                         </div>
@@ -212,7 +212,6 @@ export class QuantificationBiasEstimatorProjectListComponent implements OnInit {
     locusSetChange(e) {
         let locus_set_id = +e.target.value;
         this.binEstimatorsDisabled = true;
-        this.artifactEstimatorsDisabled = true;
         this.validBinEstimators = [];
         
         this.binEstimators.forEach((binEstimator) => {
@@ -229,8 +228,25 @@ export class QuantificationBiasEstimatorProjectListComponent implements OnInit {
             }
         });
 
+        if(this.validBinEstimators.length > 0) {
+            this.binEstimatorsDisabled = false;
+        }
+
+    }
+
+    binSetChange(e) {
+        let bin_set_id = +e.target.value;
+        this.artifactEstimatorsDisabled = true;
+        this.validArtifactEstimators = [];
+
+        console.log(bin_set_id);
+        
         this.artifactEstimators.forEach(artifactEstimator => {
-            if(artifactEstimator.locus_set_id == locus_set_id) {
+            console.log(artifactEstimator);
+            
+            console.log(bin_set_id === artifactEstimator.bin_estimator_id);
+            
+            if(+artifactEstimator.bin_estimator_id === bin_set_id) {
                 let all_clean = true;
                 artifactEstimator.locus_parameters.forEach(lp => {
                     if(lp.filter_parameters_stale || lp.scanning_parameters_stale) {
@@ -241,15 +257,13 @@ export class QuantificationBiasEstimatorProjectListComponent implements OnInit {
                     this.validArtifactEstimators.push(artifactEstimator);
                 }
             }
-        })
-        
-        if(this.validBinEstimators.length > 0) {
-            this.binEstimatorsDisabled = false;
-        }
+        });
 
         if(this.validArtifactEstimators.length > 0) {
             this.artifactEstimatorsDisabled = false;
         }
+
+
     }
 
     ngOnInit() {

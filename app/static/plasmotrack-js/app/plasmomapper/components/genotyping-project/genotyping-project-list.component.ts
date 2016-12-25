@@ -104,7 +104,7 @@ import { QuantificationBiasEstimatorProject } from '../../services/quantificatio
                         </div>
                         <div class="form-group">
                             <label>Bin Set</label>
-                            <select [(ngModel)]="newProject.bin_estimator_id" required class="form-control" [disabled]="binEstimatorsDisabled">
+                            <select (change)="binSetChange($event)" [(ngModel)]="newProject.bin_estimator_id" required class="form-control" [disabled]="binEstimatorsDisabled">
                                 <option value={{null}}>None</option>
                                 <option *ngFor="let binEstimator of validBinEstimators" value={{binEstimator.id}}>{{binEstimator.title}}</option>
                             </select>
@@ -261,26 +261,10 @@ export class GenotypingProjectListComponent implements OnInit {
     
     locusSetChange(e) {
         let locus_set_id = +e.target.value;
-        this.artifactEstimatorsDisabled = true;
         this.binEstimatorsDisabled = true;
-        this.quantEstimatorsDisabled = true;
-        this.validArtifactEstimators = [];
         this.validBinEstimators = [];
-        
-        this.artifactEstimators.forEach((artifactEstimator) => {            
-            if(artifactEstimator.locus_set_id == locus_set_id) {
-                let all_clean = true;
-                artifactEstimator.locus_parameters.forEach((lp) => {
-                    if(lp.filter_parameters_stale || lp.scanning_parameters_stale) {
-                        all_clean = false;
-                    }
-                })
-                if(all_clean) {
-                    this.validArtifactEstimators.push(artifactEstimator);
-                }
-            }
-        });
-        
+       
+
         this.binEstimators.forEach((binEstimator) => {
             if(binEstimator.locus_set_id == locus_set_id) {
                 let all_clean = true;
@@ -294,9 +278,49 @@ export class GenotypingProjectListComponent implements OnInit {
                 }
             }
         });
+        
+
+        
+        if(this.validBinEstimators.length > 0) {
+            this.binEstimatorsDisabled = false;
+        }
+
+
+        
+    }
+
+    binSetChange(e) {
+        let bin_set_id = +e.target.value;
+        this.quantEstimatorsDisabled = true;
+        this.artifactEstimatorsDisabled = true;
+        this.validArtifactEstimators = [];
+        this.validQuantEstimators = [];
+
+        console.log("New Project", this.newProject);
+        
+
+        this.artifactEstimators.forEach(artifactEstimator => {         
+               
+            if(artifactEstimator.locus_set_id === +this.newProject.locus_set_id && bin_set_id == artifactEstimator.bin_estimator_id) {
+                let all_clean = true;
+                artifactEstimator.locus_parameters.forEach((lp) => {
+                    if(lp.filter_parameters_stale || lp.scanning_parameters_stale) {
+                        all_clean = false;
+                    }
+                })
+                if(all_clean) {
+                    this.validArtifactEstimators.push(artifactEstimator);
+                }
+            }
+        });
+
+        if(this.validArtifactEstimators.length > 0) {
+            this.artifactEstimatorsDisabled = false;
+        }
 
         this.quantEstimators.forEach(quantEstimator => {
-            if(quantEstimator.locus_set_id == locus_set_id) {
+            
+            if(quantEstimator.locus_set_id === +this.newProject.locus_set_id && bin_set_id == quantEstimator.bin_estimator_id) {
                 let all_clean = true;
                 quantEstimator.locus_parameters.forEach(lp => {
                     if(lp.filter_parameters_stale || lp.scanning_parameters_stale) {
@@ -308,16 +332,6 @@ export class GenotypingProjectListComponent implements OnInit {
                 }
             }
         })
-
-
-        
-        if(this.validArtifactEstimators.length > 0) {
-            this.artifactEstimatorsDisabled = false;
-        }
-        
-        if(this.validBinEstimators.length > 0) {
-            this.binEstimatorsDisabled = false;
-        }
 
         if(this.validQuantEstimators.length > 0) {
             this.quantEstimatorsDisabled = false;

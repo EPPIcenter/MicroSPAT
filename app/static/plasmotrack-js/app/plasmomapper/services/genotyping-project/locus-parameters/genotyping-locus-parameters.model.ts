@@ -38,9 +38,9 @@ export class GenotypingLocusParameters extends LocusParameters {
         this.bleedthrough_filter_limit = 2;
         this.crosstalk_filter_limit = 2;
         this.relative_peak_height_limit = .01;
-        this.absolute_peak_height_limit = 50;
+        this.absolute_peak_height_limit = 300;
         this.failure_threshold = 500;
-        this.probability_threshold = 0;
-        this.bootstrap_probability_threshold = 0;
+        this.probability_threshold = 0.9;
+        this.bootstrap_probability_threshold = 0.99;
     }
 }

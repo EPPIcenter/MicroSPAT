@@ -154,7 +154,15 @@ export class D3Canvas{
             .style("fill", (d) => d.color)
             .style("stroke", (d) => d.outline)
             .attr("opacity", (d) => d.opacity)
-            .on("mouseover", (d) => mouseOverHandler(d.id))
+            .on("mouseover", (d) => {
+                d3.tipShow([
+                    {
+                        'test': 'It worked'
+                    }
+                ]);
+                mouseOverHandler(d.id);
+            })
+            .on("mouseout", d3.tipHide);
         
         if(annotations.length > 0) {
             console.log(annotations)

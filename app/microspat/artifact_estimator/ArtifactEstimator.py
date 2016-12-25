@@ -90,10 +90,6 @@ class ArtifactEstimatorSet(object):
                     else:
                         temp.append(peak)
 
-                # peak_subset = [peak for peak in cluster_set if
-                #                abs(peak['dist_from_max_peak'] - artifact_distance) < artifact_distance_buffer * 3 and
-                #                peak['relative_peak_height'] != 1]
-
                 if len(peak_subset) >= min_artifact_peak_frequency:
                     artifact_estimator = ArtifactEstimator(artifact_distance=artifact_distance,
                                                            artifact_distance_buffer=max(artifact_distance_buffer * 3,
@@ -182,7 +178,8 @@ class ArtifactEstimator(object):
         :param peak_data: list of peaks
 
         peak = {
-            peak_size: int
+            peak_size: int,
+            relative_peak_height: float
         }
 
         :return: ArtifactEquation[]
@@ -265,10 +262,10 @@ class ArtifactEquation(object):
     @classmethod
     def from_peaks(cls, peaks, start_size, end_size, method='TSR'):
         methods = {
-            'LSR': cls.calculate_lsr,
-            'TSR': cls.calculate_tsr,
-            'RANSAC': cls.calculate_ransac,
-            'no_slope': cls.calculate_no_slope
+            'LSR': cls._calculate_lsr,
+            'TSR': cls._calculate_tsr,
+            'RANSAC': cls._calculate_ransac,
+            'no_slope': cls._calculate_no_slope
         }
 
         m = methods.get(method)
@@ -281,9 +278,9 @@ class ArtifactEquation(object):
         return cls(start_size=start_size, end_size=end_size, method=method, **model)
 
     @staticmethod
-    def linear_regression(pts, regressor):
-        x = np.array([a['peak_size'] for a in pts])
-        y = np.array([b['relative_peak_height'] for b in pts])
+    def _linear_regression(pts, regressor):
+        x = np.array([_['peak_size'] for _ in pts])
+        y = np.array([_['relative_peak_height'] for _ in pts])
         X = x[:, np.newaxis]
 
         regressor.fit(X, y)
@@ -298,7 +295,7 @@ class ArtifactEquation(object):
         }
 
     @staticmethod
-    def ransac_regression(pts, regressor):
+    def _ransac_regression(pts, regressor):
         ransac = RANSACRegressor(regressor)
         x = np.array([a['peak_size'] for a in pts])
         y = np.array([b['relative_peak_height'] for b in pts])
@@ -317,7 +314,7 @@ class ArtifactEquation(object):
         }
 
     @staticmethod
-    def no_slope(pts):
+    def _no_slope(pts):
         return {
             'intercept': np.average([a['relative_peak_height'] for a in pts]),
             'r_squared': 0,
@@ -326,20 +323,20 @@ class ArtifactEquation(object):
         }
 
     @classmethod
-    def calculate_lsr(cls, pts):
+    def _calculate_lsr(cls, pts):
         regressor = LinearRegression()
-        return cls.linear_regression(pts, regressor)
+        return cls._linear_regression(pts, regressor)
 
     @classmethod
-    def calculate_tsr(cls, pts):
+    def _calculate_tsr(cls, pts):
         regressor = TheilSenRegressor()
-        return cls.linear_regression(pts, regressor)
+        return cls._linear_regression(pts, regressor)
 
     @classmethod
-    def calculate_ransac(cls, pts):
+    def _calculate_ransac(cls, pts):
         regressor = LinearRegression()
-        return cls.ransac_regression(pts, regressor)
+        return cls._ransac_regression(pts, regressor)
 
     @classmethod
-    def calculate_no_slope(cls, pts):
-        return cls.no_slope(pts)
+    def _calculate_no_slope(cls, pts):
+        return cls._no_slope(pts)

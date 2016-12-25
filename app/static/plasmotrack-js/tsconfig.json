@@ -6,7 +6,9 @@
     "sourceMap": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "removeComments": false,
+    "removeComments": true,
+    "outDir": "build",
+    // "out": "build/plasmotrack.js",
     "noImplicitAny": false
   },
   "exclude": [

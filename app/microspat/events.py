@@ -460,39 +460,40 @@ def get_genotyping_peak_data(id):
         locus_annotations = SampleLocusAnnotation.query.filter(SampleLocusAnnotation.project_id == id).join(
             SampleLocusAnnotation.locus).join(ProjectChannelAnnotations).join(Channel).join(Well).values(
             SampleLocusAnnotation.annotated_peaks, SampleLocusAnnotation.sample_annotations_id, Locus.label,
-            Well.well_label, SampleLocusAnnotation.alleles)
+            Well.well_label, SampleLocusAnnotation.alleles, SampleLocusAnnotation.flags)
         sample_ids = dict(ProjectSampleAnnotations.query.distinct().join(Sample).filter(
             ProjectSampleAnnotations.project_id == id).values(ProjectSampleAnnotations.id, Sample.barcode))
         for la in locus_annotations:
-            alleles = la[4].items()
-            bin_ids = [str(x[0]) for x in alleles if x[1]]
-            for peak in la[0]:
-                res = dict()
-                res["Sample"] = sample_ids[la[1]]
-                res["Locus"] = la[2]
-                res["Peak Height"] = peak['peak_height']
-                res["Corrected Proportion"] = peak.get('corrected_relative_quantification', 'NA')
-                res["Peak Size"] = peak['peak_size']
-                res["Peak Area"] = peak['peak_area']
-                res["Left Tail"] = peak['left_tail']
-                res["Right Tail"] = peak['right_tail']
-                res["Artifact Contribution"] = peak.get('artifact_contribution', 'NA')
-                res["Artifact Error"] = peak.get('artifact_error', 'NA')
-                res["Artifact Flag"] = peak['flags']['artifact']
-                res["Below Relative Threshold Flag"] = peak['flags']['below_relative_threshold']
-                res["Crosstalk Flag"] = peak['flags']['crosstalk']
-                res["Bleedthrough Flag"] = peak['flags']['bleedthrough']
-                res["In Bin"] = bool(peak['bin_id'])
-                res["Relative Peak Height"] = peak['relative_peak_height']
-                if res["In Bin"]:
-                    res["Called Allele"] = str(peak['bin_id']) in bin_ids
-                    res["Allele Label"] = str(peak['bin'])
-                res["Bleedthrough Ratio"] = peak['bleedthrough_ratio']
-                res["Crosstalk Ratio"] = peak['crosstalk_ratio']
-                res["Well"] = la[3]
-                if 'probability' in peak:
-                    res["Probability"] = peak['probability']
-                results.append(res)
+            if not la[5]['failure']:
+                alleles = la[4].items()
+                bin_ids = [str(x[0]) for x in alleles if x[1]]
+                for peak in la[0]:
+                    res = dict()
+                    res["Sample"] = sample_ids[la[1]]
+                    res["Locus"] = la[2]
+                    res["Peak Height"] = peak['peak_height']
+                    res["Corrected Proportion"] = peak.get('corrected_relative_quantification', 'NA')
+                    res["Peak Size"] = peak['peak_size']
+                    res["Peak Area"] = peak['peak_area']
+                    res["Left Tail"] = peak['left_tail']
+                    res["Right Tail"] = peak['right_tail']
+                    res["Artifact Contribution"] = peak.get('artifact_contribution', 'NA')
+                    res["Artifact Error"] = peak.get('artifact_error', 'NA')
+                    res["Artifact Flag"] = peak['flags']['artifact']
+                    res["Below Relative Threshold Flag"] = peak['flags']['below_relative_threshold']
+                    res["Crosstalk Flag"] = peak['flags']['crosstalk']
+                    res["Bleedthrough Flag"] = peak['flags']['bleedthrough']
+                    res["In Bin"] = bool(peak['bin_id'])
+                    res["Relative Peak Height"] = peak['relative_peak_height']
+                    if res["In Bin"]:
+                        res["Called Allele"] = str(peak['bin_id']) in bin_ids
+                        res["Allele Label"] = str(peak['bin'])
+                    res["Bleedthrough Ratio"] = peak['bleedthrough_ratio']
+                    res["Crosstalk Ratio"] = peak['crosstalk_ratio']
+                    res["Well"] = la[3]
+                    if 'probability' in peak:
+                        res["Probability"] = peak['probability']
+                    results.append(res)
         handle, temp_path = tempfile.mkstemp(suffix='csv', prefix=gp_title)
         with open(temp_path, 'w') as f:
             w = csv.DictWriter(f, fieldnames=header)
@@ -584,7 +585,8 @@ def get_or_update_genotyping_project(id):
             return handle_error(err)
     elif request.method == 'DELETE':
         try:
-            GenotypingProject.query.filter(GenotypingProject.id == id).delete()
+            gp = GenotypingProject.query.filter(GenotypingProject.id == id).first()
+            db.session.delete(gp)
             return jsonify(wrap_data({"id": id}))
         except Exception as e:
             return handle_error(e)
@@ -669,7 +671,10 @@ def quantification_bias_estimator_project_add_samples(id):
         return handle_error("Nothing Uploaded")
 
     for sample_file in files:
-        load_samples_and_controls_from_csv(sample_file, qbe.id)
+        try:
+            load_samples_and_controls_from_csv(sample_file, qbe.id)
+        except Exception as e:
+            return handle_error("Cannot process file, make sure it's a csv.")
     return jsonify(wrap_data(qbe.serialize_details()))
 
 
@@ -1246,6 +1251,9 @@ def recalculate_ladder(id):
     if well and isinstance(peak_indices, list):
         try:
             well.calculate_base_sizes(peak_indices)
+            for channel in well.channels:
+                if channel.locus_id:
+                    channel.find_max_data_point()
             return jsonify(wrap_data({'status': 'Success'}))
         except Exception as e:
             handle_error(e)
