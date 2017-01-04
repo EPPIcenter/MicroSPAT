@@ -9,8 +9,8 @@ app/static/plasmotrack-js/typings/*
 app/static/plasmotrack-js/bootstrap/*
 .env
 test.py
-*.js.map
-*.js
+static/plasmotrack-js/build/**/*.js.map
+static/plasmotrack-js/build/**/*.js
 *.sqlite*
 .Rhistory
 tex/*
