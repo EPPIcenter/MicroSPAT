@@ -32,6 +32,7 @@ from app.utils import CaseInsensitiveDictReader
 from app.microspat.utils import load_loci_from_csv, LocusException, load_samples_from_csv, load_plate_zips, \
     load_samples_and_controls_from_csv
 from models import *
+from notifications import *
 
 microspat = Blueprint('microspat', import_name=__name__, template_folder='templates',
                       url_prefix='/microspat/api/v1')
@@ -304,21 +305,21 @@ def catch_all(path):
     res.status_code = 404
     return res
 
-
-@socketio.on('connect')
-def test_message(message=None):
-    emit('message', request.sid + ' Connected', broadcast=True)
-
-
-@socketio.on('client_test')
-def client_test(message=None):
-    emit('server_test', 'Success')
-
-
-@socketio.on('list', namespace='/project')
-def socket_get_or_post_projects():
-    projects = GenotypingProject.query.all()
-    emit('list_all', [x.serialize() for x in projects])
+#
+# @socketio.on('connect')
+# def test_message(message=None):
+#     emit('message', request.sid + ' Connected', broadcast=True)
+#
+#
+# @socketio.on('client_test')
+# def client_test(message=None):
+#     emit('server_test', 'Success')
+#
+#
+# @socketio.on('list', namespace='/project')
+# def socket_get_or_post_projects():
+#     projects = GenotypingProject.query.all()
+#     emit('list_all', [x.serialize() for x in projects])
 
 
 def send_notification(type, message):

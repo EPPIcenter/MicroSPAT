@@ -294,10 +294,7 @@ export class GenotypingProjectListComponent implements OnInit {
         this.quantEstimatorsDisabled = true;
         this.artifactEstimatorsDisabled = true;
         this.validArtifactEstimators = [];
-        this.validQuantEstimators = [];
-
-        console.log("New Project", this.newProject);
-        
+        this.validQuantEstimators = [];        
 
         this.artifactEstimators.forEach(artifactEstimator => {         
                

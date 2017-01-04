@@ -375,9 +375,7 @@ export class QuantificationBiasEstimatorProjectSampleList implements OnInit {
         this._router.navigate(link);
     }
   
-    ngOnInit() {
-        console.log("Initializing Component");
-        
+    ngOnInit() {        
         this.getProject();
     }
 }

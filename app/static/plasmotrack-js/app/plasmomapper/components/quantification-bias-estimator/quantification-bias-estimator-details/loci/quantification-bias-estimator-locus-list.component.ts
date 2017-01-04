@@ -470,7 +470,6 @@ export class QuantificationBiasEstimatorProjectLocusListComponent {
 
     private selectLocus(locus_id: number) {
         if(!this.isSubmitting && !this.selectingLocus){
-            console.log(locus_id);
             this.selectedLocus = null;
             this.failureRate = null;
             this.selectedLocusParameter = null;

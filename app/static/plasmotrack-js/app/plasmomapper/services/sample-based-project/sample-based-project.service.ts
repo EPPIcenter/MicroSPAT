@@ -45,15 +45,11 @@ export class SampleBasedProjectService extends ProjectService {
         };
         
         this.getSampleLocusAnnotations = (project_id: number, sample_id: number) => {
-            console.log("Getting Sample Locus Annotations");
-            
             let url = this._locusAnnotationUrl + project_id + "/sample/" + sample_id + "/";
             return this._commonServerMethods.getList(SampleLocusAnnotation, url)
         };
         
         this.getSampleChannelAnnotations = (project_id: number, sample_id: number) => {
-            console.log("Getting Sample Channel Annotations");
-            
             let url = this._channelAnnotationsUrl + project_id + "/sample/" + sample_id;
             return this._commonServerMethods.getList(ChannelAnnotation, url)
         }

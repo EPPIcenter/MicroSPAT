@@ -206,7 +206,6 @@ export class LocusListComponent implements OnInit{
     }
     
     fileChangeEvent(fileInput: any){
-        console.log(fileInput);
         this.locusCSV = <File> fileInput.target.files[0];
     }
 

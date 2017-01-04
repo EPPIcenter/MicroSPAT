@@ -119,7 +119,6 @@ export class D3ArtifactEstimatorPanel implements OnInit, OnDestroy {
     }
 
     rerender() {
-        console.log("Rerendering");
         this.findRange();
         this.createBars();
         this.createCircles();

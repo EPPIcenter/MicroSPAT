@@ -190,7 +190,6 @@ export class BinEstimatorLocusListComponent {
                         this.selectedLocusParameter = this.selectedProject.locus_parameters.get(locus_id);
                         if(this.selectedProject.locus_bin_sets.has(this.selectedLocus.id)){
                             this.selectedProject.locus_bin_sets.get(this.selectedLocus.id).bins.forEach((bin) => {
-                                console.log(bin);
                                 this.selectedBins.push(bin);
                             });
                         }

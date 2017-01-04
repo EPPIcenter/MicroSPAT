@@ -69,9 +69,7 @@ export class QuantificationBiasEstimatorProjectDetailComponent implements OnInit
         private _routeParams: RouteParams,
         private _router: Router,
         private _binService: BinEstimatorProjectService
-    ){
-        console.log("BIN ESTIMATOR SERVICE", this._binService)
-    }
+    ){    }
 
     getProject() {
         this._quantificationBiasEstimatorProjectService.getProject(+this._routeParams.get('project_id')).subscribe(

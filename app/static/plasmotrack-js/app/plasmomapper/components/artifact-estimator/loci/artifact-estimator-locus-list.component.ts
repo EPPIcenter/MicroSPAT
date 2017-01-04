@@ -298,10 +298,8 @@ export class ArtifactEstimatorLocusListComponent implements OnInit {
     private recalculateArtifactEquations() {
         if(!this.isSubmitting) {
             let artifact_equations = this.selectedArtifactEstimator.artifact_equations
-            console.log(this.selectedArtifactEstimator);
             this.isSubmitting = true;
             let artifact_equation_parameter_sets = artifact_equations.map((ae) => {
-                console.log(ae);
                 let p: ArtifactEquationParameterSet = {
                     start_size: ae.start_size,
                     end_size: ae.end_size,
@@ -309,7 +307,6 @@ export class ArtifactEstimatorLocusListComponent implements OnInit {
                 }
                 return p;
             })
-            console.log(artifact_equation_parameter_sets);
             this._artifactEstimatorProjectService.recalculateArtifactEquations(this.selectedArtifactEstimator.id, artifact_equation_parameter_sets)
                 .subscribe(
                     aes => {
@@ -327,7 +324,6 @@ export class ArtifactEstimatorLocusListComponent implements OnInit {
                     },
                     () => {
                         this.isSubmitting = false;
-                        console.log("FINALLY");
                     }
                 )
 

@@ -192,9 +192,7 @@ export class PlateDetailComponent implements OnInit {
                         this.recalculatingLadder = false;
                     }
                 )
-        }
-        
-        console.log("Recalculate Plate Ladder", plate_id, ladder_id);
+        }        
     }
     
     ngOnInit() {
@@ -202,7 +200,6 @@ export class PlateDetailComponent implements OnInit {
         this._ladderService.getLadders().subscribe(
             ladders => {
                 this.ladders = ladders;
-                console.log(this.ladders);
             },
             err => this.plateMapError = err
         )

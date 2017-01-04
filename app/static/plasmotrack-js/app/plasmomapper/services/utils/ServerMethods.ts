@@ -33,28 +33,11 @@ export class CommonServerMethods {
     
     constructor(protected http: Http) {
        this.socket = io(SERVER_BASE) 
-       this.socket.on('connect', (event) =>{
-           console.log(event);
-           console.log("Socket Connected");
-       });
-       
-       this.socket.on('test', (event) => {
-           console.log(event);
-           console.log("Test Event Fired");
-       })
-       
-       this.socket.on('server_test', (event) => {
-           console.log(event);
-           console.log("Server Test Event Received");
-       })
-       
     }
     
     
     
     public getList<T extends DatabaseItem> (type: { new(): T ;} , url: string) : Observable<T[]> {
-        // console.log("Getting List");
-        // this.socket.emit('client_test');
         return this.http.get(url)
                         .map(res_array => <Object[]> res_array.json().data)
                         .map(res_array => res_array.map((res) =>{                            
@@ -89,7 +72,6 @@ export class CommonServerMethods {
     public getUrl(url) : Observable<any> {
         return this.http.get(url)
                     .map(res => {
-                        console.log(res);
                         return <Object> res.json().data
                     })
                     .catch(this.handleError);
@@ -127,8 +109,6 @@ export class CommonServerMethods {
     }
     
     public createItem<T extends DatabaseItem>(item: any, type: { new(): T ;}, url: string, cache?: LRUCache<T>): Observable<T> {
-        // console.log("Creating Item on Server");
-        
         let headers = new Headers();
         headers.append('Content-Type', 'application/json');
         
@@ -184,21 +164,6 @@ export class CommonServerMethods {
     public postJSON(obj: Object, url: string) {
         let headers = new Headers();
         headers.append('Content-Type', 'application/json');
-
-        // if(Array.isArray(obj)) {
-        //     console.log(obj);
-        //     stringified = JSON.stringify(obj.map((el) => {
-        //             return JSON.stringify(el, (k, v) => {
-        //                 if(k.startsWith('_')) {
-        //                     return undefined;
-        //                 } else {
-        //                     return v;
-        //                 }
-        //             })
-        //         })
-        //     )
-        // } else {
-        console.log(obj);
         let stringified = JSON.stringify(obj, (k, v) => {
             if(k.startsWith('_')) {
                 return undefined;
@@ -206,17 +171,12 @@ export class CommonServerMethods {
                 return v;
             }
         })
-        //}
-
-        console.log(stringified);
-        console.log(typeof stringified);
         
         return this.http.post(url, stringified, {headers: headers})
                     .catch(this.handleError);
     }
     
     protected handleError(error: Response) {
-        console.log(error);
         return Observable.throw(error.json || 'Server error');
     };
 }

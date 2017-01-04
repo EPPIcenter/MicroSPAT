@@ -213,10 +213,8 @@ export class ControlListComponent implements OnInit {
                         )
                     }
 
-                    console.log(this.selectedBinEstimator)
                     this.selectedBinEstimator.locus_bin_sets.forEach(
                         (lbs, i) => {
-                            console.log(lbs);
                             let locus_bin_set = {
                                 locus_id: lbs.locus_id,
                                 bins: []
@@ -273,7 +271,6 @@ export class ControlListComponent implements OnInit {
     deleteControl() {
         if(!this.savingControl && this.selectedControl.id && !this.deletingControl) {
             this.deletingControl = true;
-            console.log("Deleting Control");
             
             this._controlService.deleteControl(this.selectedControl.id).subscribe(
                 () => {

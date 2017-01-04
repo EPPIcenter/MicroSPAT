@@ -360,7 +360,6 @@ export class GenotypingProjectLocusList {
         this.selectedProject.locus_parameters.forEach((locus_param, id) => {
             this.locusParameters.push(locus_param);
         });
-        console.log(this.locusParameters);
     }
     
     private goToLink(dest: String, params: Object) {
@@ -494,7 +493,6 @@ export class GenotypingProjectLocusList {
     
     private selectLocus(locus_id: number) {
         if(!this.isSubmitting && !this.selectingLocus){
-            console.log(locus_id);
             this.errorMessage = null;
             this.selectedLocus = null;
             this.failureRate = null;
@@ -551,7 +549,6 @@ export class GenotypingProjectLocusList {
                 let lp = new GenotypingLocusParameters();
                 // lp.locus_id = -1;
                 lp.initialize();
-                console.log("ALL LOCUS ANALYSIS");
                 this.selectedLocusParameter = lp;
             }
             

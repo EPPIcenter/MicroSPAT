@@ -45,7 +45,6 @@ export class D3PlateLadderDetailComponent implements OnChanges {
     ){}
 
     render() {
-        console.log("Plate Changed");
         this.squares = [];
         this.wellArrangement = this.plate.well_arrangement;
         

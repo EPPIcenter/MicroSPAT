@@ -142,7 +142,6 @@ export class D3BinEstimatorPlot implements OnInit, OnDestroy{
     }
     
     ngOnInit(){
-        console.log("Initing Bin Plots")
         this.bins.forEach((b) => {
             this.__bins.push(b);
         })
@@ -166,7 +165,6 @@ export class D3BinEstimatorPlot implements OnInit, OnDestroy{
             }
             this.canvas = new D3Canvas(this.canvasConfig);            
             this.canvas.addBars(this.bars, (bar) => {
-                console.log("Click Bin Triggered", bar);
                 this.selectBin(bar.id);
                 this.createBars();
                 this.render();
@@ -179,7 +177,6 @@ export class D3BinEstimatorPlot implements OnInit, OnDestroy{
         this.selectedBin = this.bins.filter((bin) => {
             return bin._global_id === id;
         })[0];
-        console.log("Selecting Bin", id, this.selectedBin);
     }
 
     private addBin(bin_center: number) {
@@ -242,7 +239,6 @@ export class D3BinEstimatorPlot implements OnInit, OnDestroy{
             })._global_id);
         }
         
-        console.log("Changes", changes);
         if(changes['bins']) {
             this.__bins = [];
             this.selectedBin = null;

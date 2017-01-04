@@ -687,7 +687,8 @@ class SampleBasedProject(Project, BinEstimating):
         n = 0
 
         sample_ids_map = defaultdict(list)
-        channel_and_sample_ids = Channel.query.join(Sample).join(Locus).join(locus_set_association_table).join(LocusSet).join(
+        channel_and_sample_ids = Channel.query.join(Sample).join(Locus).join(locus_set_association_table).join(
+            LocusSet).join(
             Project).filter(Project.id == self.id).values(Channel.id, Channel.sample_id)
         for channel_id, sample_id in channel_and_sample_ids:
             sample_ids_map[sample_id].append(channel_id)
@@ -1605,10 +1606,12 @@ class QuantificationBiasEstimatorProject(SampleBasedProject, ArtifactEstimating)
                                           _['peak_height'] > lp.min_bias_quantifier_peak_height,
                                 locus_annotation.annotated_peaks) for locus_annotation in locus_annotations]
             # peak_sets = [_ for _ in peak_sets if len(_) == 2 and sum([peak['true_proportion'] for peak in _]) == 1]
-            peak_sets = [_ for _ in peak_sets if abs(sum([peak['true_proportion'] for peak in _]) - 1) < .0001 and len(_) > 1]
+            peak_sets = [_ for _ in peak_sets if
+                         abs(sum([peak['true_proportion'] for peak in _]) - 1) < .0001 and len(_) > 1]
             # if peak_sets and all(map(lambda _: len(_) == 2, peak_sets)):  # Algorithm currently only supports 2 peaks
             if peak_sets:
-                lp.beta, lp.sd, lp.r_squared = calculate_beta(peak_sets, min_peak_proportion = lp.min_bias_quantifier_peak_proportion)
+                lp.beta, lp.sd, lp.r_squared = calculate_beta(peak_sets,
+                                                              min_peak_proportion=lp.min_bias_quantifier_peak_proportion)
             else:
                 lp.beta = None
         return self
@@ -2665,12 +2668,12 @@ class LocusSet(db.Model):
         dump = {
             'label': self.label,
             'loci': [{
-                'label': locus.label,
-                'max_base_length': locus.max_base_length,
-                'min_base_length': locus.min_base_length,
-                'nucleotide_repeat_length': locus.nucleotide_repeat_length,
-                'color': locus.color
-            } for locus in self.loci]
+                         'label': locus.label,
+                         'max_base_length': locus.max_base_length,
+                         'min_base_length': locus.min_base_length,
+                         'nucleotide_repeat_length': locus.nucleotide_repeat_length,
+                         'color': locus.color
+                     } for locus in self.loci]
         }
         return json.dumps(dump)
 
@@ -2781,8 +2784,8 @@ class Plate(PlateExtractor, TimeStamped, Flaggable, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     label = db.Column(db.String(255), nullable=False, index=True)
     creator = db.Column(db.String(255), nullable=True)
-    date_processed = db.Column(db.DateTime, default=datetime.utcnow)
-    date_run = db.Column(db.Date, nullable=False)
+    date_processed = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    date_run = db.Column(db.Date, nullable=False, index=True)
     well_arrangement = db.Column(db.Integer, nullable=False, default=96)
     ce_machine = db.Column(db.String(255), default="Unknown")
     wells = db.relationship('Well', backref=db.backref('plate'), cascade='save-update, merge, delete, delete-orphan')
@@ -2806,17 +2809,23 @@ class Plate(PlateExtractor, TimeStamped, Flaggable, db.Model):
     def get_serialized_list(cls):
         plates = cls.query.values(cls.id, cls.label, cls.creator, cls.date_processed, cls.date_run,
                                   cls.well_arrangement, cls.ce_machine, cls.plate_hash, cls.last_updated, cls.flags)
-        plates = [{'id': p[0],
-                   'label': p[1],
-                   'creator': p[2],
-                   'date_processed': str(p[3]),
-                   'date_run': str(p[4]),
-                   'well_arrangement': str(p[5]),
-                   'ce_machine': str(p[6]),
-                   'plate_hash': str(p[7]),
-                   'last_updated': str(p[8]),
-                   'flags': p[9]} for p in plates]
-        return plates
+        res = []
+        for p in plates:
+            wells = Well.query.filter(Well.plate_id == p[0]).values(Well.id)
+            wells = [_[0] for _ in wells]
+            r = {'id': p[0],
+                 'label': p[1],
+                 'creator': p[2],
+                 'date_processed': str(p[3]),
+                 'date_run': str(p[4]),
+                 'well_arrangement': str(p[5]),
+                 'ce_machine': str(p[6]),
+                 'plate_hash': str(p[7]),
+                 'last_updated': str(p[8]),
+                 'flags': p[9],
+                 'wells': wells}
+            res.append(r)
+        return res
 
     @classmethod
     def from_zip(cls, zip_file, ladder, creator=None, comments=None, add_to_db=True):
@@ -3135,24 +3144,6 @@ def clear_channel_annotations(session, _, __):
             a.clear_annotated_peaks()
             a.clear_alleles()
             a.clear_flags()
-
-
-@event.listens_for(db.Model, 'after_update', propagate=True)
-def broadcast_update(mapper, connection, target):
-    if Config.NOTIFICATIONS:
-        socketio.emit('update', {
-            'type': target.__class__.__name__,
-            'id': target.id
-        })
-
-
-@event.listens_for(db.Model, 'after_delete', propagate=True)
-def broadcast_delete(mapper, connection, target):
-    if Config.NOTIFICATIONS:
-        socketio.emit('delete', {
-            'type': target.__class__.__name__,
-            'id': target.id
-        })
 
 
 @event.listens_for(Engine, "connect")

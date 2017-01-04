@@ -83,19 +83,6 @@ export class PlateService {
             return this._commonServerMethods.deleteItem(plate_id, this._platesUrl, this._plateCache);
         }
 
-        this.testPost = () => {
-            this.testPostQueue = Observable.interval(3000)
-                .switchMap(() => this.http.get("https://www.random.org/sequences/?min=1&max=52&col=1&format=plain&rnd=new"))
-                .subscribe(data => {
-                    console.log(data);
-                    this.data.push(data);
-                    this.iterCount++;
-                    if(this.iterCount > 3) {
-                        this.testPostQueue.unsubscribe();
-                    }
-                })
-        }
-
         this.recalculateLadder = (plate_id: number, ladder_id: number) => {
             return this._commonServerMethods.getUrl(this._platesUrl + plate_id + "/recalculate-ladder/" + ladder_id + "/")
                 .map(plate => {

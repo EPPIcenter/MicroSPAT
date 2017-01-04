@@ -238,13 +238,8 @@ export class QuantificationBiasEstimatorProjectListComponent implements OnInit {
         let bin_set_id = +e.target.value;
         this.artifactEstimatorsDisabled = true;
         this.validArtifactEstimators = [];
-
-        console.log(bin_set_id);
         
         this.artifactEstimators.forEach(artifactEstimator => {
-            console.log(artifactEstimator);
-            
-            console.log(bin_set_id === artifactEstimator.bin_estimator_id);
             
             if(+artifactEstimator.bin_estimator_id === bin_set_id) {
                 let all_clean = true;

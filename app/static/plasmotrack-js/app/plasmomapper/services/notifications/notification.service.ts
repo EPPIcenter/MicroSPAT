@@ -25,8 +25,6 @@ export class NotificationService {
     constructor (protected _commonServerMethods: CommonServerMethods) {
         this._socket = io(SERVER_BASE);
         
-        console.log("Creating NotificationService");
-        
         this._socket.on('message', msg => {
             toastr.success(msg);
         });

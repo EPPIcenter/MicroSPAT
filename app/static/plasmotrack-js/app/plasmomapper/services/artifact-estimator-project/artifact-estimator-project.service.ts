@@ -85,7 +85,6 @@ export class ArtifactEstimatorProjectService extends ProjectService {
                 this._artifactEstimatorUrl + artifact_estimator_id + "/recalculate-artifact-equations/")
                 .map(res => <Object> res.json().data)
                 .map(res => {
-                    console.log(res);
                     let t = new ArtifactEstimator();
                     t.fillFromJSON(res);
                     return t;
