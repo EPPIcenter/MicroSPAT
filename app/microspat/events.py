@@ -32,7 +32,6 @@ from app.utils import CaseInsensitiveDictReader
 from app.microspat.utils import load_loci_from_csv, LocusException, load_samples_from_csv, load_plate_zips, \
     load_samples_and_controls_from_csv
 from models import *
-from notifications import *
 
 microspat = Blueprint('microspat', import_name=__name__, template_folder='templates',
                       url_prefix='/microspat/api/v1')
