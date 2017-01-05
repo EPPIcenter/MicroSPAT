@@ -2,13 +2,18 @@
   // map tells the System loader where to look for things
   var map = {
     'app':                        'build/app', // 'dist',
+    'css':                        'node_modules/systemjs-plugin-css/css.js',
     'rxjs':                       'node_modules/rxjs',
     'angular2-in-memory-web-api': 'node_modules/angular2-in-memory-web-api',
     '@angular':                   'node_modules/@angular'
   };
   // packages tells the System loader how to load when no filename and/or no extension
   var packages = {
-    'app':                        { main: 'main.js',  defaultExtension: 'js' },
+    'app':                        { main: 'main.js',
+                                    defaultExtension: 'js',
+                                    meta: {
+                                      '*.css': { loader: 'css' }
+                                    }},
     'rxjs':                       { defaultExtension: 'js' },
     'angular2-in-memory-web-api': { defaultExtension: 'js' },
   };

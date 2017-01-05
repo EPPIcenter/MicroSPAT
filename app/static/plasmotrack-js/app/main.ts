@@ -14,6 +14,12 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import '../../node_modules/bootstrap/dist/css/bootstrap.css!';
+import '../../node_modules/bootstrap/dist/css/bootstrap-theme.css!';
+import '../../node_modules/toastr/build/toastr.css!';
+import '../../styles.css!';
+
+
 import {bootstrap}      from '@angular/platform-browser-dynamic'
 import {PlasmoTrackComponent}   from './plasmotrack.component';
 

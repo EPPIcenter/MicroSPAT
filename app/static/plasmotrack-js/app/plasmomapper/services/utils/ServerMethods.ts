@@ -124,7 +124,7 @@ export class CommonServerMethods {
         
     }
     
-    public deleteItem<T extends DatabaseItem>(id: number, url: string, cache?: LRUCache<T>): Observable<T> {
+    public deleteItem<T extends DatabaseItem>(id: number, url: string, cache?: LRUCache<T>): Observable<T[]> | Observable<T> {
         return this.http.delete(url + id + '/')
                     .map(res => <Object> res.json().data)
                     .do(data => {

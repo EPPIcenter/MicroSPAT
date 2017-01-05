@@ -40,7 +40,7 @@ export class ArtifactEstimatorProjectService extends ProjectService {
     public createArtifactEstimatorProject: (project: ArtifactEstimatorProject) => Observable<ArtifactEstimatorProject>;
     public deleteArtifactEstimatorProject: (id: number) => Observable<DatabaseItem>;
     
-    public deleteArtifactEstimator: (id: number) => Observable<DatabaseItem>;
+    public deleteArtifactEstimator: (id: number) => Observable<DatabaseItem[]>;
     public addBreakpoint: (artifact_estimator_id: number, breakpoint: number) => Observable<ArtifactEstimator>;
 
     public recalculateArtifactEquations: (artifact_estimator_id: number, parameters: ArtifactEquationParameterSet[]) => Observable<ArtifactEstimator>;

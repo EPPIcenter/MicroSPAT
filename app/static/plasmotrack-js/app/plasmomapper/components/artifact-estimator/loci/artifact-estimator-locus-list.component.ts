@@ -383,15 +383,17 @@ export class ArtifactEstimatorLocusListComponent implements OnInit {
             this.deletingEstimator = true;
             this._artifactEstimatorProjectService.deleteArtifactEstimator(this.selectedArtifactEstimator.id)
             .subscribe(
-                () => {
-                    let _ : ArtifactEstimator[] = [];
-                    this.artifactEstimators.forEach((artifactEstimator, i) => {
-                      if(artifactEstimator.id != this.selectedArtifactEstimator.id) {
-                          _.push(artifactEstimator);
-                      }
-                    })
-                    this.selectedProject.locus_artifact_estimators.get(this.selectedLocus.id).artifact_estimators = _;
-                    this.artifactEstimators = _;
+                (aes: ArtifactEstimator[]) => {
+                    // console.log(aes);
+                    // let _ : ArtifactEstimator[] = [];
+                    // this.artifactEstimators.forEach((artifactEstimator, i) => {
+                    //   if(artifactEstimator.id != this.selectedArtifactEstimator.id) {
+                    //       _.push(artifactEstimator);
+                    //   }
+                    // })
+                    // this.selectedProject.locus_artifact_estimators.get(this.selectedLocus.id).artifact_estimators = _;
+                    // this.artifactEstimators = _;
+                    this.artifactEstimators = aes;
                     if(this.artifactEstimators.length > 0) {                        
                         this.selectedArtifactEstimator = this.artifactEstimators[0];
                     };

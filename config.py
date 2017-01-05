@@ -52,15 +52,11 @@ class DevelopmentConfig(Config):
     if os.name == 'nt':
         SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URL') or \
                                   'sqlite:///' + os.path.join(basedir, 'win-data-dev.sqlite')
-        CELERY_RESULT_BACKEND = os.environ.get('DEV_RESULT_BACKEND_URL') or \
-                                'db+sqlite:///' + os.path.join(basedir, 'win-result-backend-dev.sqlite')
 
     else:
         SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URL') or \
                               'sqlite:///' + os.path.join(basedir, 'data-dev.sqlite')
 
-        CELERY_RESULT_BACKEND = os.environ.get('DEV_RESULT_BACKEND_URL') or \
-                            'db+sqlite:///' + os.path.join(basedir, 'result-backend-dev.sqlite')
 
     # SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'data-dev.sqlite')
     # CELERY_RESULT_BACKEND = 'db+sqlite:///' + os.path.join(basedir, 'result-backend-dev.sqlite')
@@ -71,9 +67,8 @@ class DevelopmentConfig(Config):
 
 class ProductionConfig(Config):
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-                              'sqlite:///' + os.path.join(basedir, 'data.sqlite')
-    CELERY_RESULT_BACKEND = os.environ.get('RESULT_BACKEND_URL') or \
-                            'db+sqlite:///' + os.path.join(basedir, 'result-backend.sqlite')
+                              'sqlite:///' + os.path.join(basedir, 'data-dev.sqlite')
+
     LOGGING_LEVEL = logging.ERROR
 
     @classmethod
@@ -84,5 +79,5 @@ class ProductionConfig(Config):
 config = {
     'production': ProductionConfig,
     'development': DevelopmentConfig,
-    'default': DevelopmentConfig
+    'default': ProductionConfig
 }

@@ -103,7 +103,7 @@ class ArtifactEstimatorSet(object):
                 cluster_set = temp
         if cluster_set:
             artifact_estimator = ArtifactEstimator(artifact_distance=None, artifact_distance_buffer=None,
-                                                   peak_data=cluster_set, label="Global Artifact")
+                                                   peak_data=cluster_set, label=ArtifactEstimator.GLOBAL_ESTIMATOR)
             generator_params[0]['method'] = 'RANSAC'
             artifact_estimator.artifact_equations = artifact_estimator.generate_estimating_equations(generator_params)
             artifact_estimators.append(artifact_estimator)
@@ -139,6 +139,8 @@ class ArtifactEstimatorSet(object):
 
 
 class ArtifactEstimator(object):
+    GLOBAL_ESTIMATOR = 'Global Artifact'
+
     def __init__(self, artifact_distance, artifact_distance_buffer, peak_data=None, artifact_equations=None, label=None):
         """
         ArtifactEstimator estimates the artifact contribution to a peak falling a relative distance of artifact_distance
@@ -157,6 +159,10 @@ class ArtifactEstimator(object):
         self.peak_data = peak_data
         self.artifact_equations = artifact_equations
         self.label = label
+
+    @property
+    def is_global(self):
+        return self.label == ArtifactEstimator.GLOBAL_ESTIMATOR
 
     def generate_estimating_equations(self, parameter_sets, peak_data=None):
         """

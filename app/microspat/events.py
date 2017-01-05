@@ -304,6 +304,7 @@ def catch_all(path):
     res.status_code = 404
     return res
 
+
 #
 # @socketio.on('connect')
 # def test_message(message=None):
@@ -323,10 +324,10 @@ def catch_all(path):
 
 def send_notification(type, message):
     socketio.emit('notification',
-         {
-             'type': type,
-             'msg': message
-         }, broadcast=True)
+                  {
+                      'type': type,
+                      'msg': message
+                  }, broadcast=True)
 
 
 @microspat.route('/genotyping-project/', methods=['GET', 'POST'])
@@ -453,7 +454,8 @@ def get_genotyping_peak_data(id):
     try:
         gp_title = GenotypingProject.query.filter(GenotypingProject.id == id).value(GenotypingProject.title)
         results = []
-        header = ["Sample", "Locus", "Peak Height", "Relative Peak Height", "Corrected Proportion", "Peak Size", "Peak Area", "Left Tail",
+        header = ["Sample", "Locus", "Peak Height", "Relative Peak Height", "Corrected Proportion", "Peak Size",
+                  "Peak Area", "Left Tail",
                   "Right Tail", "Artifact Contribution", "Artifact Error", "In Bin", "Called Allele", "Allele Label",
                   "Bleedthrough Ratio", "Crosstalk Ratio", "Probability", "Well", "Artifact Flag",
                   "Below Relative Threshold Flag", "Bleedthrough Flag", "Crosstalk Flag"]
@@ -507,14 +509,17 @@ def get_genotyping_peak_data(id):
 @microspat.route('/quantification-bias-estimator-project/<int:id>/get-peak-data/', methods=['GET'])
 def get_quantification_bias_estimator_peak_data(id):
     try:
-        qbe_title = QuantificationBiasEstimatorProject.query.filter(QuantificationBiasEstimatorProject.id == id).value(QuantificationBiasEstimatorProject.title)
+        qbe_title = QuantificationBiasEstimatorProject.query.filter(QuantificationBiasEstimatorProject.id == id).value(
+            QuantificationBiasEstimatorProject.title)
         results = []
-        header = ["Sample", "Locus", "Peak Height", "Relative Peak Height", "True Proportion", "Proportion", "Corrected Proportion", "Peak Size",
+        header = ["Sample", "Locus", "Peak Height", "Relative Peak Height", "True Proportion", "Proportion",
+                  "Corrected Proportion", "Peak Size",
                   "Peak Area", "Left Tail", "Right Tail", "Artifact Contribution", "Artifact Error", "In Bin",
                   "Called Allele", "Allele Label", "Bleedthrough Ratio", "Crosstalk Ratio", "Well"]
         locus_annotations = SampleLocusAnnotation.query.filter(SampleLocusAnnotation.project_id == id).join(
             SampleLocusAnnotation.locus).join(ProjectChannelAnnotations).join(Channel).join(Well).values(
-            SampleLocusAnnotation.annotated_peaks, SampleLocusAnnotation.sample_annotations_id, Locus.label, Well.well_label, SampleLocusAnnotation.alleles)
+            SampleLocusAnnotation.annotated_peaks, SampleLocusAnnotation.sample_annotations_id, Locus.label,
+            Well.well_label, SampleLocusAnnotation.alleles)
         sample_ids = dict(ProjectSampleAnnotations.query.distinct().join(Sample).filter(
             ProjectSampleAnnotations.project_id == id).values(ProjectSampleAnnotations.id, Sample.barcode))
         for la in locus_annotations:
@@ -727,17 +732,31 @@ def get_or_update_artifact_estimator(id):
 
 
 @microspat.route('/artifact-estimator/<int:id>/', methods=['DELETE'])
-def delete_estimator(id):
+def delete_artifact_estimator(id):
     try:
         estimator = ArtifactEstimator.query.get(id)
         assert isinstance(estimator, ArtifactEstimator)
+        if not estimator.is_global:
+            global_estimator = ArtifactEstimator.query.filter(
+                ArtifactEstimator.label == ArtifactEstimator.GLOBAL_ESTIMATOR).filter(
+                ArtifactEstimator.locus_artifact_estimator_id == estimator.locus_artifact_estimator_id).first()
+            if global_estimator:
+                app.logger.debug("Adding Peaks to Global Estimator")
+                assert isinstance(global_estimator, ArtifactEstimator)
+                peak_data = estimator.peak_data
+                global_estimator.peak_data += peak_data
+                global_estimator.peak_data.changed()
+                global_estimator.clear_breakpoints()
+
         genotyping_projects = GenotypingProject.query.filter(
             GenotypingProject.artifact_estimator_id == estimator.locus_artifact_estimator.project.id).all()
         locus_id = estimator.locus_artifact_estimator.locus_id
         for project in genotyping_projects:
             project.artifact_estimator_changed(locus_id)
         db.session.delete(estimator)
-        return jsonify(wrap_data({'id': estimator.id}))
+        estimators = ArtifactEstimator.query.filter(
+            ArtifactEstimator.locus_artifact_estimator_id == estimator.locus_artifact_estimator_id).all()
+        return jsonify(wrap_data([_.serialize() for _ in estimators]))
     except Exception as e:
         return handle_error(e)
 
@@ -1279,7 +1298,7 @@ def get_project_locus_channel_annotations(project_id, locus_id):
 @microspat.route('/channel-annotations/<int:project_id>/sample/<int:sample_id>/')
 def get_project_sample_channel_annotations(project_id, sample_id):
     channel_annotations = ProjectChannelAnnotations.query.filter(
-        ProjectChannelAnnotations.project_id == project_id).join(Channel).filter(Channel.sample_id == sample_id)\
+        ProjectChannelAnnotations.project_id == project_id).join(Channel).filter(Channel.sample_id == sample_id) \
         .options(joinedload(ProjectChannelAnnotations.channel).joinedload(Channel.locus)).all()
     return jsonify(wrap_data([x.serialize() for x in channel_annotations]))
 
@@ -1287,7 +1306,7 @@ def get_project_sample_channel_annotations(project_id, sample_id):
 @microspat.route('/locus-annotations/<int:project_id>/locus/<int:locus_id>/')
 def get_project_sample_locus_annotations_by_locus(project_id, locus_id):
     annotations = SampleLocusAnnotation.query.join(ProjectSampleAnnotations).filter(
-        SampleLocusAnnotation.project_id == project_id).filter(SampleLocusAnnotation.locus_id == locus_id)\
+        SampleLocusAnnotation.project_id == project_id).filter(SampleLocusAnnotation.locus_id == locus_id) \
         .options(joinedload(SampleLocusAnnotation.reference_run)).all()
     return jsonify(wrap_data([x.serialize() for x in annotations]))
 
@@ -1295,7 +1314,7 @@ def get_project_sample_locus_annotations_by_locus(project_id, locus_id):
 @microspat.route('/locus-annotations/<int:project_id>/sample/<int:sample_id>/')
 def get_project_sample_locus_annotations_by_sample(project_id, sample_id):
     annotations = SampleLocusAnnotation.query.join(ProjectSampleAnnotations).filter(
-        SampleLocusAnnotation.project_id == project_id).filter(ProjectSampleAnnotations.sample_id == sample_id)\
+        SampleLocusAnnotation.project_id == project_id).filter(ProjectSampleAnnotations.sample_id == sample_id) \
         .options(joinedload(SampleLocusAnnotation.reference_run)).all()
     return jsonify(wrap_data([x.serialize() for x in annotations]))
 
@@ -1356,5 +1375,3 @@ def get_control(id):
         db.session.delete(ctrl)
         db.session.flush()
         return jsonify(wrap_data({'status': 'Success'}))
-
-
