@@ -63,9 +63,8 @@ def deploy():
 
 
 @manager.command
-def runsockets(addr='localhost:5000'):
-    host, port = addr.split(':')
-    port = int(port) or 5000
+def runsockets(host='localhost', port=5000):
+    port = int(port)
     # webbrowser.open("http://localhost:{}/".format(port))
     socketio.run(app, host=host, port=port)
 
@@ -90,23 +89,23 @@ def initDB():
                                      color='red')
     db.session.add(ladder)
 
-    base_path = './fixtures'
-    d = "LocusSets"
-    for locus_set in os.listdir(os.path.join(base_path, d)):
-        if not locus_set[0] == '.' and locus_set :
-            with open(os.path.join(base_path, d, locus_set)) as f:
-                loci = microspat.utils.load_loci_from_csv(f)
-                map(db.session.add, loci)
-                ls = microspat.models.LocusSet(label=os.path.splitext(locus_set)[0])
-                db.session.add(ls)
-                ls.loci = loci
-
-    d = "Samples"
-    for sample_set in os.listdir(os.path.join(base_path, d)):
-        if not sample_set[0] == '.':
-            with open(os.path.join(base_path, d, sample_set)) as f:
-                samples = microspat.utils.load_samples_from_csv(f)
-                map(db.session.add, samples)
+    # base_path = './fixtures'
+    # d = "LocusSets"
+    # for locus_set in os.listdir(os.path.join(base_path, d)):
+    #     if not locus_set[0] == '.' and locus_set :
+    #         with open(os.path.join(base_path, d, locus_set)) as f:
+    #             loci = microspat.utils.load_loci_from_csv(f)
+    #             map(db.session.add, loci)
+    #             ls = microspat.models.LocusSet(label=os.path.splitext(locus_set)[0])
+    #             db.session.add(ls)
+    #             ls.loci = loci
+    #
+    # d = "Samples"
+    # for sample_set in os.listdir(os.path.join(base_path, d)):
+    #     if not sample_set[0] == '.':
+    #         with open(os.path.join(base_path, d, sample_set)) as f:
+    #             samples = microspat.utils.load_samples_from_csv(f)
+    #             map(db.session.add, samples)
 
     db.session.commit()
 
