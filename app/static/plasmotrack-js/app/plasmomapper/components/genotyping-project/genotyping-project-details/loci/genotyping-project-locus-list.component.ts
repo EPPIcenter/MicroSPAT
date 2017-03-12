@@ -151,7 +151,7 @@ interface AnnotationFilter {
                                     Annotations Filters
                                 </div>
                             </div>
-                            <div class="panel-body">
+                            <div *ngIf="filters" class="panel-body">
                                 <form>
                                     <div class="col-sm-6">
                                         <div class="form-group">
@@ -428,6 +428,7 @@ export class GenotypingProjectLocusList {
     }
     
     private clearFilter() {
+        console.log("Selected Bin Estimator", this.selectedBinEstimator);   
         this.filters = {
             failures: false,
             offscale: false,
@@ -517,8 +518,8 @@ export class GenotypingProjectLocusList {
                     this.loadingLocusAnnotations = true;
                     this.getLocusAnnotations().subscribe(
                         () => {
-                            this.loadingLocusAnnotations = false
                             this.clearFilter();
+                            this.loadingLocusAnnotations = false;
                         }
                     );
                     this._genotypingProjectService.getLocusChannelAnnotations(this.selectedProject.id, locus_id).subscribe(

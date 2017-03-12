@@ -19,11 +19,14 @@
 # import eventlet
 import os
 import tempfile
+import uuid
 
-from flask import Blueprint, jsonify, request
+from werkzeug.datastructures import FileStorage
+from flask import Blueprint, jsonify, request, session
 from flask import json, send_file
 from flask_socketio import emit
 from sqlalchemy import exists
+from sqlalchemy.orm import immediateload
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.utils import secure_filename
@@ -305,10 +308,25 @@ def catch_all(path):
     return res
 
 
-#
-# @socketio.on('connect')
-# def test_message(message=None):
-#     emit('message', request.sid + ' Connected', broadcast=True)
+connect_count = 0
+
+
+@socketio.on('connect')
+def test_message(message=None):
+    global connect_count
+    connect_count += 1
+    if not session.get('uid'):
+        session['uid'] = uuid.uuid4()
+    else:
+        print "Session Set: {}".format(session['uid'])
+    print "Total Connection Events: {}".format(connect_count)
+    # emit('message', request.sid + ' Connected', broadcast=True)
+
+
+@socketio.on('disconnect')
+def discoonect(message=None):
+    print "Disconnected..."
+
 #
 #
 # @socketio.on('client_test')
@@ -337,6 +355,9 @@ def get_or_post_genotyping_projects():
     elif request.method == 'POST':
         project_params = json.loads(request.get_json())
         try:
+            project_params['artifact_estimator_id'] = project_params.get('artifact_estimator_id') or None
+            project_params['quantification_bias_estimator_id'] = project_params.get('quantification_bias_estimator_id') or None
+            project_params['bin_estimator_id'] = project_params.get('bin_estimator_id') or None
             project = GenotypingProject(**project_params)
             db.session.add(project)
             db.session.flush()
@@ -466,7 +487,7 @@ def get_genotyping_peak_data(id):
         sample_ids = dict(ProjectSampleAnnotations.query.distinct().join(Sample).filter(
             ProjectSampleAnnotations.project_id == id).values(ProjectSampleAnnotations.id, Sample.barcode))
         for la in locus_annotations:
-            if not la[5]['failure']:
+            if not la[5].get('failure'):
                 alleles = la[4].items()
                 bin_ids = [str(x[0]) for x in alleles if x[1]]
                 for peak in la[0]:
@@ -597,6 +618,34 @@ def get_or_update_genotyping_project(id):
             return handle_error(e)
 
 
+def get_sample_ids_from_csv(f):
+    """
+    Takes barcodes listed in a csv file and returns an array of IDs of the corresponding samples
+    :param f: csv file with header ['barcode']
+    :return: sample_id[]
+    """
+    assert isinstance(f, FileStorage)
+    sample_ids = set()
+    if f.filename[-4:] != '.csv':
+        raise ValueError("Uploaded file is not a csv.")
+
+    try:
+        r = CaseInsensitiveDictReader(f)
+
+        if 'barcode' not in r.fieldnames:
+            raise ValueError("File header not valid")
+
+        for sample_entry in r:
+            sample_id = Sample.query.filter(Sample.barcode == sample_entry['barcode']).value(Sample.id)
+            if not sample_id:
+                raise ValueError("{} Does not yet exist.".format(sample_entry))
+            sample_ids.add(sample_id)
+    except csv.Error:
+        raise ValueError("File is not valid.")
+
+    return sample_ids
+
+
 @microspat.route('/genotyping-project/<int:id>/add-samples/', methods=['POST'])
 def genotyping_project_add_samples(id):
     gp = GenotypingProject.query.get(id)
@@ -605,25 +654,17 @@ def genotyping_project_add_samples(id):
 
     if not files:
         return handle_error("Nothing Uploaded")
-
-    sample_ids = set()
-    for sample_file in files:
-        if sample_file.filename[-4:] != '.csv':
-            return handle_error("Uploaded file is not a csv.")
-
-        r = CaseInsensitiveDictReader(sample_file)
-
-        if 'barcode' not in r.fieldnames:
-            return handle_error("File header not valid")
-
-        for sample_entry in r:
-            sample_id = Sample.query.filter(Sample.barcode == sample_entry['barcode']).value(Sample.id)
-            if not sample_id:
-                return handle_error("{} Does not yet exist.".format(sample_entry))
-            sample_ids.add(sample_id)
-
-    gp.add_samples(list(sample_ids))
-    return jsonify(wrap_data(gp.serialize_details()))
+    try:
+        full_sample_ids = set()
+        for sample_file in files:
+            sample_ids = get_sample_ids_from_csv(sample_file)
+            for sample_id in sample_ids:
+                full_sample_ids.add(sample_id)
+            # full_sample_ids.add(get_sample_ids_from_csv(sample_file))
+        gp.add_samples(list(full_sample_ids))
+        return jsonify(wrap_data(gp.serialize_details()))
+    except ValueError as e:
+        return handle_error(e)
 
 
 @microspat.route('/quantification-bias-estimator-project/', methods=['GET', 'POST'])
@@ -693,7 +734,7 @@ def get_or_create_artifact_estimators():
             project = ArtifactEstimatorProject(**project_params)
             db.session.add(project)
             db.session.flush()
-            project.initialize_project()
+            # project.initialize_project()
             return jsonify(wrap_data(project.serialize_details()))
         except Exception as e:
             return handle_error(e)
@@ -702,7 +743,15 @@ def get_or_create_artifact_estimators():
 @microspat.route('/artifact-estimator-project/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
 def get_or_update_artifact_estimator(id):
     if request.method == 'GET':
-        return table_get_details(ArtifactEstimatorProject, id)
+        q = ArtifactEstimatorProject.query.filter(ArtifactEstimatorProject.id == id)
+        q.options(subqueryload(ArtifactEstimatorProject.locus_parameters),
+                  subqueryload(ArtifactEstimatorProject.locus_artifact_estimators)
+                  .subqueryload(LocusArtifactEstimator.artifact_estimators)
+                  .subqueryload(ArtifactEstimator.artifact_equations)).order_by(ArtifactEstimatorProject.id)
+        ae = q.first()
+        res = wrap_data(ae.serialize_details())
+        # res = table_get_details(ArtifactEstimatorProject, id)
+        return jsonify(res)
     elif request.method == 'PUT':
         project_update_dict = json.loads(request.get_json())
         project = ArtifactEstimatorProject.query.get(id)
@@ -731,6 +780,35 @@ def get_or_update_artifact_estimator(id):
             return handle_error(e)
 
 
+@microspat.route('/artifact-estimator-project/<int:id>/set-samples/', methods=['POST'])
+def set_artifact_estimator_samples(id):
+    ae = ArtifactEstimatorProject.query.get(id)
+    assert isinstance(ae, ArtifactEstimatorProject)
+    files = request.files.getlist('files')
+
+    if not files:
+        return handle_error("Nothing Uploaded")
+    try:
+        full_sample_ids = set()
+        for sample_file in files:
+            full_sample_ids.add(get_sample_ids_from_csv(sample_file))
+            ae.set_samples(full_sample_ids)
+        return get_artifact_estimator_samples(id)
+    except ValueError as e:
+        return handle_error(e)
+
+
+@microspat.route('/artifact-estimator-project/<int:id>/get-samples/', methods=['GET'])
+def get_artifact_estimator_samples(id):
+    samples = Sample.query.join(Channel).join(ProjectChannelAnnotations).join(Project).filter(
+        Project.id == id).distinct(Sample.id).values(Sample.id, Sample.barcode, Sample.last_updated)
+    samples = [{'id': _[0],
+                'barcode': _[1],
+                'last_updated': _[2]
+                } for _ in samples]
+    return jsonify(wrap_data(samples))
+
+
 @microspat.route('/artifact-estimator/<int:id>/', methods=['DELETE'])
 def delete_artifact_estimator(id):
     try:
@@ -741,7 +819,6 @@ def delete_artifact_estimator(id):
                 ArtifactEstimator.label == ArtifactEstimator.GLOBAL_ESTIMATOR).filter(
                 ArtifactEstimator.locus_artifact_estimator_id == estimator.locus_artifact_estimator_id).first()
             if global_estimator:
-                app.logger.debug("Adding Peaks to Global Estimator")
                 assert isinstance(global_estimator, ArtifactEstimator)
                 peak_data = estimator.peak_data
                 global_estimator.peak_data += peak_data
@@ -804,7 +881,7 @@ def get_or_create_bin_estimators():
             project = BinEstimatorProject(**project_params)
             db.session.add(project)
             db.session.flush()
-            project.initialize_project()
+            # project.initialize_project()
             return jsonify(wrap_data(project.serialize_details()))
         except Exception as e:
             return handle_error(e)
@@ -813,7 +890,12 @@ def get_or_create_bin_estimators():
 @microspat.route('/bin-estimator/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
 def get_or_update_bin_estimator(id):
     if request.method == 'GET':
-        return table_get_details(BinEstimatorProject, id)
+        q = BinEstimatorProject.query.filter(BinEstimatorProject.id == id)
+        q.options(subqueryload(BinEstimatorProject.locus_parameters),
+                  subqueryload(BinEstimatorProject.locus_bin_sets))
+        be = q.first()
+        res = wrap_data(be.serialize_details())
+        return jsonify(res)
     elif request.method == 'PUT':
         project_update_dict = json.loads(request.get_json())
         project = BinEstimatorProject.query.get(id)
@@ -843,6 +925,24 @@ def get_or_update_bin_estimator(id):
             return jsonify(wrap_data({"status": "Success"}))
         except Exception as e:
             return handle_error(e)
+
+
+@microspat.route('/bin-estimator/<int:id>/set-samples/', methods=['POST'])
+def set_bin_estimator_samples(id):
+    be = BinEstimatorProject.query.get(id)
+    assert isinstance(be, BinEstimatorProject)
+    files = request.files.getlist('files')
+
+    if not files:
+        return handle_error("Nothing Uploaded")
+    try:
+        full_sample_ids = set()
+        for sample_file in files:
+            full_sample_ids.add(get_sample_ids_from_csv(sample_file))
+            be.set_samples(full_sample_ids)
+            return jsonify(wrap_data(be.serialize_details()))
+    except ValueError as e:
+        return handle_error(e)
 
 
 @microspat.route('/bin-estimator/<int:id>/locus/<int:locus_id>/bins/', methods=['PUT', 'POST'])
@@ -943,17 +1043,23 @@ def get_or_update_locus_parameters(id):
         locus_params_update_dict = json.loads(request.get_json())
         locus_params = ProjectLocusParams.query.get(id)
         assert isinstance(locus_params, ProjectLocusParams)
+        print "Getting Project..."
         project = Project.query.get(locus_params.project_id)
+        print "Got Project {}".format(project.title)
         if locus_params:
             try:
                 updater = update_fns.get(locus_params.discriminator, update_locus_params)
                 try:
+                    print "Updating Locus Params..."
                     locus_params = updater(locus_params, locus_params_update_dict)
+                    print "Updated Locus Params for {}".format(locus_params.locus.label)
                 except StaleParametersError as e:
                     return handle_error("{} is stale at locus {}, analyze that first!".format(e.project, e.locus))
                 db.session.flush()
                 send_notification('info', 'Beginning Analysis: {}'.format(locus_params.locus.label))
+                print "Analyzing Locus {}...".format(locus_params.locus.label)
                 project.analyze_locus(locus_params.locus_id)
+                print "Done Analyzing Locus"
                 send_notification('success', 'Completed Analysis: {}'.format(locus_params.locus.label))
                 return jsonify(wrap_data(locus_params.serialize()))
             except SQLAlchemyError as e:

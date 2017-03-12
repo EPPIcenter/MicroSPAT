@@ -20,6 +20,7 @@ import { RouteConfig, ROUTER_DIRECTIVES, ROUTER_PROVIDERS } from '@angular/route
 import { ArtifactEstimatorListComponent } from './artifact-estimator-list.component';
 import { ArtifactEstimatorDetailComponent } from './artifact-estimator-detail.component';
 import { ArtifactEstimatorLocusListComponent } from './loci/artifact-estimator-locus-list.component';
+import { ArtifactEstimatorSampleListComponent } from './samples/artifact-estimator-sample-list.component';
 
 @Component({
     selector: 'pm-artifact-estimator',
@@ -42,6 +43,11 @@ import { ArtifactEstimatorLocusListComponent } from './loci/artifact-estimator-l
         path: '/:project_id/loci',
         name: 'ArtifactEstimatorLocusList',
         component: ArtifactEstimatorLocusListComponent
+    },
+    {
+        path: '/:project_id/samples',
+        name: 'ArtifactEstimatorSampleList',
+        component: ArtifactEstimatorSampleListComponent
     }
 ])
 export class ArtifactEstimatorComponent {

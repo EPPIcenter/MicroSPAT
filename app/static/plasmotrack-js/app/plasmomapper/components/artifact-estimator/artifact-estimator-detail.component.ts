@@ -84,8 +84,14 @@ export class ArtifactEstimatorDetailComponent implements OnInit {
                             active: true
                         },
                         {
+                            label: 'Samples',
+                            click: () => this.goToLink('ArtifactEstimatorSampleList', {project_id: this.selectedProject.id}),
+                            active: false
+                        },
+                        {
                             label: 'Loci',
-                            click: () => this.goToLink('ArtifactEstimatorLocusList', {project_id: this.selectedProject.id})
+                            click: () => this.goToLink('ArtifactEstimatorLocusList', {project_id: this.selectedProject.id}),
+                            active: false
                         }
                     ]
                 }

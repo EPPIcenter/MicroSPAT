@@ -186,3 +186,9 @@ target/
 *.map
 
 app/static/plasmotrack-js/node_modules/.bin/touch
+
+*.pdf
+
+fixtures/\.DS_Store
+
+\.DS_Store

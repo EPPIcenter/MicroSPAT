@@ -39,6 +39,9 @@ export class ArtifactEstimatorProjectService extends ProjectService {
     public updateArtifactEstimatorProject: (project: ArtifactEstimatorProject) => Observable<ArtifactEstimatorProject>;
     public createArtifactEstimatorProject: (project: ArtifactEstimatorProject) => Observable<ArtifactEstimatorProject>;
     public deleteArtifactEstimatorProject: (id: number) => Observable<DatabaseItem>;
+
+    public setSamples: (files: File[], id: number) => Observable<any>;
+    public getSamples: (id: number) => Observable<any>;
     
     public deleteArtifactEstimator: (id: number) => Observable<DatabaseItem[]>;
     public addBreakpoint: (artifact_estimator_id: number, breakpoint: number) => Observable<ArtifactEstimator>;
@@ -69,6 +72,14 @@ export class ArtifactEstimatorProjectService extends ProjectService {
         this.deleteArtifactEstimatorProject = (id: number) => this._commonServerMethods.deleteItem(id, this._artifactEstimatorProjectsUrl, this._artifactEstimatorProjectsCache);
         
         this.deleteArtifactEstimator = (id: number) => this._commonServerMethods.deleteItem(id, this._artifactEstimatorUrl)
+
+        this.setSamples = (files: File[], id: number) => {
+            return this._commonServerMethods.postFiles(files, this._artifactEstimatorProjectsUrl + id + "/set-samples", {})
+        }
+
+        this.getSamples = (id: number) => {
+            return this._commonServerMethods.getUrl(this._artifactEstimatorProjectsUrl + id + "/get-samples/");
+        }
         
         this.addBreakpoint = (artifact_estimator_id: number, breakpoint: number) => {
             return this._commonServerMethods.postJSON( {'breakpoint': breakpoint}, this._artifactEstimatorUrl + artifact_estimator_id + "/")

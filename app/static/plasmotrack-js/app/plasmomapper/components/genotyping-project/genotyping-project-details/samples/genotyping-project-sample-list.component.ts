@@ -170,6 +170,7 @@ import { D3SampleAnnotationEditor } from '../../sample-annotation-editor.compone
                                         </tbody>
                                     </table>
                                 </div>
+                                <button class="btn btn-default" (click)="saveAnnotations()">Save Annotations</button>
                             </div>
                         </div>
                     </div>
@@ -192,6 +193,7 @@ export class GenotypingProjectSampleList implements OnInit {
     private uploading = false;
     private uploadComplete = false;
     private uploadError: string;
+    private isSubmitting = false;
     
     private sampleSortingParam: string = 'barcode';
     private reverseSampleSorting = true;
@@ -395,6 +397,48 @@ export class GenotypingProjectSampleList implements OnInit {
         
         if(this.reverseSampleSorting) {
             this._sampleAnnotations.reverse();
+        }
+    }
+
+    private saveAnnotations() {
+        if(!this.isSubmitting) {
+            this.isSubmitting = true;
+            let annotations = [];
+            this.selectedSampleLocusAnnotations.forEach(annotation => {
+                if(annotation.isDirty) {
+                    annotations.push(annotation);
+                }
+            })
+
+            this._genotypingProjectService.saveAnnotations(annotations)
+                .subscribe(
+                    () => {
+                        this._genotypingProjectService.getSampleLocusAnnotations(this.selectedProject.id, this.selectedSample.id).subscribe(
+                            sampleLocusAnnotations => {
+                                this.selectedLocusAnnotation = null;
+                                this.channelAnnotations = new Map<number, ChannelAnnotation[]>();
+                                this._genotypingProjectService.getSampleChannelAnnotations(this.selectedProject.id, this.selectedSample.id).subscribe(
+                                    channelAnnotations => {
+                                        channelAnnotations.forEach(channelAnnotation => {
+                                            if(this.channelAnnotations.has(channelAnnotation.locus_id)) {
+                                                this.channelAnnotations.get(channelAnnotation.locus_id).push(channelAnnotation);
+                                            } else {
+                                                this.channelAnnotations.set(channelAnnotation.locus_id, [channelAnnotation]);
+                                            }
+                                        });
+                                        this.selectedSampleLocusAnnotations = sampleLocusAnnotations;
+                                        this.sortAnnotations();
+                                        this.isSubmitting = false;
+                                    }
+                                );
+                            }
+                        );
+                    },
+                    err => {
+                        this.errorMessage = err;
+                        this.isSubmitting = false;
+                    }
+                )
         }
     }
     
