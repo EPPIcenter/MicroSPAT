@@ -65,8 +65,7 @@ class ArtifactEstimatorSet(object):
         cluster_set = []
         for peak_set in peak_sets:
             if peak_set:
-                max_peak = [peak for peak in peak_set if peak['relative_peak_height'] == 1]
-                max_peak = max_peak[0]
+                max_peak = next(peak for peak in peak_set if peak['relative_peak_height'] == 1)
                 for peak in peak_set:
                     peak['dist_from_max_peak'] = peak['peak_size'] - max_peak['peak_size']
                 cluster_set += peak_set

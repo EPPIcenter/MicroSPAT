@@ -101,6 +101,7 @@ def peak_proximity_filter(min_peak_distance):
         filtered_peak_annotations = {}
 
         sorted_peak_list = sorted(peak_annotations, key=lambda x: x['peak_size'])
+
         if sorted_peak_list:
             curr_peak = sorted_peak_list[0]
 

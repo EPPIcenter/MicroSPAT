@@ -46,8 +46,6 @@ def calculate_beta(peak_sets, min_peak_proportion=0, regressor='lsr'):
 
     lm = regressors[regressor]
 
-    X = []
-    y = []
     pk_data = []
     for peak_set in peak_sets:
         if len(peak_set) > 1:

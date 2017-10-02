@@ -27,7 +27,8 @@ from config import config
 
 db = SQLAlchemy()
 socketio = SocketIO()
-# celery = Celery(__name__, broker=Config.CELERY_BROKER_URL)
+# celery = Celery()
+# ma = Marshmallow()
 
 
 def create_app(config_name):
@@ -40,6 +41,12 @@ def create_app(config_name):
 
     db.app = app
     db.init_app(app)
+
+    # ma.app = app
+    # ma.init_app(app)
+
+    # celery.name = __name__
+    # celery.conf.update(app.config)
 
     # celery.conf.update(app.config)
 

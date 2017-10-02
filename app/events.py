@@ -18,7 +18,6 @@
 
 from flask import Blueprint, send_from_directory, redirect
 from werkzeug.exceptions import NotFound
-from flask.helpers import safe_join
 
 plasmotrack = Blueprint('plasmotrack', import_name=__name__, static_folder='static/plasmotrack-js')
 

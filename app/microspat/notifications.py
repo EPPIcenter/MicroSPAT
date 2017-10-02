@@ -17,24 +17,24 @@
 """
 
 from flask_socketio import emit
-from app import socketio
+from app import socketio, db
 from models import *
 from sqlalchemy import event
 
 
-@event.listens_for(db.Model, 'after_update', propagate=True)
-def broadcast_update(mapper, connection, target):
-    if Config.NOTIFICATIONS:
-        socketio.emit('update', {
-            'type': target.__class__.__name__,
-            'id': target.id
-        })
-
-
-@event.listens_for(db.Model, 'after_delete', propagate=True)
-def broadcast_delete(mapper, connection, target):
-    # if Config.NOTIFICATIONS:
-    socketio.emit('delete_item', {
-        'type': target.__class__.__name__,
-        'id': target.id
-    })
+# @event.listens_for(db.Model, 'after_update', propagate=True)
+# def broadcast_update(mapper, connection, target):
+#     # if Config.NOTIFICATIONS:
+#     socketio.emit('update', {
+#         'type': target.__class__.__name__,
+#         'id': target.id
+#     })
+#
+#
+# @event.listens_for(db.Model, 'after_delete', propagate=True)
+# def broadcast_delete(mapper, connection, target):
+#     # if Config.NOTIFICATIONS:
+#     socketio.emit('delete_item', {
+#         'type': target.__class__.__name__,
+#         'id': target.id
+#     })

@@ -16,25 +16,31 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-# import eventlet
+
+import csv
 import os
 import tempfile
 import uuid
+from collections import defaultdict
 
-from werkzeug.datastructures import FileStorage
+import eventlet
 from flask import Blueprint, jsonify, request, session
+from flask import current_app as app
 from flask import json, send_file
-from flask_socketio import emit
 from sqlalchemy import exists
-from sqlalchemy.orm import immediateload
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.orm import subqueryload, joinedload
 from sqlalchemy.orm.exc import NoResultFound
-from werkzeug.utils import secure_filename
+from werkzeug.datastructures import FileStorage
 
+
+from app import socketio, db
+from app.microspat.models import *
+from app.microspat.models.locus.exceptions import LocusException
+from app.microspat.models.quantification_bias_estimator.project import load_samples_and_controls_from_csv
+from app.microspat.utils import load_plate_zips
 from app.utils import CaseInsensitiveDictReader
-from app.microspat.utils import load_loci_from_csv, LocusException, load_samples_from_csv, load_plate_zips, \
-    load_samples_and_controls_from_csv
-from models import *
+
 
 microspat = Blueprint('microspat', import_name=__name__, template_folder='templates',
                       url_prefix='/microspat/api/v1')
@@ -72,6 +78,7 @@ def handle_integrity_error(e):
 
 def handle_error(e):
     app.logger.debug("ERROR: {}".format(e))
+    print(e)
     db.session.rollback()
     if isinstance(e, IntegrityError):
         return handle_integrity_error(e)
@@ -155,12 +162,12 @@ def update_artifact_locus_params(target, update_dict):
     :type target: ArtifactEstimatorLocusParams
     """
 
-    if target.project.bin_estimator_id:
-        bin_estimator = target.project.bin_estimator
-        lp = bin_estimator.get_locus_parameters(target.locus_id)
-        assert isinstance(lp, BinEstimatorLocusParams)
-        if lp.filter_parameters_stale or lp.scanning_parameters_stale or lp.bin_estimator_parameters_stale:
-            raise StaleParametersError(bin_estimator, target.locus)
+    # if target.project.bin_estimator_id:
+    #     bin_estimator = target.project.bin_estimator
+    #     lp = bin_estimator.get_locus_parameters(target.locus_id)
+    #     assert isinstance(lp, BinEstimatorLocusParams)
+    #     if lp.filter_parameters_stale or lp.scanning_parameters_stale or lp.bin_estimator_parameters_stale:
+    #         raise StaleParametersError(bin_estimator, target.locus)
 
     update_locus_params(target, update_dict)
     target.max_secondary_relative_peak_height = update_dict['max_secondary_relative_peak_height']
@@ -317,18 +324,19 @@ def test_message(message=None):
     connect_count += 1
     if not session.get('uid'):
         session['uid'] = uuid.uuid4()
+        print "Session is: {}".format(session['uid'])
     else:
         print "Session Set: {}".format(session['uid'])
     print "Total Connection Events: {}".format(connect_count)
-    # emit('message', request.sid + ' Connected', broadcast=True)
+    socketio.emit('connect', request.sid + ' Connected', broadcast=True)
 
 
 @socketio.on('disconnect')
-def discoonect(message=None):
+def disconnect(message=None):
     print "Disconnected..."
 
-#
-#
+
+
 # @socketio.on('client_test')
 # def client_test(message=None):
 #     emit('server_test', 'Success')
@@ -403,7 +411,7 @@ def get_alleles(id):
                 present_alleles = [bins[int(bin_id)] for bin_id in bin_ids]
                 sample_res[la.locus.label] = ";".join(present_alleles)
             results.append(sample_res)
-        handle, temp_path = tempfile.mkstemp(suffix='csv', prefix=gp.title)
+        handle, temp_path = tempfile.mkstemp()
         with open(temp_path, 'w') as f:
             w = csv.DictWriter(f, fieldnames=header)
             w.writeheader()
@@ -460,7 +468,7 @@ def get_dominant_alleles(id):
                 if peak_alleles:
                     sample_res[la.locus.label] = ";".join(peak_alleles)
             results.append(sample_res)
-        handle, temp_path = tempfile.mkstemp(suffix='csv', prefix=gp.title)
+        handle, temp_path = tempfile.mkstemp()
         with open(temp_path, 'w') as f:
             w = csv.DictWriter(f, fieldnames=header)
             w.writeheader()
@@ -517,7 +525,8 @@ def get_genotyping_peak_data(id):
                     if 'probability' in peak:
                         res["Probability"] = peak['probability']
                     results.append(res)
-        handle, temp_path = tempfile.mkstemp(suffix='csv', prefix=gp_title)
+        handle, temp_path = tempfile.mkstemp()
+        print temp_path
         with open(temp_path, 'w') as f:
             w = csv.DictWriter(f, fieldnames=header)
             w.writeheader()
@@ -571,7 +580,7 @@ def get_quantification_bias_estimator_peak_data(id):
                 if 'probability' in peak:
                     res["Probability"] = peak['probability']
                 results.append(res)
-        handle, temp_path = tempfile.mkstemp(suffix='csv', prefix=qbe_title)
+        handle, temp_path = tempfile.mkstemp()
         with open(temp_path, 'w') as f:
             w = csv.DictWriter(f, fieldnames=header)
             w.writeheader()
@@ -587,7 +596,7 @@ def calculate_probability():
     project_json = json.loads(request.get_json())
     project = GenotypingProject.query.get(project_json['id'])
     assert isinstance(project, GenotypingProject)
-    project.probabilistic_peak_annotation()
+    project.annotate_peak_probability()
     db.session.commit()
     return jsonify(wrap_data(project.serialize_details()))
 
@@ -731,6 +740,8 @@ def get_or_create_artifact_estimators():
     elif request.method == 'POST':
         project_params = json.loads(request.get_json())
         try:
+            if 'bin_estimator_id' in project_params:
+                project_params.pop('bin_estimator_id')
             project = ArtifactEstimatorProject(**project_params)
             db.session.add(project)
             db.session.flush()
@@ -915,11 +926,11 @@ def get_or_update_bin_estimator(id):
         if genotyping_project:
             return handle_error(
                 "Bin estimator is used in Genotyping Project {}. Cannot Delete.".format(genotyping_project.title))
-        artifact_estimator = ArtifactEstimatorProject.query.filter(
-            ArtifactEstimatorProject.bin_estimator_id == project.id).first()
-        if artifact_estimator:
-            return handle_error(
-                "Bin estimator is used in an Artifact Estimator {}. Cannot Delete.".format(artifact_estimator.title))
+        # artifact_estimator = ArtifactEstimatorProject.query.filter(
+        #     ArtifactEstimatorProject.bin_estimator_id == project.id).first()
+        # if artifact_estimator:
+        #     return handle_error(
+        #         "Bin estimator is used in an Artifact Estimator {}. Cannot Delete.".format(artifact_estimator.title))
         try:
             db.session.delete(project)
             return jsonify(wrap_data({"status": "Success"}))
@@ -927,22 +938,22 @@ def get_or_update_bin_estimator(id):
             return handle_error(e)
 
 
-@microspat.route('/bin-estimator/<int:id>/set-samples/', methods=['POST'])
-def set_bin_estimator_samples(id):
-    be = BinEstimatorProject.query.get(id)
-    assert isinstance(be, BinEstimatorProject)
-    files = request.files.getlist('files')
-
-    if not files:
-        return handle_error("Nothing Uploaded")
-    try:
-        full_sample_ids = set()
-        for sample_file in files:
-            full_sample_ids.add(get_sample_ids_from_csv(sample_file))
-            be.set_samples(full_sample_ids)
-            return jsonify(wrap_data(be.serialize_details()))
-    except ValueError as e:
-        return handle_error(e)
+# @microspat.route('/bin-estimator/<int:id>/set-samples/', methods=['POST'])
+# def set_bin_estimator_samples(id):
+#     be = BinEstimatorProject.query.get(id)
+#     assert isinstance(be, BinEstimatorProject)
+#     files = request.files.getlist('files')
+#
+#     if not files:
+#         return handle_error("Nothing Uploaded")
+#     try:
+#         full_sample_ids = set()
+#         for sample_file in files:
+#             full_sample_ids.add(get_sample_ids_from_csv(sample_file))
+#             be.set_samples(full_sample_ids)
+#             return jsonify(wrap_data(be.serialize_details()))
+#     except ValueError as e:
+#         return handle_error(e)
 
 
 @microspat.route('/bin-estimator/<int:id>/locus/<int:locus_id>/bins/', methods=['PUT', 'POST'])
@@ -1251,7 +1262,7 @@ def save_plate():
             ladder = Ladder.query.get(ladder_id)
             plate_zips = [open(_, 'rb') for _ in files]
             try:
-                if os.name == 'nt':  # Currently no support for multiprocessing in windows at this time.
+                if os.name in ['nt', 'posix']:  # Currently no support for multiprocessing in windows at this time.
                     extracted_plates = load_plate_zips(plate_zips, ladder, parallel=False)
                 else:
                     extracted_plates = load_plate_zips(plate_zips, ladder)
@@ -1269,7 +1280,10 @@ def save_plate():
                 p = Plate(label=extracted_plate.label, comments=extracted_plate.comments,
                           creator=extracted_plate.creator,
                           date_run=extracted_plate.date_run, well_arrangement=extracted_plate.well_arrangement,
-                          ce_machine=extracted_plate.ce_machine, plate_hash=extracted_plate.plate_hash)
+                          ce_machine=extracted_plate.ce_machine, plate_hash=extracted_plate.plate_hash,
+                          current=extracted_plate.current, voltage=extracted_plate.voltage,
+                          temperature=extracted_plate.temperature, power=extracted_plate.power
+                          )
 
                 db.session.add(p)
 

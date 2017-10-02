@@ -21,15 +21,17 @@ import zipfile
 from functools import partial
 
 import os
-if os.name != 'nt':
-    import dill
-    from pathos import multiprocessing
-
-# import multiprocessing
 
 from app.microspat.peak_annotator.PeakAnnotators import *
 from ..signal_processor.TraceProcessor import LadderProcessor, MicrosatelliteProcessor, NoLadderException
 from fsa_extractor.FSAExtractor import FSAFile
+
+if os.name != 'nt':
+    print os.name
+    # import dill
+    from pathos import multiprocessing
+
+# import multiprocessing
 
 
 class PlateExtractor(object):
@@ -85,9 +87,20 @@ class PlateExtractor(object):
     _Q1_2LETTERS = ['A', 'C', 'E', 'G', 'I', 'K', 'M', 'O']
     _Q3_4LETTERS = ['B', 'D', 'F', 'H', 'J', 'L', 'N', 'P']
 
-    def __init__(self, label, well_arrangement=None, wells=None, date_run=None, creator=None, comments=None,
-                 ce_machine=None,
-                 plate_hash=None):
+    def __init__(self, label, well_arrangement=None, wells=None, current=None, voltage=None, power=None,
+                 temperature=None, date_run=None, creator=None, comments=None, ce_machine=None, plate_hash=None):
+        if temperature is None:
+            temperature = []
+
+        if power is None:
+            power = []
+
+        if voltage is None:
+            voltage = []
+
+        if current is None:
+            current = []
+
         if wells is None:
             wells = []
         else:
@@ -98,6 +111,10 @@ class PlateExtractor(object):
         self._wells_dict = None
         self.label = label
         self.wells = wells
+        self.power = power
+        self.current = current
+        self.voltage = voltage
+        self.temperature = temperature
 
         self.well_arrangement = well_arrangement
         self.date_run = date_run
@@ -197,6 +214,10 @@ class PlateExtractor(object):
         well_arrangement = 0
         date_run = None
         ce_machine = None
+        temperature = None
+        current = None
+        voltage = None
+        power = None
         with zipfile.ZipFile(zip_file) as f:
             for member in f.namelist():
                 if member.endswith('.fsa'):
@@ -208,9 +229,14 @@ class PlateExtractor(object):
                         date_run = fsa.date_run
                         ce_machine = fsa.ce_machine
                         label = fsa.plate
+                        temperature = fsa.temperature
+                        current = fsa.current
+                        voltage = fsa.voltage
+                        power = fsa.power
         well_hashes = "".join([well.fsa_hash for well in sorted(wells, key=lambda x: x.well_label)])
         plate_hash = hashlib.md5(well_hashes).hexdigest()
-        return cls(label=label, wells=wells, well_arrangement=well_arrangement, date_run=date_run, creator=creator,
+        return cls(label=label, wells=wells, temperature=temperature, current=current, voltage=voltage, power=power,
+                   well_arrangement=well_arrangement, date_run=date_run, creator=creator,
                    comments=comments, ce_machine=ce_machine, plate_hash=plate_hash)
 
     @classmethod
@@ -395,8 +421,7 @@ class PlateExtractor(object):
 
 class WellExtractor(object):
     def __init__(self, well_label, plate=None, comments=None, base_sizes=None, sizing_quality=None,
-                 offscale_indices=None,
-                 ladder_peak_indices=None, channels=None, fsa_hash=None):
+                 offscale_indices=None, ladder_peak_indices=None, channels=None, fsa_hash=None):
         self._channels_dict = None
 
         if offscale_indices is None:
@@ -613,7 +638,7 @@ class WellExtractor(object):
             self.ladder_peak_indices = map(int, l.peaks)
             self.static_pre_annotators['base_size'] = self.base_size_annotator()
             ladder_channel.set_peak_indices(l.peaks)
-        except NoLadderException as e:
+        except NoLadderException:
             self.sizing_quality = 1000
 
         return self

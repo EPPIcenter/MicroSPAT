@@ -235,6 +235,26 @@ class FSAFile(object):
         lot_num = int(self.directories['SMLt'][1].data[0])
         return lot_num
 
+    @property
+    def voltage(self):
+        voltage = list(self.directories['DATA'][5].data)
+        return voltage
+
+    @property
+    def current(self):
+        current = list(self.directories['DATA'][6].data)
+        return current
+
+    @property
+    def power(self):
+        power = list(self.directories['DATA'][7].data)
+        return power
+
+    @property
+    def temperature(self):
+        temperature = list(self.directories['DATA'][8].data)
+        return temperature
+
 
 class FSADir(object):
     """

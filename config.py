@@ -31,6 +31,7 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or "secret"
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     SQLALCHEMY_RECORD_QUERIES = True
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Logging
     LOGGING_LOCATION = "app.log"

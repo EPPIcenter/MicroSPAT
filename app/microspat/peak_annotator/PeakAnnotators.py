@@ -18,7 +18,7 @@
 
 import numpy as np
 
-from ..signal_processor.SignalProcessor import smooth_signal, correct_baseline
+from app.microspat.signal_processor.SignalProcessor import smooth_signal, correct_baseline
 
 
 def fake_pre_annotation():
@@ -126,10 +126,10 @@ def annotate_peak_height_fraction():
 
 
 def annotate_peak_area(data, min_relative_area_contribution=.001, noise_threshold=50):
-    # Pass in data to precompute smoothed signal
+    # Pass in data to pre-compute smoothed signal
     smoothed_data = correct_baseline(smooth_signal(np.array(data)))
 
-    def fn(data, peak_index):
+    def fn(d, peak_index):
         left_area = 0
         right_area = 0
         i = 0
@@ -147,7 +147,7 @@ def annotate_peak_area(data, min_relative_area_contribution=.001, noise_threshol
         while ((len(smoothed_data) > peak_index + i + 2) and
                (smoothed_data[peak_index + i] > right_area * min_relative_area_contribution) and
                ((smoothed_data[peak_index + i] > smoothed_data[peak_index + i + 2]) or smoothed_data[peak_index + i] > noise_threshold)):
-            right_area += data[peak_index + i]
+            right_area += d[peak_index + i]
             i += 1
 
         right_area_tail = int(i)

@@ -192,3 +192,5 @@ app/static/plasmotrack-js/node_modules/.bin/touch
 fixtures/\.DS_Store
 
 \.DS_Store
+
+microspat-js/node_modules
