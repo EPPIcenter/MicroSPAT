@@ -281,7 +281,7 @@ def load_plate_map(plate_map_file, plate, create_samples_if_not_exist=False):
 
     db.session.flush()
     plate.check_contamination()
-    for project_id in new_channels.keys():
+    for project_id in list(new_channels):
         project = Project.query.get(project_id)
         project.add_channels(new_channels[project_id])
     db.session.commit()
@@ -324,16 +324,16 @@ def test_message(message=None):
     connect_count += 1
     if not session.get('uid'):
         session['uid'] = uuid.uuid4()
-        print "Session is: {}".format(session['uid'])
+        print("Session is: {}".format(session['uid']))
     else:
-        print "Session Set: {}".format(session['uid'])
-    print "Total Connection Events: {}".format(connect_count)
+        print("Session Set: {}".format(session['uid']))
+    print("Total Connection Events: {}".format(connect_count))
     socketio.emit('connect', request.sid + ' Connected', broadcast=True)
 
 
 @socketio.on('disconnect')
 def disconnect(message=None):
-    print "Disconnected..."
+    print("Disconnected...")
 
 
 
@@ -526,7 +526,7 @@ def get_genotyping_peak_data(id):
                         res["Probability"] = peak['probability']
                     results.append(res)
         handle, temp_path = tempfile.mkstemp()
-        print temp_path
+        print(temp_path)
         with open(temp_path, 'w') as f:
             w = csv.DictWriter(f, fieldnames=header)
             w.writeheader()
@@ -1054,23 +1054,23 @@ def get_or_update_locus_parameters(id):
         locus_params_update_dict = json.loads(request.get_json())
         locus_params = ProjectLocusParams.query.get(id)
         assert isinstance(locus_params, ProjectLocusParams)
-        print "Getting Project..."
+        print("Getting Project...")
         project = Project.query.get(locus_params.project_id)
-        print "Got Project {}".format(project.title)
+        print("Got Project {}".format(project.title))
         if locus_params:
             try:
                 updater = update_fns.get(locus_params.discriminator, update_locus_params)
                 try:
-                    print "Updating Locus Params..."
+                    print("Updating Locus Params...")
                     locus_params = updater(locus_params, locus_params_update_dict)
-                    print "Updated Locus Params for {}".format(locus_params.locus.label)
+                    print("Updated Locus Params for {}".format(locus_params.locus.label))
                 except StaleParametersError as e:
                     return handle_error("{} is stale at locus {}, analyze that first!".format(e.project, e.locus))
                 db.session.flush()
                 send_notification('info', 'Beginning Analysis: {}'.format(locus_params.locus.label))
-                print "Analyzing Locus {}...".format(locus_params.locus.label)
+                print("Analyzing Locus {}...".format(locus_params.locus.label))
                 project.analyze_locus(locus_params.locus_id)
-                print "Done Analyzing Locus"
+                print("Done Analyzing Locus")
                 send_notification('success', 'Completed Analysis: {}'.format(locus_params.locus.label))
                 return jsonify(wrap_data(locus_params.serialize()))
             except SQLAlchemyError as e:
@@ -1179,7 +1179,7 @@ def get_or_post_ladders():
                 l = Ladder.query.get(ladder_params['id'])
             else:
                 l = Ladder()
-            for attr in ladder_params.keys():
+            for attr in list(ladder_params):
                 if hasattr(l, attr):
                     setattr(l, attr, ladder_params[attr])
             db.session.add(l)
@@ -1197,7 +1197,7 @@ def get_ladder(id):
         ladder_params = json.loads(request.get_json())
         try:
             l = Ladder.query.get(ladder_params.pop('id'))
-            for attr in ladder_params.keys():
+            for attr in list(ladder_params):
                 if hasattr(l, attr):
                     setattr(l, attr, ladder_params[attr])
             db.session.add(l)

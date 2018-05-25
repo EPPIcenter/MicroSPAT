@@ -101,6 +101,7 @@ class Project(LocusSetAssociatedMixin, TimeStamped, db.Model):
     @reconstructor
     def init_on_load(self):
         self._locus_param_cache = {}
+        self._valid_locus_ids = None
 
     def __init__(self, locus_set_id, **kwargs):
         super(Project, self).__init__(**kwargs)

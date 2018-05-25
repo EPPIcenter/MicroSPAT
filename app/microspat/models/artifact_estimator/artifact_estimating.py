@@ -7,9 +7,9 @@ from ..project.channel_annotations import ProjectChannelAnnotations
 
 class ArtifactEstimating(object):
 
-    @classmethod
-    def print_class(cls):
-        print cls
+    # @classmethod
+    # def print_class(cls):
+    #     print(cls)
 
     @declared_attr
     def artifact_estimator_id(self):

@@ -3,10 +3,10 @@ from sqlalchemy import event
 
 from app import db
 from app.microspat.models.utils import params_changed
-from ..attributes import PeakScanner
+from app.microspat.models.attributes import PeakScanner, TimeStamped
 
 
-class ProjectLocusParams(PeakScanner, db.Model):
+class ProjectLocusParams(PeakScanner, TimeStamped, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     locus_id = db.Column(db.Integer, db.ForeignKey("locus.id", ondelete="CASCADE"), index=True)
     project_id = db.Column(db.Integer, db.ForeignKey("project.id"), index=True)
@@ -45,8 +45,8 @@ class ProjectLocusParams(PeakScanner, db.Model):
     @staticmethod
     def stale_parameters(mapper, connection, target):
         assert isinstance(target, ProjectLocusParams)
-        filter_params = target.filter_parameters.keys()
-        scanning_params = target.scanning_parameters.keys()
+        filter_params = list(target.filter_parameters)
+        scanning_params = list(target.scanning_parameters)
 
         if params_changed(target, scanning_params):
             target.set_scanning_parameters_stale()

@@ -17,5 +17,5 @@
 """
 
 import app.microspat.models
-import db_events
+import app.microspat.db_events
 import app.microspat.events_v2

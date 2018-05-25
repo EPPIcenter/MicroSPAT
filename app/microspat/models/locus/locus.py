@@ -3,11 +3,11 @@ from sqlalchemy.ext.mutable import MutableDict
 from app import db
 from app.custom_sql_types.custom_types import CompressedJSONEncodedData
 from app.utils import CaseInsensitiveDictReader
-from ..attributes import Colored
+from app.microspat.models.attributes import Colored, TimeStamped
 from ..locus.exceptions import LocusException
 
 
-class Locus(Colored, db.Model):
+class Locus(Colored, TimeStamped, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     label = db.Column(db.String(255), unique=True, nullable=False)
     max_base_length = db.Column(db.Integer, nullable=False)

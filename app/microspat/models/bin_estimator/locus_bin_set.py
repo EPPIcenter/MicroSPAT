@@ -2,11 +2,12 @@ from sqlalchemy.orm import make_transient, reconstructor
 
 from app import db
 from app.microspat.bin_finder import BinFinder as BinFinder
+from app.microspat.models.attributes import TimeStamped
 from ..locus.locus import Locus
 from ..bin_estimator.bin import Bin
 
 
-class LocusBinSet(BinFinder.BinFinder, db.Model):
+class LocusBinSet(BinFinder.BinFinder, TimeStamped, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     locus_id = db.Column(db.Integer, db.ForeignKey('locus.id', ondelete="CASCADE"), index=True)
     locus = db.relationship('Locus', lazy='immediate')

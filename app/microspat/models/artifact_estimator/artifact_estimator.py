@@ -4,10 +4,11 @@ from sqlalchemy.orm import make_transient, reconstructor
 from app import db
 from app.custom_sql_types.custom_types import CompressedJSONEncodedData
 from app.microspat.artifact_estimator import ArtifactEstimator as AE
+from app.microspat.models.attributes import TimeStamped
 from ..artifact_estimator.artifact_equation import ArtifactEquation
 
 
-class ArtifactEstimator(AE.ArtifactEstimator, db.Model):
+class ArtifactEstimator(AE.ArtifactEstimator, TimeStamped, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     label = db.Column(db.String(255))
     artifact_distance = db.Column(db.Float, nullable=True)

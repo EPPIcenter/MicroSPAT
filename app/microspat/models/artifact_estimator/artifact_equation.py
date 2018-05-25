@@ -2,10 +2,10 @@ from sqlalchemy.orm import make_transient, reconstructor
 
 from app import db
 from app.microspat.artifact_estimator import ArtifactEstimator
-from ..attributes import Flaggable
+from ..attributes import Flaggable, TimeStamped
 
 
-class ArtifactEquation(Flaggable, ArtifactEstimator.ArtifactEquation, db.Model):
+class ArtifactEquation(Flaggable, ArtifactEstimator.ArtifactEquation, TimeStamped, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     artifact_estimator_id = db.Column(db.Integer, db.ForeignKey('artifact_estimator.id', ondelete="CASCADE"),
                                       index=True)

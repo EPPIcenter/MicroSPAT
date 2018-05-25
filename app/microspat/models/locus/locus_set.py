@@ -1,6 +1,7 @@
 import json
 
 from app import db
+from app.microspat.models.attributes import TimeStamped
 from ..locus.locus import Locus
 
 
@@ -11,7 +12,7 @@ locus_set_association_table = db.Table('locus_set_association',
                                        )
 
 
-class LocusSet(db.Model):
+class LocusSet(TimeStamped, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     loci = db.relationship('Locus', secondary=locus_set_association_table)
     label = db.Column(db.String(255), nullable=False)

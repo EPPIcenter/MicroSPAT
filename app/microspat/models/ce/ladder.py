@@ -2,10 +2,10 @@ from sqlalchemy.ext.mutable import MutableList
 
 from app import db
 from app.custom_sql_types.custom_types import CompressedJSONEncodedData
-from ..attributes import PeakScanner, Colored
+from app.microspat.models.attributes import PeakScanner, Colored, TimeStamped
 
 
-class Ladder(PeakScanner, Colored, db.Model):
+class Ladder(PeakScanner, Colored, TimeStamped, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     label = db.Column(db.String(255), unique=True, nullable=False, index=True)
     base_sizes = db.Column(MutableList.as_mutable(CompressedJSONEncodedData), nullable=False)
@@ -57,7 +57,7 @@ class Ladder(PeakScanner, Colored, db.Model):
     def v2_serialize(self):
         res = {}
         r = self.serialize()
-        for k in r.keys():
+        for k in list(r):
             camel_case_key = k.split('_')
             camel_case_key = camel_case_key[0] + "".join(_.title() for _ in camel_case_key[1:])
             res[camel_case_key] = r[k]

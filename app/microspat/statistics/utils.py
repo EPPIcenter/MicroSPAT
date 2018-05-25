@@ -105,7 +105,7 @@ def calculate_peak_probability(peak_set, num_possible, locus_allele_frequencies=
         other_peaks = [_ for _ in peak_set if _['peak_index'] != peak['peak_index']]
         other_peak_freqs = [allele_frequency_weighted_probability(_, locus_allele_frequencies) for _ in other_peaks]
         recalculated_probability = (total_probability - (sum(other_peak_freqs) ** num_possible)) / float(total_probability)
-        print recalculated_probability
+        print(recalculated_probability)
         recalculated_probabilities[peak['peak_index']] = recalculated_probability
 
     return recalculated_probabilities

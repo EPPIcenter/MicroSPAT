@@ -25,6 +25,7 @@ class ProjectChannelAnnotations(TimeStamped, Flaggable, db.Model):
     def reinitialize(self):
         self.annotated_peaks = []
         self.peak_indices = []
+        return self
 
     def serialize(self):
         res = {
@@ -101,8 +102,8 @@ def format_locus_annotations(all_locus_annotations, peak_filter=None):
 
     if isinstance(peak_filter, dict):
         for locus_annotation in all_locus_annotations:
-            l = locus_annotation.locus.label
-            formatted_locus_annotations.append((l, peak_filter[l](locus_annotation.annotated_peaks)))
+            locus_label = locus_annotation.locus.label
+            formatted_locus_annotations.append((locus_label, peak_filter[locus_label](locus_annotation.annotated_peaks)))
 
     else:
         for locus_annotation in all_locus_annotations:

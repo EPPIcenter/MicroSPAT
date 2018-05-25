@@ -18,33 +18,26 @@
 
 from sqlalchemy.orm.exc import NoResultFound
 
-# from app import db
-from app.microspat.fsa_extractor.PlateExtractor import PlateExtractor
-# from app.microspat.models import *
-# from app.microspat.models.Project.ProjectChannelAnnotations import ProjectChannelAnnotations
-# from app.microspat.models.Sample import Control
-# from app.microspat.peak_annotator.PeakFilters import compose_filters, peak_height_filter, bin_filter
-# from app.utils import CaseInsensitiveDictReader
+from app.microspat.fsa_tools.PlateExtractor import ExtractedPlate
 
 
-def load_plate_zips(zips, ladder, parallel=True):
+def load_plate_zips(zips, ladder):
     extracted_plates = []
-    if parallel:
-        extracted_plates = PlateExtractor.parallel_from_zip(zips, ladder=ladder.base_sizes, color=ladder.color,
-                                                            base_size_precision=ladder.base_size_precision,
-                                                            sq_limit=ladder.sq_limit,
-                                                            filter_parameters=ladder.filter_parameters,
-                                                            scanning_parameters=ladder.scanning_parameters)
-    else:
-        for z in zips:
-            extracted_plate = PlateExtractor.from_zip_and_calculate_base_sizes(z, ladder=ladder.base_sizes,
-                                                                               color=ladder.color,
-                                                                               base_size_precision=ladder.base_size_precision,
-                                                                               sq_limit=ladder.sq_limit,
-                                                                               filter_parameters=ladder.filter_parameters,
-                                                                               scanning_parameters=ladder.scanning_parameters)
-            extracted_plates.append(extracted_plate)
-
+    # if parallel:
+    #     extracted_plates = PlateExtractor.parallel_from_zip(zips, ladder=ladder.base_sizes, color=ladder.color,
+    #                                                         base_size_precision=ladder.base_size_precision,
+    #                                                         sq_limit=ladder.sq_limit,
+    #                                                         filter_parameters=ladder.filter_parameters,
+    #                                                         scanning_parameters=ladder.scanning_parameters)
+    # else:
+    for z in zips:
+        extracted_plate = ExtractedPlate.from_zip_and_calculate_base_sizes(z, ladder=ladder.base_sizes,
+                                                                           color=ladder.color,
+                                                                           base_size_precision=ladder.base_size_precision,
+                                                                           sq_limit=ladder.sq_limit,
+                                                                           filter_parameters=ladder.filter_parameters,
+                                                                           scanning_parameters=ladder.scanning_parameters)
+        extracted_plates.append(extracted_plate)
     return extracted_plates
 
 

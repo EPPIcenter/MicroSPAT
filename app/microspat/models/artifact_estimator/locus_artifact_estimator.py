@@ -3,12 +3,13 @@ from sqlalchemy.orm import make_transient, reconstructor
 
 from app import db
 from app.microspat.artifact_estimator import ArtifactEstimator as AE
+from app.microspat.models.attributes import TimeStamped
 from ..locus.locus import Locus
 from ..artifact_estimator.artifact_estimator import ArtifactEstimator
 from ..artifact_estimator.artifact_equation import ArtifactEquation
 
 
-class LocusArtifactEstimator(AE.ArtifactEstimatorSet, db.Model):
+class LocusArtifactEstimator(AE.ArtifactEstimatorSet, TimeStamped, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     locus_id = db.Column(db.Integer, db.ForeignKey('locus.id', ondelete="CASCADE"), index=True)
     locus = db.relationship('Locus')

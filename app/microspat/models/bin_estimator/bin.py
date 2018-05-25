@@ -2,10 +2,10 @@ from sqlalchemy.orm import make_transient, reconstructor
 
 from app import db
 from app.microspat.bin_finder import BinFinder as BinFinder
-from ..attributes import Flaggable
+from app.microspat.models.attributes import Flaggable, TimeStamped
 
 
-class Bin(Flaggable, BinFinder.Bin, db.Model):
+class Bin(Flaggable, BinFinder.Bin, TimeStamped, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     locus_bin_set_id = db.Column(db.Integer, db.ForeignKey('locus_bin_set.id', ondelete="CASCADE"), index=True)
     label = db.Column(db.Text, nullable=False)

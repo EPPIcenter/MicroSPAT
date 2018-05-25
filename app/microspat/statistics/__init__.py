@@ -16,4 +16,4 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from utils import calculate_allele_frequencies, calculate_peak_probability, calculate_moi, calculate_prob_pos_if_observed, calculate_prob_negative
+from .utils import calculate_allele_frequencies, calculate_peak_probability, calculate_moi, calculate_prob_pos_if_observed, calculate_prob_negative

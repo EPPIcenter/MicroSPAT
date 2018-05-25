@@ -4,7 +4,7 @@ from sqlalchemy.orm import deferred, reconstructor
 from app import db
 from app.custom_sql_types.custom_types import CompressedJSONEncodedData
 from app.microspat.config import Config
-from app.microspat.fsa_extractor.PlateExtractor import ChannelExtractor
+from app.microspat.fsa_tools.PlateExtractor import ChannelExtractor
 from app.microspat.peak_annotator.PeakFilters import base_size_filter, peak_height_filter, bleedthrough_filter, \
     crosstalk_filter, peak_proximity_filter, relative_peak_height_filter
 from ..attributes import TimeStamped, Colored, Flaggable

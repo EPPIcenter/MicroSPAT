@@ -22,7 +22,7 @@ import logging
 import numpy as np
 from scipy import interpolate
 from scipy.signal import find_peaks_cwt, argrelmax
-from SignalProcessor import smooth_signal, correct_baseline
+from .SignalProcessor import smooth_signal, correct_baseline
 
 
 class NoLadderException(Exception):
@@ -59,7 +59,7 @@ class GenericChannelProcessor(object):
         trace = self.channel.data
         window_size = int(self.maxima_window)
         temp = []
-        half_window = window_size / 2
+        half_window = window_size // 2
         for p in peak_indices:
             if len(trace) > p + half_window:
                 for i in range(max(0, p - half_window), p + half_window):
@@ -167,7 +167,7 @@ class LadderProcessor(GenericChannelProcessor):
         spline, sq, peaks = self.generate_spline(peak_indices, manual_peak_override=True)
         r = lambda x: round(x, self.base_size_precision)
         base_sizes = map(r, map(float, map(spline, range(1, len(self.channel.data) + 1))))
-        self._base_sizes = base_sizes
+        self._base_sizes = list(base_sizes)
         self._sq = sq
         self._peak_indices = peak_indices
         return self._base_sizes
@@ -259,7 +259,7 @@ class LadderProcessor(GenericChannelProcessor):
 
     def remove_signal_outlier(self, peak_indices):
         peak_heights = np.array([self.channel.data[_] for _ in peak_indices])
-        peak_indices_and_heights = np.array(zip(peak_indices, peak_heights))
+        peak_indices_and_heights = np.array(list(zip(peak_indices, peak_heights)))
         peak_heights = np.array([x[1] for x in peak_indices_and_heights])
         if peak_heights.mean() < self.min_peak_height:
             raise NoLadderException("Peaks too small to reliably identify ladder.")

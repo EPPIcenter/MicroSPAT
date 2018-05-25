@@ -15,8 +15,41 @@ class GetException(Exception):
         super(GetException, self).__init__(*args)
 
 
-def base_get(model, schema, namespace, subset_size=300):
+def respond_404(error):
+    res = flask.jsonify({
+        'error': error
+    })
+    res.status_code = 404
+    return res
+
+
+def emit_task_failure(task, message, namespace):
+    socketio.emit(task, {
+        'success': False,
+        'message': message
+    }, namespace=namespace)
+
+
+def emit_task_success(task, message, namespace):
+    socketio.emit(task, {
+        'success': True,
+        'message': message
+    }, namespace=namespace)
+
+
+def emit_list(model_namespace, schema_dump):
+    socketio.emit('list', {model_namespace: schema_dump.data}, namespace=make_namespace(model_namespace))
+    eventlet.sleep()
+
+
+def emit_get(model_namespace, schema_dump):
+    socketio.emit('get', {model_namespace: schema_dump.data}, namespace=make_namespace(model_namespace))
+    eventlet.sleep()
+
+
+def base_get(model, schema, namespace, subset_size=384):
     def get_fn(json):
+        print("Base Get Request Received {}".format(namespace))
         ids = extract_ids(json)
         for id_subset in subset(ids, subset_size):
             instances = model.query.filter(model.id.in_(id_subset)).all()
@@ -29,10 +62,13 @@ def base_get(model, schema, namespace, subset_size=300):
     return get_fn
 
 
-def base_list(model, schema, namespace):
+def base_list(model, schema, namespace, query=None):
     def list_fn():
-        print "Base List Request Received {}".format(namespace)
-        instances = model.query.all()
+        print("Base List Request Received {}".format(namespace))
+        if not query:
+            instances = model.query.all()
+        else:
+            instances = query()
         dump = schema.dumps(instances, many=True, separators=(',', ':'))
         res = {
             namespace: dump.data
@@ -46,7 +82,7 @@ def extract_ids(json):
     try:
         if isinstance(ids, list):
             ids = list(map(int, ids))
-        elif isinstance(ids, (int, str, unicode)):
+        elif isinstance(ids, (int, str)):
             ids = [int(ids)]
         else:
             raise GetException("Field id not valid", json)

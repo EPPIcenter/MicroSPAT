@@ -1,7 +1,8 @@
 from app import db
+from app.microspat.models import TimeStamped
 
 
-class ControlSampleAssociation(db.Model):
+class ControlSampleAssociation(TimeStamped, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     control_id = db.Column(db.Integer, db.ForeignKey("control.id", ondelete="CASCADE"), index=True,
                            nullable=False)

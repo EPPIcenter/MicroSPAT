@@ -165,6 +165,12 @@ class PlateSchema(BaseSchema, Flaggable):
     temperature = JSONEncodedField()
 
 
+class PlateListSchema(PlateSchema):
+    class Meta:
+        model = Plate
+    wells = fields.List(fields.Integer())
+
+
 class WellSchema(BaseSchema, Flaggable):
     class Meta:
         model = Well
@@ -173,9 +179,20 @@ class WellSchema(BaseSchema, Flaggable):
     offscale_indices = JSONEncodedField()
 
 
+class WellListSchema(WellSchema):
+    class Meta:
+        model = Well
+        # exclude = ['base_sizes']
+
+
 class ChannelSchema(BaseSchema, Flaggable):
     class Meta:
         model = Channel
     data = JSONEncodedField()
 
+
+class ChannelListSchema(ChannelSchema):
+    class Meta:
+        model = Channel
+        exclude = ['data']
 

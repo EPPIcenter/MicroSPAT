@@ -19,7 +19,7 @@
 from flask import Blueprint, send_from_directory, redirect
 from werkzeug.exceptions import NotFound
 
-plasmotrack = Blueprint('plasmotrack', import_name=__name__, static_folder='static/plasmotrack-js')
+plasmotrack = Blueprint('plasmotrack', import_name=__name__, static_folder='static/plasmotrack-js', url_prefix='/plasmotrack')
 
 
 @plasmotrack.route('/<path:path>')

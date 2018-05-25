@@ -1,12 +1,13 @@
 import csv
 from datetime import datetime
 
+import eventlet
 from sqlalchemy.ext.mutable import MutableList
 from sqlalchemy.orm import deferred, validates, reconstructor
 
 from app import db
 from app.custom_sql_types.custom_types import CompressedJSONEncodedData
-from app.microspat.fsa_extractor.PlateExtractor import PlateExtractor
+from app.microspat.fsa_tools.PlateExtractor import ExtractedPlate
 from ..attributes import TimeStamped, Flaggable
 from ..locus.locus import Locus
 from ..sample.sample import Sample
@@ -15,7 +16,7 @@ from ..ce.channel import Channel
 from ..ce.ladder import Ladder
 
 
-class Plate(PlateExtractor, TimeStamped, Flaggable, db.Model):
+class Plate(ExtractedPlate, TimeStamped, Flaggable, db.Model):
     """
     Immutable data about plate sourced from zip of FSA Files
     """
@@ -53,7 +54,8 @@ class Plate(PlateExtractor, TimeStamped, Flaggable, db.Model):
     @classmethod
     def get_serialized_list(cls):
         plates = cls.query.values(cls.id, cls.label, cls.creator, cls.date_processed, cls.date_run,
-                                  cls.well_arrangement, cls.ce_machine, cls.plate_hash, cls.last_updated, cls.flags)
+                                  cls.well_arrangement, cls.ce_machine, cls.plate_hash, cls.last_updated, cls.flags,
+                                  cls.current, cls.voltage, cls.power, cls.temperature, cls.comments)
         res = []
         for p in plates:
             wells = Well.query.filter(Well.plate_id == p[0]).values(Well.id)
@@ -61,20 +63,52 @@ class Plate(PlateExtractor, TimeStamped, Flaggable, db.Model):
             r = {'id': p[0],
                  'label': p[1],
                  'creator': p[2],
-                 'date_processed': str(p[3]),
-                 'date_run': str(p[4]),
-                 'well_arrangement': str(p[5]),
-                 'ce_machine': str(p[6]),
-                 'plate_hash': str(p[7]),
-                 'last_updated': str(p[8]),
+                 'date_processed': p[3],
+                 'date_run': p[4],
+                 'well_arrangement': p[5],
+                 'ce_machine': p[6],
+                 'plate_hash': p[7],
+                 'last_updated': p[8],
                  'flags': p[9],
+                 'current': p[10],
+                 'voltage': p[11],
+                 'power': p[12],
+                 'temperature': p[13],
+                 'comments': p[14],
                  'wells': wells}
             res.append(r)
         return res
 
     @classmethod
+    def from_extracted_plate(cls, extracted_plate, ladder):
+        p = cls(label=extracted_plate.label, comments=extracted_plate.comments, creator=extracted_plate.creator,
+                date_run=extracted_plate.date_run, well_arrangement=extracted_plate.well_arrangement,
+                ce_machine=extracted_plate.ce_machine, plate_hash=extracted_plate.plate_hash,
+                current=extracted_plate.current, voltage=extracted_plate.voltage,
+                temperature=extracted_plate.temperature, power=extracted_plate.power)
+        db.session.add(p)
+        eventlet.sleep()
+
+        for well in extracted_plate.wells:
+            w = Well(well_label=well.well_label, comments=well.comments, base_sizes=well.base_sizes,
+                     ladder_peak_indices=well.ladder_peak_indices, sizing_quality=well.sizing_quality,
+                     offscale_indices=well.offscale_indices, fsa_hash=well.fsa_hash)
+
+            w.plate = p
+            w.ladder = ladder
+            db.session.add(w)
+            eventlet.sleep()
+
+            for channel in well.channels:
+                c = Channel(wavelength=channel.wavelength, data=channel.data, color=channel.color)
+                c.well = w
+                db.session.add(c)
+                eventlet.sleep()
+        return p
+
+    @classmethod
     def from_zip(cls, zip_file, ladder, creator=None, comments=None, add_to_db=True):
-        extracted_plate = PlateExtractor.from_zip(zip_file, creator, comments)
+        extracted_plate = ExtractedPlate.from_zip(zip_file, creator, comments)
 
         if type(ladder) == int:
             ladder = Ladder.query.get(ladder)

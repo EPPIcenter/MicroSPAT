@@ -30,35 +30,35 @@ def Char(byteStream, size):
 
 def Word(byteStream, size):
     if size % 2 == 0:
-        return struct.unpack('>' + str(size / 2) + 'H', byteStream[:size])
+        return struct.unpack('>' + str(size // 2) + 'H', byteStream[:size])
     else:
         raise IOError('Bytestream not multiple of 2')
 
 
 def Short(byteStream, size):
     if size % 2 == 0:
-        return struct.unpack('>' + str(size / 2) + 'h', byteStream[:size])
+        return struct.unpack('>' + str(size // 2) + 'h', byteStream[:size])
     else:
         raise IOError('Bytestream not multiple of 2')
 
 
 def Long(byteStream, size):
     if size % 4 == 0:
-        return struct.unpack('>' + str(size / 4) + 'l', byteStream[:size])
+        return struct.unpack('>' + str(size // 4) + 'l', byteStream[:size])
     else:
         raise IOError('ByteStream not multiple of 4')
 
 
 def Float(byteStream, size):
     if size % 4 == 0:
-        return struct.unpack('>' + str(size / 4) + 'f', byteStream[:size])
+        return struct.unpack('>' + str(size // 4) + 'f', byteStream[:size])
     else:
         raise IOError('ByteStream not multiple of 4')
 
 
 def Double(byteStream, size):
     if size % 8 == 0:
-        return struct.unpack('>' + str(size / 8) + 'd', byteStream[:size])
+        return struct.unpack('>' + str(size // 8) + 'd', byteStream[:size])
     else:
         raise IOError('Bytestream not multiple of 8')
 
@@ -117,7 +117,7 @@ structUnpacker = {1: Byte,
 
 
 class FSAFile(object):
-    SIGNATURE = "ABIF"
+    SIGNATURE = b"ABIF"
 
     def __init__(self, byte_stream, malform_check=True):
         self._channels = {}
@@ -168,7 +168,7 @@ class FSAFile(object):
         if not self._channels:
             # Colors ordered so that as they are popped off they match the given channel.
             colors = ['orange', 'red', 'yellow', 'green', 'blue']
-            wavelength_keys = self.directories['DyeW'].keys()
+            wavelength_keys = list(self.directories['DyeW'])
             # Backwards compatibility of FSA files requires that the 5th channel, if used, is labeled
             # as 105 in the data directory.
             if len(wavelength_keys) == 5:
@@ -184,19 +184,21 @@ class FSAFile(object):
     @property
     def sample_name(self):
         # Sample Label
-        return self.directories['SpNm'][1].data[0]
+        return self.directories['SpNm'][1].data[0].decode('ascii')
 
     @property
     def plate(self):
         # Plate Label
-        return self.directories['CTID'][1].data[0].replace("\x00", "")
+        return self.directories['CTID'][1].data[0].replace(b"\x00", b"").decode('ascii')
 
     @property
     def well(self):
-        well = self.directories['TUBE'][1].data[0]
+        well = self.directories['TUBE'][1].data[0].decode('ascii')
         # Normalize well label so that integer portion is zero-padded.
         if int(well[1:]) < 10:
-            well = well[0] + "0" + well[1]
+            well_letter = well[0]
+            well_integer = well[1]
+            well = f'{well_letter}0{well_integer}'
         return well
 
     @property
@@ -207,7 +209,7 @@ class FSAFile(object):
     @property
     def ce_machine(self):
         # Name of CE machine on which the plate was run.
-        ce_machine = self.directories['MCHN'][1].data[0]
+        ce_machine = self.directories['MCHN'][1].data[0].decode('ascii')
         return ce_machine
 
     @property
@@ -261,7 +263,7 @@ class FSADir(object):
     Given a full bytestream and an offset, unpack the directory found within an FSA file.
     """
     def __init__(self, bytestream, offset):
-        self.name = struct.unpack('>4s', bytestream[offset: offset + 4])[0]
+        self.name = struct.unpack('>4s', bytestream[offset: offset + 4])[0].decode('ascii')
         self.number = struct.unpack('>i', bytestream[offset + 4: offset + 8])[0]
         self.elementType = struct.unpack('>h', bytestream[offset + 8: offset + 10])[0]
         self.elementSize = struct.unpack('>h', bytestream[offset + 10: offset + 12])[0]

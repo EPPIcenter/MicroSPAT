@@ -3,6 +3,8 @@ from app.microspat.models import Locus
 from ..base import base_list, base_get, make_namespace, table_to_string_mapping
 from app import socketio
 
+
+
 JSON_NAMESPACE = table_to_string_mapping[Locus]
 SOCK_NAMESPACE = make_namespace(JSON_NAMESPACE)
 

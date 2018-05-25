@@ -41,10 +41,10 @@ class CompressedJSONEncodedData(types.TypeDecorator):
 
     def process_bind_param(self, value, dialect):
         if value is not None:
-            value = bz2.compress(json.dumps(value))
+            value = bz2.compress(json.dumps(value).encode('utf-8'))
         return value
 
     def process_result_value(self, value, dialect):
         if value is not None:
-            value = json.loads(bz2.decompress(value))
+            value = json.loads(bz2.decompress(value).decode('utf-8'))
         return value

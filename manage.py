@@ -25,7 +25,7 @@ if os.path.exists('.env'):
     for line in open('.env'):
         var = line.strip().split('=')
         if len(var) == 2:
-            print var[0] + " : " + var[1]
+            print(var[0] + " : " + var[1])
             os.environ[var[0]] = var[1]
 
 from app import socketio, create_app, db, microspat
@@ -74,11 +74,11 @@ def runsockets(addr='0.0.0.0:17328'):
 def vacuum():
     if db.engine.url.drivername == 'sqlite':
 
-        print "Beginning Vacuum of Database."
+        print("Beginning Vacuum of Database.")
         db.engine.execute("VACUUM")
-        print "Vacuum Completed."
+        print("Vacuum Completed.")
     else:
-        print "Database does not support VACUUM command."
+        print("Database does not support VACUUM command.")
 
 
 @manager.command

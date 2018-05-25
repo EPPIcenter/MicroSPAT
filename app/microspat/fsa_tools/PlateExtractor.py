@@ -17,48 +17,49 @@
 """
 
 import hashlib
-import zipfile
-from functools import partial
-
 import os
+import zipfile
+from io import IOBase
 
+import eventlet
+
+from app.microspat.fsa_tools.FSAExtractor import FSAFile
 from app.microspat.peak_annotator.PeakAnnotators import *
 from ..signal_processor.TraceProcessor import LadderProcessor, MicrosatelliteProcessor, NoLadderException
-from fsa_extractor.FSAExtractor import FSAFile
 
 if os.name != 'nt':
-    print os.name
+    print(os.name)
     # import dill
-    from pathos import multiprocessing
+
 
 # import multiprocessing
 
+capillary_order = ['H01', 'H02', 'G01', 'G02', 'F01', 'F02', 'E01', 'E02',
+                   'D01', 'D02', 'C01', 'C02', 'B01', 'B02', 'A01', 'A02',
+                   'H03', 'H04', 'G03', 'G04', 'F03', 'F04', 'E03', 'E04',
+                   'D03', 'D04', 'C03', 'C04', 'B03', 'B04', 'A03', 'A04',
+                   'H05', 'H06', 'G05', 'G06', 'F05', 'F06', 'E05', 'E06',
+                   'D05', 'D06', 'C05', 'C06', 'B05', 'B06', 'A05', 'A06',
+                   'H07', 'H08', 'G07', 'G08', 'F07', 'F08', 'E07', 'E08',
+                   'D07', 'D08', 'C07', 'C08', 'B07', 'B08', 'A07', 'A08',
+                   'H09', 'H10', 'G09', 'G10', 'F09', 'F10', 'E09', 'E10',
+                   'D09', 'D10', 'C09', 'C10', 'B09', 'B10', 'A09', 'A10',
+                   'H11', 'H12', 'G11', 'G12', 'F11', 'F12', 'E11', 'E12',
+                   'D11', 'D12', 'C11', 'C12', 'B11', 'B12', 'A11', 'A12']
 
-class PlateExtractor(object):
+# Construct 96 well list
+letters = [chr(x) for x in range(ord("A"), ord("H") + 1)]
+nums = [str(x).rjust(2, '0') for x in range(1, 13)]
+well_order_96 = [l + num for l in letters for num in nums]
+
+# Construct 384 well list
+letters = [chr(x) for x in range(ord("A"), ord("P") + 1)]
+nums = [str(x).rjust(2, '0') for x in range(1, 25)]
+well_order_384 = [l + num for l in letters for num in nums]
+
+class ExtractedPlate(object):
     # The order of capillaries that are fed into the CE machine.  This is used during crosstalk detection as adjacent
     # capillaries will exhibit some signal mixing
-    capillary_order = ['H01', 'H02', 'G01', 'G02', 'F01', 'F02', 'E01', 'E02',
-                       'D01', 'D02', 'C01', 'C02', 'B01', 'B02', 'A01', 'A02',
-                       'H03', 'H04', 'G03', 'G04', 'F03', 'F04', 'E03', 'E04',
-                       'D03', 'D04', 'C03', 'C04', 'B03', 'B04', 'A03', 'A04',
-                       'H05', 'H06', 'G05', 'G06', 'F05', 'F06', 'E05', 'E06',
-                       'D05', 'D06', 'C05', 'C06', 'B05', 'B06', 'A05', 'A06',
-                       'H07', 'H08', 'G07', 'G08', 'F07', 'F08', 'E07', 'E08',
-                       'D07', 'D08', 'C07', 'C08', 'B07', 'B08', 'A07', 'A08',
-                       'H09', 'H10', 'G09', 'G10', 'F09', 'F10', 'E09', 'E10',
-                       'D09', 'D10', 'C09', 'C10', 'B09', 'B10', 'A09', 'A10',
-                       'H11', 'H12', 'G11', 'G12', 'F11', 'F12', 'E11', 'E12',
-                       'D11', 'D12', 'C11', 'C12', 'B11', 'B12', 'A11', 'A12']
-
-    # Construct 96 well list
-    __letters = [chr(x) for x in range(ord("A"), ord("H") + 1)]
-    __nums = [str(x).rjust(2, '0') for x in range(1, 13)]
-    well_order_96 = [l + num for l in __letters for num in __nums]
-
-    # Construct 384 well list
-    __letters = [chr(x) for x in range(ord("A"), ord("P") + 1)]
-    __nums = [str(x).rjust(2, '0') for x in range(1, 25)]
-    well_order_384 = [l + num for l in __letters for num in __nums]
 
     well_list = {
         96: well_order_96,
@@ -233,7 +234,7 @@ class PlateExtractor(object):
                         current = fsa.current
                         voltage = fsa.voltage
                         power = fsa.power
-        well_hashes = "".join([well.fsa_hash for well in sorted(wells, key=lambda x: x.well_label)])
+        well_hashes = "".join([well.fsa_hash for well in sorted(wells, key=lambda x: x.well_label)]).encode('utf-8')
         plate_hash = hashlib.md5(well_hashes).hexdigest()
         return cls(label=label, wells=wells, temperature=temperature, current=current, voltage=voltage, power=power,
                    well_arrangement=well_arrangement, date_run=date_run, creator=creator,
@@ -248,19 +249,19 @@ class PlateExtractor(object):
 
         return p
 
-    @classmethod
-    def parallel_from_zip(cls, zip_files, ladder, color, base_size_precision, sq_limit,
-                          filter_parameters, scanning_parameters, creator=None, comments=None):
-
-        pool = multiprocessing.Pool()
-        fn = partial(cls.from_zip_and_calculate_base_sizes, ladder=ladder, color=color,
-                     base_size_precision=base_size_precision,
-                     sq_limit=sq_limit,
-                     filter_parameters=filter_parameters,
-                     scanning_parameters=scanning_parameters)
-        extracted_plates = pool.map(fn, zip_files)
-        pool.close()
-        return extracted_plates
+    # @classmethod
+    # def parallel_from_zip(cls, zip_files, ladder, color, base_size_precision, sq_limit,
+    #                       filter_parameters, scanning_parameters, creator=None, comments=None):
+    #
+    #     pool = multiprocessing.Pool()
+    #     fn = partial(cls.from_zip_and_calculate_base_sizes, ladder=ladder, color=color,
+    #                  base_size_precision=base_size_precision,
+    #                  sq_limit=sq_limit,
+    #                  filter_parameters=filter_parameters,
+    #                  scanning_parameters=scanning_parameters)
+    #     extracted_plates = pool.map(fn, zip_files)
+    #     pool.close()
+    #     return extracted_plates
 
     def surrounding_wells(self, well_label, distance):
         quad = None
@@ -301,7 +302,7 @@ class PlateExtractor(object):
         for well_label in well_labels:
             surrounding_wells = self.surrounding_wells(well_label, distance=max_capillary_distance)
             well = self.wells_dict[well_label]
-            for color in well.channels_dict.keys():
+            for color in list(well.channels_dict):
                 surrounding_signal = [x.channels_dict[color].data for x in surrounding_wells]
                 crosstalk_annotator = annotate_signal_crosstalk(surrounding_signal, idx_dist)
                 self.exec_pre_annotating_function(crosstalk_annotator, [well_label], [color])
@@ -325,6 +326,7 @@ class PlateExtractor(object):
             scanning_parameters = {}
 
         for well in self.wells_dict.values():
+            eventlet.sleep()
             well.calculate_base_sizes(ladder=ladder, color=color, base_size_precision=base_size_precision,
                                       sq_limit=sq_limit, filter_parameters=filter_parameters,
                                       scanning_parameters=scanning_parameters)
@@ -405,7 +407,7 @@ class PlateExtractor(object):
                 well.exec_post_annotating_function(fn, colors)
         return self
 
-    def exce_peak_filter_function(self, fn, well_labels=None, colors=None):
+    def exec_peak_filter_function(self, fn, well_labels=None, colors=None):
         if well_labels is None:
             well_labels = []
         if colors is None:
@@ -481,13 +483,13 @@ class WellExtractor(object):
         :param fsa: path string, file, or FSAFile
         :return:
         """
-        if type(fsa) is str:
+        if isinstance(fsa, str):
             with open(fsa, 'r') as f:
                 fsa = FSAFile(f.read())
-        elif type(fsa) is file:
+        elif isinstance(fsa, IOBase):
             fsa = FSAFile(fsa.read())
 
-        if type(fsa) is FSAFile:
+        if isinstance(fsa, FSAFile):
             channels = [ChannelExtractor(**c) for c in fsa.channels]
             return cls(well_label=fsa.well, channels=channels, fsa_hash=fsa.hash, offscale_indices=fsa.offscale_indices)
         else:
@@ -501,7 +503,7 @@ class WellExtractor(object):
 
     def annotate_bleedthrough(self, colors=None, idx_dist=1):
         if not colors:
-            colors = self.channels_dict.keys()
+            colors = list(self.channels_dict)
         for color in colors:
             channel = self.channels_dict[color]
             channel.annotate_bleedthrough(idx_dist)
@@ -514,7 +516,7 @@ class WellExtractor(object):
         :return: None
         """
 
-        other_colors = list(self.channels_dict.keys())
+        other_colors = list(self.channels_dict)
         other_colors.remove(color)
         other_traces = [self.channels_dict[c].data for c in other_colors]
         return annotate_signal_crosstalk(other_traces, idx_dist, label='bleedthrough_ratio')
@@ -530,12 +532,12 @@ class WellExtractor(object):
             colors = []
 
         if not annotators:
-            temp_annotators = self.static_pre_annotators.keys()
+            temp_annotators = list(self.static_pre_annotators)
         else:
             temp_annotators = annotators
 
         if not colors:
-            colors = self.channels_dict.keys()
+            colors = list(self.channels_dict)
 
         for annotator in temp_annotators:
             annotator = self.static_pre_annotators.get(annotator, None)
@@ -555,12 +557,12 @@ class WellExtractor(object):
             annotators = []
 
         if not annotators:
-            temp_annotators = self.static_post_annotators.keys()
+            temp_annotators = list(self.static_post_annotators)
         else:
             temp_annotators = annotators
 
         if not colors:
-            colors = self.channels_dict.keys()
+            colors = list(self.channels_dict)
 
         for annotator in temp_annotators:
             annotator = self.static_post_annotators.get(annotator, None)
@@ -577,7 +579,7 @@ class WellExtractor(object):
             colors = []
 
         if not colors:
-            colors = self.channels_dict.keys()
+            colors = list(self.channels_dict)
         for color in colors:
             channel = self.channels_dict[color]
             channel.pre_annotate_peak_indices(fn)
@@ -588,7 +590,7 @@ class WellExtractor(object):
             colors = []
 
         if not colors:
-            colors = self.channels_dict.keys()
+            colors = list(self.channels_dict)
         for color in colors:
             channel = self.channels_dict[color]
             channel.post_annotate_peak_indices(fn)
@@ -599,7 +601,7 @@ class WellExtractor(object):
             colors = []
 
         if not colors:
-            colors = self.channels_dict.keys()
+            colors = list(self.channels_dict)
         for color in colors:
             channel = self.channels_dict[color]
             channel.filter_annotated_peaks(fn)
@@ -624,7 +626,7 @@ class WellExtractor(object):
         if filter_parameters is None:
             filter_parameters = {}
 
-        bleedthrough_channels = self.channels_dict.values()
+        bleedthrough_channels = list(self.channels_dict.values())
         ladder_channel = self.channels_dict[color]
 
         bleedthrough_channels.remove(ladder_channel)
@@ -635,7 +637,7 @@ class WellExtractor(object):
         try:
             self.base_sizes = l.get_base_sizes(peak_indices=peak_indices)
             self.sizing_quality = l.sizing_quality
-            self.ladder_peak_indices = map(int, l.peaks)
+            self.ladder_peak_indices = list(map(int, l.peaks))
             self.static_pre_annotators['base_size'] = self.base_size_annotator()
             ladder_channel.set_peak_indices(l.peaks)
         except NoLadderException:
@@ -647,7 +649,7 @@ class WellExtractor(object):
         if colors is None:
             colors = []
         if not colors:
-            colors = self.channels_dict.keys()
+            colors = list(self.channels_dict)
 
         for c in colors:
             channel = self.channels_dict[c]

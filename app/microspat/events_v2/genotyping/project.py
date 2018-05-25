@@ -62,5 +62,5 @@ def get_genotyping_project(json):
             socketio.emit('get', {PROJECT_CHANNEL_ANNOTATIONS_NAMESPACE: project_channel_annotations_dump.data},
                           namespace=make_namespace(PROJECT_CHANNEL_ANNOTATIONS_NAMESPACE))
 
-socketio.on_event('list', base_list(GenotypingProject, project_schema, JSON_NAMESPACE),
-                  namespace=SOCK_NAMESPACE)
+
+socketio.on_event('list', base_list(GenotypingProject, project_schema, JSON_NAMESPACE), namespace=SOCK_NAMESPACE)

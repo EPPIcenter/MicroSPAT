@@ -3,7 +3,7 @@ from sqlalchemy.orm import deferred, reconstructor
 
 from app import db
 from app.custom_sql_types.custom_types import CompressedJSONEncodedData
-from app.microspat.fsa_extractor.PlateExtractor import WellExtractor
+from app.microspat.fsa_tools.PlateExtractor import WellExtractor
 from ..attributes import TimeStamped, Flaggable
 
 
