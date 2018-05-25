@@ -9,7 +9,7 @@ import { ArtifactEquation } from '../../models/artifact-estimator/artifact-equat
 export class ArtifactEquationService extends WebSocketBaseService<ArtifactEquation> {
 
   constructor(
-    private store: Store<fromRoot.State>
+    protected store: Store<fromRoot.AppState>
   ) {
     super('artifact_equation', store);
   }

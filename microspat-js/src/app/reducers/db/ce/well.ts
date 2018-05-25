@@ -4,15 +4,17 @@ import { Well } from 'app/models/ce/well';
 import { generateReducer } from 'app/reducers/db/dbReducer';
 
 
-const MODEL = 'well';
+export const MODEL = 'well';
 
 export interface State {
   ids: string[];
+  pendingRequests: {[id: number]: string};
   entities: { [id: string]: Well };
 }
 
 export const initialState: State = {
   ids: [],
+  pendingRequests: {},
   entities: {}
 };
 

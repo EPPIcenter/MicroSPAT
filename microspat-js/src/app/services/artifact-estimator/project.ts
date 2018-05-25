@@ -9,7 +9,7 @@ import * as fromRoot from 'app/reducers';
 export class ArtifactEstimatorProjectService extends WebSocketBaseService<ArtifactEstimatorProject> {
 
   constructor(
-    private store: Store<fromRoot.State>
+    protected store: Store<fromRoot.AppState>
   ) {
     super('artifact_estimator_project', store);
   }

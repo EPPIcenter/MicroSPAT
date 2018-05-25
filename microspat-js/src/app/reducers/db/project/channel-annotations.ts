@@ -2,16 +2,19 @@ import { ProjectChannelAnnotations } from 'app/models/project/channel-annotation
 import { generateReducer } from 'app/reducers/db/dbReducer';
 
 
-const MODEL = 'project_channel_annotations';
+export const MODEL = 'project_channel_annotations';
 
 export interface State {
   ids: string[];
+  pendingRequests: {[id: number]: string};
   entities: { [id: string]: ProjectChannelAnnotations };
 }
 
 export const initialState: State = {
   ids: [],
+  pendingRequests: {},
   entities: {}
 };
+
 
 export const reducer = generateReducer(MODEL, initialState);

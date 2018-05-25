@@ -9,7 +9,7 @@ import * as fromRoot from 'app/reducers';
 export class GenotypeService extends WebSocketBaseService<Genotype> {
 
   constructor(
-    private store: Store<fromRoot.State>
+    protected store: Store<fromRoot.AppState>
   ) {
     super('genotype', store);
   }

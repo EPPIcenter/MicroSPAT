@@ -10,7 +10,7 @@ import * as fromRoot from 'app/reducers';
 export class ChannelService extends WebSocketBaseService<Channel> {
 
   constructor(
-    private store: Store<fromRoot.State>
+    protected store: Store<fromRoot.AppState>
   ) {
     super('channel', store);
   }

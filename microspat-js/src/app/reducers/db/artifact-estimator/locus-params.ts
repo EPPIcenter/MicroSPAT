@@ -2,15 +2,17 @@ import { ArtifactEstimatorLocusParams } from 'app/models/artifact-estimator/locu
 import { generateReducer } from 'app/reducers/db/dbReducer';
 
 
-const MODEL = 'artifact_estimator_locus_params';
+export const MODEL = 'artifact_estimator_locus_params';
 
 export interface State {
   ids: string[];
+  pendingRequests: {[id: number]: string};
   entities: { [id: string]: ArtifactEstimatorLocusParams };
 }
 
 export const initialState: State = {
   ids: [],
+  pendingRequests: {},
   entities: {}
 };
 

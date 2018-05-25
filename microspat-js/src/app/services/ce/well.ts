@@ -9,9 +9,16 @@ import * as fromRoot from 'app/reducers';
 export class WellService extends WebSocketBaseService<Well> {
 
   constructor(
-    private store: Store<fromRoot.State>
+    protected store: Store<fromRoot.AppState>
   ) {
     super('well', store);
+  }
+
+  public recalculateLadder(wellId: number, ladderPeakIndices: number[]) {
+    this.socket.emit('recalculate_ladder', {
+      well_id: wellId,
+      ladder_peak_indices: ladderPeakIndices
+    });
   }
 
 }

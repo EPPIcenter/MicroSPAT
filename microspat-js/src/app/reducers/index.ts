@@ -4,31 +4,36 @@ import { ActionReducerMap, compose, combineReducers, MetaReducer, ActionReducer 
 import { storeFreeze } from 'ngrx-store-freeze';
 import { environment } from 'environments/environment';
 import * as fromDB from './db';
+import * as fromPlates from './plates/plates';
+import * as fromKeyboard from './keyboard';
 
-export interface State {
-  db: fromDB.State;
+export interface AppState {
+  db: fromDB.DBState;
+  plates: fromPlates.State;
+  keyboard: fromKeyboard.State;
 }
 
-export function logger(reducer: ActionReducer<State>): ActionReducer<State> {
-  return function(state: State, action: any): State {
+export function logger(reducer: ActionReducer<AppState>): ActionReducer<AppState> {
+  return function(state: AppState, action: any): AppState {
     console.log('state', state);
     console.log('action', action);
-
     return reducer(state, action);
   };
 }
 
 @Injectable()
-export class DBReducer {
-  private reducers: ActionReducerMap<State>;
+export class AppReducer {
+  private reducers: ActionReducerMap<AppState>;
 
-  private metaReducers: MetaReducer<State>[] = !environment.production
+  private metaReducers: MetaReducer<AppState>[] = !environment.production
   ? [logger, storeFreeze]
   : [];
 
   constructor() {
     this.reducers = {
-      db: fromDB.reducer
+      db: fromDB.reducer,
+      plates: fromPlates.reducer,
+      keyboard: fromKeyboard.reducer
     };
   };
 

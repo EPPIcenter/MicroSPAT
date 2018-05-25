@@ -9,7 +9,7 @@ import * as fromRoot from 'app/reducers';
 export class QuantificationBiasEstimatorProjectService extends WebSocketBaseService<QuantificationBiasEstimatorProject> {
 
   constructor(
-    private store: Store<fromRoot.State>
+    protected store: Store<fromRoot.AppState>
   ) {
     super('quantification_bias_estimator_project', store);
   }

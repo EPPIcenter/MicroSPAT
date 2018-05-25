@@ -2,16 +2,19 @@ import { QuantificationBiasEstimatorLocusParams } from 'app/models/quantificatio
 import { generateReducer } from 'app/reducers/db/dbReducer';
 
 
-const MODEL = 'quantification_bias_estimator_locus_params';
+export const MODEL = 'quantification_bias_estimator_locus_params';
 
 export interface State {
   ids: string[];
+  pendingRequests: {[id: number]: string};
   entities: { [id: string]: QuantificationBiasEstimatorLocusParams };
 }
 
 export const initialState: State = {
   ids: [],
+  pendingRequests: {},
   entities: {}
 };
+
 
 export const reducer = generateReducer(MODEL, initialState);

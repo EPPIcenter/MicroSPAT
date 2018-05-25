@@ -9,7 +9,7 @@ import * as fromRoot from 'app/reducers';
 export class SampleLocusAnnotationService extends WebSocketBaseService<SampleLocusAnnotation> {
 
   constructor(
-    private store: Store<fromRoot.State>
+    protected store: Store<fromRoot.AppState>
 
   ) {
     super('sample_locus_annotation', store);

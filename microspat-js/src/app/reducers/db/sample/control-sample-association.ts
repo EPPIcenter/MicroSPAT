@@ -2,16 +2,19 @@ import { ControlSampleAssociation } from 'app/models/sample/control-sample-assoc
 import { generateReducer } from 'app/reducers/db/dbReducer';
 
 
-const MODEL = 'control_sample_association';
+export const MODEL = 'control_sample_association';
 
 export interface State {
   ids: string[];
+  pendingRequests: {[id: number]: string};
   entities: { [id: string]: ControlSampleAssociation };
 }
 
 export const initialState: State = {
   ids: [],
+  pendingRequests: {},
   entities: {}
 };
+
 
 export const reducer = generateReducer(MODEL, initialState);

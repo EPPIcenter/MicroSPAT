@@ -3,20 +3,24 @@
 // import * as db from 'app/actions/db';
 import { Ladder } from 'app/models/ce/ladder';
 import { generateReducer } from 'app/reducers/db/dbReducer';
+import { createSelector } from 'reselect';
 
-const MODEL = 'ladder';
+export const MODEL = 'ladder';
 
 export interface State {
   ids: string[];
+  pendingRequests: {[id: number]: string};
   entities: { [id: string]: Ladder };
 }
 
 export const initialState: State = {
   ids: [],
+  pendingRequests: {},
   entities: {}
 };
 
 export const reducer = generateReducer(MODEL, initialState);
+
 
 // export function reducer(state = Object.assign({}, initialState), action: db.Actions): State {
 //   if ('payload' in action && action.payload.model === MODEL) {

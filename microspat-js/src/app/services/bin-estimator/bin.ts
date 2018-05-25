@@ -9,7 +9,7 @@ import * as fromRoot from 'app/reducers';
 export class BinService extends WebSocketBaseService<Bin> {
 
   constructor(
-    private store: Store<fromRoot.State>
+    protected store: Store<fromRoot.AppState>
   ) {
     super('bin', store);
   }

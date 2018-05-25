@@ -10,7 +10,7 @@ import * as fromRoot from 'app/reducers';
 export class LadderService extends WebSocketBaseService<Ladder> {
 
   constructor(
-    private store: Store<fromRoot.State>
+    protected store: Store<fromRoot.AppState>
   ) {
     super('ladder', store);
   }

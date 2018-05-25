@@ -2,15 +2,17 @@ import { ArtifactEstimator } from 'app/models/artifact-estimator/artifact-estima
 import { generateReducer } from 'app/reducers/db/dbReducer';
 
 
-const MODEL = 'artifact_estimator';
+export const MODEL = 'artifact_estimator';
 
 export interface State {
   ids: string[];
+  pendingRequests: {[id: number]: string};
   entities: { [id: string]: ArtifactEstimator };
 }
 
 export const initialState: State = {
   ids: [],
+  pendingRequests: {},
   entities: {}
 };
 

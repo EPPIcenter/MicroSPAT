@@ -9,7 +9,7 @@ import * as fromRoot from 'app/reducers';
 export class ControlSampleAssociationService extends WebSocketBaseService<ControlSampleAssociation> {
 
   constructor(
-    private store: Store<fromRoot.State>
+    protected store: Store<fromRoot.AppState>
   ) {
     super('control_sample_association', store);
   }

@@ -9,7 +9,7 @@ import * as fromRoot from 'app/reducers';
 export class QuantificationBiasEstimatorLocusParamsService extends WebSocketBaseService<QuantificationBiasEstimatorLocusParams> {
 
   constructor(
-    private store: Store<fromRoot.State>
+    protected store: Store<fromRoot.AppState>
   ) {
     super('quantification_bias_estimator_locus_params', store);
   }

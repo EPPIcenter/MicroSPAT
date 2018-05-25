@@ -9,7 +9,7 @@ import * as fromRoot from 'app/reducers';
 export class ProjectChannelAnnotationsService extends WebSocketBaseService<ProjectChannelAnnotations> {
 
   constructor(
-    private store: Store<fromRoot.State>
+    protected store: Store<fromRoot.AppState>
   ) {
     super('project_channel_annotations', store);
   }

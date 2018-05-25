@@ -4,15 +4,17 @@
 import { Channel } from 'app/models/ce/channel';
 import { generateReducer } from 'app/reducers/db/dbReducer';
 
-const MODEL = 'channel';
+export const MODEL = 'channel';
 
 export interface State {
   ids: string[];
+  pendingRequests: {[id: number]: string};
   entities: { [id: string]: Channel };
 }
 
 export const initialState: State = {
   ids: [],
+  pendingRequests: {},
   entities: {}
 };
 

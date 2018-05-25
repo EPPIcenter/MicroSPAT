@@ -9,7 +9,7 @@ import * as fromRoot from 'app/reducers';
 export class ProjectSampleAnnotationsService extends WebSocketBaseService<ProjectSampleAnnotations> {
 
   constructor(
-    private store: Store<fromRoot.State>
+    protected store: Store<fromRoot.AppState>
   ) {
     super('project_sample_annotations', store);
   }

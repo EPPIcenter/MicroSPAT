@@ -7,7 +7,7 @@ import { WebSocketBaseService } from './base';
 @Injectable()
 export class GlobalWebSocket extends WebSocketBaseService<any> {
   constructor(
-    private store: Store<fromRoot.State>
+    protected store: Store<fromRoot.AppState>
   ) {
     super('', store);
   }

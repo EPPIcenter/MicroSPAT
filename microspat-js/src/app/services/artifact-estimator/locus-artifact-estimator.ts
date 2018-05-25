@@ -9,7 +9,7 @@ import * as fromRoot from 'app/reducers';
 export class LocusArtifactEstimatorService extends WebSocketBaseService<LocusArtifactEstimator> {
 
   constructor(
-    private store: Store<fromRoot.State>
+    protected store: Store<fromRoot.AppState>
   ) {
     super('locus_artifact_estimator', store);
   }

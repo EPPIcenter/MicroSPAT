@@ -9,7 +9,7 @@ import * as fromRoot from 'app/reducers';
 export class BinEstimatorProjectService extends WebSocketBaseService<BinEstimatorProject> {
 
   constructor(
-    private store: Store<fromRoot.State>
+    protected store: Store<fromRoot.AppState>
   ) {
     super('bin_estimator_project', store);
   }

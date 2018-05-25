@@ -2,15 +2,17 @@ import { Plate } from 'app/models/ce/plate';
 import { generateReducer } from 'app/reducers/db/dbReducer';
 
 
-const MODEL = 'plate';
+export const MODEL = 'plate';
 
 export interface State {
   ids: string[];
+  pendingRequests: {[id: number]: string};
   entities: { [id: string]: Plate };
 }
 
 export const initialState: State = {
   ids: [],
+  pendingRequests: {},
   entities: {}
 };
 

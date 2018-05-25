@@ -1,34 +1,33 @@
-import { Observable } from 'rxjs/Observable';
-import { Subscription } from 'rxjs/Subscription';
-import 'rxjs/add/operator/last';
-import 'rxjs/add/operator/publish';
-import 'rxjs/add/operator/debouncetime';
-import 'rxjs/add/operator/buffer';
+import { Observable, Subscription } from 'rxjs';
+import { last, publish, debounceTime, buffer, refCount } from 'rxjs/operators';
 import { Store } from '@ngrx/store';
 import * as io from 'socket.io-client';
 import { BaseModel } from 'app/models/base';
-import { GetReceivedAction, ListReceivedAction, GetEntityPayload } from 'app/actions/db';
-
+import { GetReceivedAction, ListReceivedAction, GetEntityPayload, DeleteReceivedAction, UpdateReceivedAction } from 'app/actions/db';
 
 
 export abstract class WebSocketBaseService<T> {
   private API_PATH = 'http://localhost:17328';
   protected socket;
   protected namespace: string;
+  protected store: Store<any>;
 
   private _multicastUpdatedStream: Observable<any>;
   private _debounceUpdatedStream: Observable<any>;
   public updatedStream: Observable<any>;
+  protected _updatedListener: Subscription;
   public bufferedUpdatedStream: Observable<any>;
 
   private _multicastCreatedStream: Observable<any>;
   private _debounceCreatedStream: Observable<any>;
   public createdStream: Observable<any>;
+  protected _createdListener: Subscription;
   public bufferedCreatedStream: Observable<any>;
 
   private _multicastDeletedStream: Observable<any>;
   private _debounceDeletedStream: Observable<any>;
   public deletedStream: Observable<any>;
+  protected _deletedListener: Subscription;
   public bufferedDeletedStream: Observable<any>;
 
   public getStream: Observable<GetEntityPayload>;
@@ -38,10 +37,14 @@ export abstract class WebSocketBaseService<T> {
 
 
   constructor(namespace: string, store: Store<any>) {
+    this.store = store;
     this.setNameSpace(namespace);
     this.initSocket();
     this.initGet(store);
     this.initList(store);
+    this.initCreated(store);
+    this.initDeleted(store);
+    this.initUpdated(store);
   }
 
   protected initSocket(): void {
@@ -59,6 +62,7 @@ export abstract class WebSocketBaseService<T> {
 
     this.listStream = new Observable(observer => {
       this.socket.on('list', (data) => {
+        console.log('Received List', this.namespace);
         data = this.parseWebSocketResponse(data);
         observer.next(data);
       });
@@ -82,17 +86,17 @@ export abstract class WebSocketBaseService<T> {
       });
     });
 
-    this._multicastUpdatedStream = this.updatedStream.publish().refCount();
-    this._debounceUpdatedStream = this._multicastUpdatedStream.debounceTime(1000);
-    this.bufferedUpdatedStream = this._multicastUpdatedStream.buffer(this._debounceUpdatedStream);
+    this._multicastUpdatedStream = this.updatedStream.pipe(publish(), refCount());
+    this._debounceUpdatedStream = this._multicastUpdatedStream.pipe(debounceTime(1000));
+    this.bufferedUpdatedStream = this._multicastUpdatedStream.pipe(buffer(this._debounceUpdatedStream));
 
-    this._multicastCreatedStream = this.createdStream.publish().refCount();
-    this._debounceCreatedStream = this._multicastCreatedStream.debounceTime(1000);
-    this.bufferedCreatedStream = this._multicastCreatedStream.buffer(this._debounceCreatedStream);
+    this._multicastCreatedStream = this.createdStream.pipe(publish(), refCount());
+    this._debounceCreatedStream = this._multicastCreatedStream.pipe(debounceTime(1000));
+    this.bufferedCreatedStream = this._multicastCreatedStream.pipe(buffer(this._debounceCreatedStream));
 
-    this._multicastDeletedStream = this.deletedStream.publish().refCount();
-    this._debounceDeletedStream = this._multicastDeletedStream.debounceTime(1000);
-    this.bufferedDeletedStream = this._multicastDeletedStream.buffer(this._debounceUpdatedStream);
+    this._multicastDeletedStream = this.deletedStream.pipe(publish(), refCount());
+    this._debounceDeletedStream = this._multicastDeletedStream.pipe(debounceTime(1000));
+    this.bufferedDeletedStream = this._multicastDeletedStream.pipe(buffer(this._debounceDeletedStream));
   }
 
   protected setNameSpace(namespace: string) {
@@ -144,6 +148,38 @@ export abstract class WebSocketBaseService<T> {
   protected initList(store: Store<any>) {
     this._listListener = this.listStream.subscribe(data => {
       store.dispatch(new ListReceivedAction(data));
+    });
+  }
+
+  protected initCreated(store: Store<any>) {
+    this._createdListener = this.bufferedCreatedStream.subscribe(data => {
+      const ids = data.map(m => m.id);
+      this.get(ids);
+    });
+  }
+
+  protected initUpdated(store: Store<any>) {
+    this._updatedListener = this.bufferedUpdatedStream.subscribe(data => {
+      const details = data.map(m => {
+        return {
+          last_updated: new Date(m.last_updated),
+          id: m.id
+        };
+      });
+      store.dispatch(new UpdateReceivedAction({
+        model: this.namespace,
+        details: details
+      }));
+    });
+  }
+
+  protected initDeleted(store: Store<any>) {
+    this._deletedListener = this.bufferedDeletedStream.subscribe(data => {
+      const ids = data.map(m => m.id);
+      store.dispatch(new DeleteReceivedAction({
+        model: this.namespace,
+        ids: ids
+      }));
     });
   }
 

@@ -9,7 +9,7 @@ import * as fromRoot from 'app/reducers';
 export class LocusService extends WebSocketBaseService<Locus> {
 
   constructor(
-    private store: Store<fromRoot.State>
+    protected store: Store<fromRoot.AppState>
   ) {
     super('locus', store);
   }

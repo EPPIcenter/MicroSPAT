@@ -10,7 +10,7 @@ import * as fromRoot from 'app/reducers';
 export class BinEstimatorLocusParamsService extends WebSocketBaseService<BinEstimatorLocusParams> {
 
   constructor(
-    private store: Store<fromRoot.State>
+    protected store: Store<fromRoot.AppState>
   ) {
     super('bin_estimator_locus_params', store);
   }
