@@ -2,28 +2,45 @@ import { Component, ChangeDetectionStrategy, Input, Output, ElementRef, OnChange
 import * as d3 from 'd3';
 import { OnDestroy } from '@angular/core/src/metadata/lifecycle_hooks';
 import { Well } from 'app/models/ce/well';
+import { Task } from '../../models/task';
 
 @Component({
   selector: 'mspat-ladder-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-
     <mat-list id="ladder-editor">
       <mat-list-item id="ladder-plot">
         <div id="ladder-container"></div>
       </mat-list-item>
       <mat-list-item id="ladder-controls">
         <div class="button-row">
-          <button color="primary" mat-raised-button (click)="recalculateLadder.emit()">Recalculate Ladder</button>
-          <button color="warn" mat-raised-button (click)="clearPeakIndices.emit()">Clear Peaks</button>
+          <button color="primary" mat-raised-button
+            (click)="recalculateWellLadder.emit()"
+            [disabled]="tasksActive">
+            Recalculate Ladder
+          </button>
+          <button color="warn" mat-raised-button
+            [disabled]="tasksActive"
+            (click)="clearPeakIndices.emit(activeWell.id)">
+           Clear Peaks
+          </button>
         </div>
-        <mat-chip-list>
-          <mat-chip color="primary" selected="true">SQ: {{activeWell.sizing_quality | number}}</mat-chip>
-        </mat-chip-list>
+        <div id="sizing-quality">
+          <mat-chip-list>
+            <mat-chip color="primary" selected="true">SQ: {{activeWell.sizing_quality | number}}</mat-chip>
+          </mat-chip-list>
+        </div>
       </mat-list-item>
     </mat-list>
   `,
   styles: [`
+    button {
+      margin: 0 5px
+    }
+
+    #sizing-quality {
+      margin: 5px;
+    }
 
     #ladder-editor {
       height: 100%
@@ -50,8 +67,11 @@ export class LadderEditorComponent implements OnChanges, OnDestroy {
   @Input() peakIndices: number[];
   @Input() activeWell: Well;
   @Input() active: boolean;
+  @Input() recalculateLadderTask: Task;
+  @Input() tasksActive: boolean;
+
   @Output() setPeakIndices = new EventEmitter();
-  @Output() recalculateLadder = new EventEmitter();
+  @Output() recalculateWellLadder = new EventEmitter();
   @Output() clearPeakIndices = new EventEmitter();
 
   private canvas;
@@ -84,7 +104,7 @@ export class LadderEditorComponent implements OnChanges, OnDestroy {
       .attr('width', '100%')
       .attr('height', '100%')
       .style('background-color', '#252830');
-    console.log("LADDER CANVAS", this.canvas);
+    console.log('LADDER CANVAS', this.canvas);
     this.fullWidth = parseInt(this.canvas.style('width'), 10);
     this.fullHeight = parseInt(this.canvas.style('height'), 10);
   }

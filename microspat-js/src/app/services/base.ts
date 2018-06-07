@@ -2,15 +2,28 @@ import { Observable, Subscription } from 'rxjs';
 import { last, publish, debounceTime, buffer, refCount } from 'rxjs/operators';
 import { Store } from '@ngrx/store';
 import * as io from 'socket.io-client';
-import { BaseModel } from 'app/models/base';
-import { GetReceivedAction, ListReceivedAction, GetEntityPayload, DeleteReceivedAction, UpdateReceivedAction } from 'app/actions/db';
 
+import { BaseModel } from 'app/models/base';
+import { GetReceivedAction, ListReceivedAction, GetEntityPayload, DeleteReceivedAction, UpdateReceivedAction, GetRequestedAction } from 'app/actions/db';
+import { Task, StartTask, SuccessfulTask, FailedTask, InProgressTask, START, SUCCESS, FAILURE, IN_PROGRESS } from 'app/models/task';
+import { TaskStartedAction, TaskSuccessAction, TaskFailureAction, TaskProgressAction, RegisterTaskAction } from '../actions/tasks';
+import { HttpClient } from '@angular/common/http';
+import { HttpRequest } from 'selenium-webdriver/http';
+import { isArray } from 'util';
 
 export abstract class WebSocketBaseService<T> {
-  private API_PATH = 'http://localhost:17328';
+  private SOCKET_PATH = 'http://localhost:17328'
+  private API_PATH = `${this.SOCKET_PATH}/microspat_v2`;
   protected socket;
   protected namespace: string;
   protected store: Store<any>;
+  protected activeTasks: {
+    [taskNamespace: string]: {
+      [taskID: string]: Observable<any>
+    }
+  } = {};
+
+  protected taskStream: {[task: string]: Observable<Task>} = {};
 
   private _multicastUpdatedStream: Observable<any>;
   private _debounceUpdatedStream: Observable<any>;
@@ -36,7 +49,7 @@ export abstract class WebSocketBaseService<T> {
   protected _listListener: Subscription;
 
 
-  constructor(namespace: string, store: Store<any>) {
+  constructor(namespace: string, store: Store<any>, protected http: HttpClient) {
     this.store = store;
     this.setNameSpace(namespace);
     this.initSocket();
@@ -50,7 +63,8 @@ export abstract class WebSocketBaseService<T> {
   protected initSocket(): void {
     this.socket = io(this.getConnectionString(), {
       upgrade: false,
-      transports: ['websocket']
+      transports: ['websocket'],
+      timeout: 2e12
     });
 
     this.getStream = new Observable(observer => {
@@ -87,15 +101,15 @@ export abstract class WebSocketBaseService<T> {
     });
 
     this._multicastUpdatedStream = this.updatedStream.pipe(publish(), refCount());
-    this._debounceUpdatedStream = this._multicastUpdatedStream.pipe(debounceTime(1000));
+    this._debounceUpdatedStream = this._multicastUpdatedStream.pipe(debounceTime(500));
     this.bufferedUpdatedStream = this._multicastUpdatedStream.pipe(buffer(this._debounceUpdatedStream));
 
     this._multicastCreatedStream = this.createdStream.pipe(publish(), refCount());
-    this._debounceCreatedStream = this._multicastCreatedStream.pipe(debounceTime(1000));
+    this._debounceCreatedStream = this._multicastCreatedStream.pipe(debounceTime(500));
     this.bufferedCreatedStream = this._multicastCreatedStream.pipe(buffer(this._debounceCreatedStream));
 
     this._multicastDeletedStream = this.deletedStream.pipe(publish(), refCount());
-    this._debounceDeletedStream = this._multicastDeletedStream.pipe(debounceTime(1000));
+    this._debounceDeletedStream = this._multicastDeletedStream.pipe(debounceTime(500));
     this.bufferedDeletedStream = this._multicastDeletedStream.pipe(buffer(this._debounceDeletedStream));
   }
 
@@ -104,7 +118,41 @@ export abstract class WebSocketBaseService<T> {
   }
 
   protected getConnectionString() {
-    return `${this.API_PATH}/${this.namespace}`;
+    return `${this.SOCKET_PATH}/${this.namespace}`;
+  }
+
+  protected registerTask(taskNamespace: string, store: Store<any>) {
+    store.dispatch(new RegisterTaskAction({namespace: this.namespace, task: taskNamespace}));
+    this.taskStream[taskNamespace] = new Observable(observer => {
+      this.socket.on(taskNamespace, (data) => {
+        const task = Object.assign(data, {
+          namespace: this.namespace,
+          task: taskNamespace
+        })
+        observer.next(task);
+      });
+    });
+
+
+    this.taskStream[taskNamespace].subscribe(task => {
+      switch (task.status) {
+        case START:
+          store.dispatch(new TaskStartedAction(<StartTask>task));
+          break;
+        case SUCCESS:
+          store.dispatch(new TaskSuccessAction(<SuccessfulTask>task));
+          break;
+        case FAILURE:
+          store.dispatch(new TaskFailureAction(<FailedTask>task));
+          break;
+        case IN_PROGRESS:
+          store.dispatch(new TaskProgressAction(<InProgressTask>task));
+          break;
+        default:
+          console.error('Failed to process task', task);
+      }
+      console.log('Task Received: ', task);
+    });
   }
 
   public get(id: string | string[]): void {
@@ -154,7 +202,11 @@ export abstract class WebSocketBaseService<T> {
   protected initCreated(store: Store<any>) {
     this._createdListener = this.bufferedCreatedStream.subscribe(data => {
       const ids = data.map(m => m.id);
-      this.get(ids);
+      console.log("Received Created Signal", this.namespace, ids);
+      store.dispatch(new GetRequestedAction({
+        model: this.namespace,
+        ids: ids
+      }));
     });
   }
 
@@ -181,6 +233,31 @@ export abstract class WebSocketBaseService<T> {
         ids: ids
       }));
     });
+  }
+
+  protected uploadFiles(destination: string, files: FileList, args: {[key: string]: any}) {
+    const formData = new FormData();
+    console.log(files);
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      formData.append('files', file, file['name']);
+    }
+
+    Object.keys(args).forEach(k => {
+      formData.append(k, args[k])
+    });
+
+    return this.http.post(`${this.API_PATH}/${this.namespace}/${destination}/`, formData)
+  }
+
+  protected uploadFile(destination: string, file: File, args: {[key: string]: any}) {
+    const formData = new FormData();
+    formData.append('files', file, file['name']);
+    Object.keys(args).forEach(k => {
+      formData.append(k, args[k])
+    });
+
+    return this.http.post(`${this.API_PATH}/${this.namespace}/${destination}/`, formData)
   }
 
 }

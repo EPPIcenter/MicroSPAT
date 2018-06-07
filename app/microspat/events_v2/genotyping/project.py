@@ -32,14 +32,14 @@ def get_genotyping_project(json):
         if p:
             project_dump = project_schema.dumps([p], many=True)
             socketio.emit('get', {PROJECT_NAMESPACE: project_dump.data}, namespace=make_namespace(PROJECT_NAMESPACE))
-            eventlet.sleep()
+            socketio.sleep()
 
             locus_params = GenotypingLocusParams.query\
                 .filter(GenotypingLocusParams.project_id == project_id).all()
             locus_params_dump = locus_params_schema.dumps(locus_params, many=True)
             socketio.emit('get', {LOCUS_PARAMS_NAMESPACE: locus_params_dump.data},
                           namespace=make_namespace(LOCUS_PARAMS_NAMESPACE))
-            eventlet.sleep()
+            socketio.sleep()
 
             project_sample_annotations = ProjectSampleAnnotations.query\
                 .filter(ProjectChannelAnnotations.project_id == project_id).all()
@@ -47,13 +47,13 @@ def get_genotyping_project(json):
                                                                                       many=True)
             socketio.emit('get', {PROJECT_SAMPLE_ANNOTATIONS_NAMESPACE: project_sample_annotations_dump.data},
                           namespace=make_namespace(PROJECT_SAMPLE_ANNOTATIONS_NAMESPACE))
-            eventlet.sleep()
+            socketio.sleep()
 
             genotypes = Genotype.query.filter(Genotype.project_id == project_id).all()
             genotypes_dump = genotype_schema.dumps(genotypes, many=True)
             socketio.emit('get', {GENOTYPE_NAMESPACE: genotypes_dump.data},
                           namespace=make_namespace(GENOTYPE_NAMESPACE))
-            eventlet.sleep()
+            socketio.sleep()
 
             project_channel_annotations = ProjectChannelAnnotations.query\
                 .filter(ProjectChannelAnnotations.project_id == project_id).all()

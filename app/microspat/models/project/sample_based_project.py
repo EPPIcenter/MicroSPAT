@@ -1,15 +1,12 @@
 from collections import defaultdict
 from itertools import groupby
 
-import eventlet
 from sqlalchemy.ext.declarative import declared_attr
 
-from app import db
+from app import db, socketio
 from ..ce.channel import Channel
 from ..locus.locus import Locus
 from ..locus.locus_set import LocusSet, locus_set_association_table
-from ..bin_estimator.bin import Bin
-from ..bin_estimator.locus_bin_set import LocusBinSet
 from ..sample.sample import Sample
 from ..sample.sample_locus_annotation import SampleLocusAnnotation
 from ..project.project import Project
@@ -91,7 +88,7 @@ class SampleBasedProject(Project):
         self.add_channels(channel_ids)
 
         for locus in self.locus_set.loci:
-            eventlet.sleep()
+            socketio.sleep()
             locus_sample_annotation = SampleLocusAnnotation(locus_id=locus.id, project_id=self.id)
             sample_annotation.locus_annotations.append(locus_sample_annotation)
             self.set_locus_parameters_stale(locus.id)
@@ -114,7 +111,7 @@ class SampleBasedProject(Project):
             sample_ids = full_sample_ids[n * 100: (n + 1) * 100]
             channel_ids = []
             for sample_id in sample_ids:
-                eventlet.sleep()
+                socketio.sleep()
                 channel_ids += sample_ids_map[sample_id]
 
                 sample_annotation = ProjectSampleAnnotations(sample_id=sample_id)
@@ -136,7 +133,7 @@ class SampleBasedProject(Project):
         raise NotImplementedError()
 
     def recalculate_channel(self, channel_annotation, rescan_peaks):
-        eventlet.sleep()
+        socketio.sleep()
         channel_annotation = super(SampleBasedProject, self).recalculate_channel(channel_annotation, rescan_peaks)
         self.annotate_channel(channel_annotation)
         return channel_annotation
@@ -175,7 +172,7 @@ class SampleBasedProject(Project):
         sample_locus_annotations = SampleLocusAnnotation.query.join(ProjectSampleAnnotations).filter(
             SampleLocusAnnotation.locus_id == locus_id).filter(ProjectSampleAnnotations.project_id == self.id).all()
         for sample_annotation in sample_locus_annotations:
-            eventlet.sleep()
+            socketio.sleep()
             assert isinstance(sample_annotation, SampleLocusAnnotation)
             sample_annotation.annotated_peaks = []
             sample_annotation.reference_run_id = None
@@ -201,7 +198,7 @@ class SampleBasedProject(Project):
         channel_annotations = [x for x in channel_annotations if not x.get_flag('poor_sizing_quality')]
         best_annotation = None
         for annotation in channel_annotations:
-            eventlet.sleep()
+            socketio.sleep()
             if not annotation.annotated_peaks:
                 annotation.annotated_peaks = []
             assert isinstance(annotation, ProjectChannelAnnotations)

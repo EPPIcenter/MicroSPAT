@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 
 import { WebSocketBaseService } from '../base';
 import { LocusSet } from '../../models/locus/locus-set';
@@ -9,9 +10,9 @@ import * as fromRoot from 'app/reducers';
 export class LocusSetService extends WebSocketBaseService<LocusSet> {
 
   constructor(
-    protected store: Store<fromRoot.AppState>
+    protected store: Store<fromRoot.AppState>, protected http: HttpClient
   ) {
-    super('locus_set', store);
+    super('locus_set', store, http);
   }
 
 }

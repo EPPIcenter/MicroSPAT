@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
-import { tap, take, map, switchMap, mergeMap } from 'rxjs/operators';
+import { tap, take, map, switchMap, mergeMap, filter } from 'rxjs/operators';
 
 import { PlateService } from 'app/services/ce/plate';
 import { WellService } from 'app/services/ce/well';
@@ -10,6 +10,8 @@ import * as fromRoot from 'app/reducers';
 import * as fromPlates from 'app/reducers/plates/plates';
 import * as fromDB from 'app/reducers/db';
 import * as fromKeyboard from 'app/reducers/keyboard';
+import * as fromTasks from 'app/reducers/tasks';
+
 import * as plates from 'app/actions/plates';
 
 import { Plate } from 'app/models/ce/plate';
@@ -20,10 +22,19 @@ import { Square } from 'app/models/square';
 import { ChannelService } from 'app/services/ce/channel';
 import { Trace, Legend } from 'app/components/plots/canvas';
 import { Locus } from 'app/models/locus/locus';
+import { DisplayTaskAction } from '../actions/tasks';
+import { Task } from '../models/task';
+import { MatCheckboxChange } from '@angular/material';
 
 export interface UploadPlateAction {
   plates: FileList;
   ladder: string | number;
+}
+
+export interface UploadPlateMapAction {
+  plateMap: File,
+  plateID: number | string,
+  createNonExistentSamples: boolean
 }
 
 @Component({
@@ -36,6 +47,8 @@ export interface UploadPlateAction {
           <div class="col-sm-12">
             <mspat-plate-uploader
             [ladders]="ladders$ | async"
+            [activeUploadPlatesTasks]="activeUploadPlatesTasks$ | async"
+            [activeTasks]="activeTasks$ | async"
             (uploadPlate)="uploadPlate($event)"
             ></mspat-plate-uploader>
           </div>
@@ -44,6 +57,7 @@ export interface UploadPlateAction {
           <div class="col-sm-12">
             <mspat-plates-list
             [plates]="plates$ | async"
+            [newPlatesLoading]="newPlatesLoading$ | async"
             (selectPlate)="selectPlate($event)">
             </mspat-plates-list>
           </div>
@@ -67,12 +81,20 @@ export interface UploadPlateAction {
           [activePlateDiagnosticDomain]="activePlateDiagnosticDomain$ | async"
           [activePlateDiagnosticLegend]="activePlateDiagnosticLegend$ | async"
           [activeLoci]="activeLoci$ | async"
+          [activeRecalculatePlateLadderTasks]="activeRecalculatePlateLadderTasks$ | async"
+          [activeRecalculateWellLadderTasks]="activeRecalculateWellLadderTasks$ | async"
+          [activeUploadPlateMapTasks]="activeUploadPlateMapTasks$ | async"
+          [activeTasks]="activeTasks$ | async"
+          [ladders]="ladders$ | async"
+          [createNonExistentSamples]="createNonExistentSamples$ | async"
           (selectWell)="selectWell($event)"
           (selectChannel)="selectChannel($event)"
           (setPeakIndices)="setPeakIndices($event)"
-          (recalculateLadder)="recalculateLadder()"
+          (recalculateWellLadder)="recalculateWellLadder()"
+          (recalculatePlateLadder)="recalculatePlateLadder($event)"
           (clearPeakIndices)="clearPeakIndices()"
-          (uploadPlateMap)="uploadPlateMap($event)">
+          (uploadPlateMap)="uploadPlateMap($event)"
+          (setNonExistentSamples)="setNonExistentSamples($event)">
         </mspat-plate-details>
       </div>
     </div>
@@ -81,9 +103,10 @@ export interface UploadPlateAction {
 })
 export class PlatesComponent {
   plates$: Observable<Plate[]>;
+  newPlatesLoading$: Observable<boolean>;
   ladders$: Observable<Ladder[]>;
   selectedPlate$: Observable<Plate>;
-  plateLoading$: Observable<Boolean>;
+  plateLoading$: Observable<boolean>;
   ladderRenderable$: Observable<Square[]>;
   channelRenderable$: Observable<{[color: string]: Square[]}>;
   shiftDown$: Observable<Boolean>;
@@ -100,12 +123,20 @@ export class PlatesComponent {
   activePlateDiagnosticDomain$: Observable<[number, number]>;
   activePlateDiagnosticLegend$: Observable<Legend>;
   activeLoci$: Observable<Locus[]>;
+  activeRecalculatePlateLadderTasks$: Observable<Task[]>;
+  activeRecalculateWellLadderTasks$: Observable<Task[]>;
+  activeUploadPlatesTasks$: Observable<Task[]>;
+  activeUploadPlateMapTasks$: Observable<Task[]>;
+  activeTasks$: Observable<Task[]>;
+  createNonExistentSamples$: Observable<boolean>;
 
   constructor(
     private store: Store<fromRoot.AppState>,
+    private plateService: PlateService
   ) {
     this.store.dispatch(new plates.LoadingPlatesAction());
     this.plates$ = this.store.select(fromPlates.selectPlateList);
+    this.newPlatesLoading$ = this.store.select(fromPlates.selectNewPlatesLoading);
     this.selectedPlate$ = this.store.select(fromPlates.selectActivePlate);
     this.plateLoading$ = this.store.select(fromPlates.selectPlateLoading);
     this.ladderRenderable$ = this.store.select(fromPlates.selectRenderableLadderInfo);
@@ -125,6 +156,12 @@ export class PlatesComponent {
     this.activePlateDiagnosticRange$ = this.store.select(fromPlates.selectActivePlateDiagnosticRange);
     this.activePlateDiagnosticLegend$ = this.store.select(fromPlates.selectActivePlateDiagnosticLegend);
     this.activeLoci$ = this.store.select(fromPlates.selectActiveLoci);
+    this.activeRecalculatePlateLadderTasks$ = this.store.select(fromTasks.selectActiveTasks('plate', 'recalculate_ladder'));
+    this.activeRecalculateWellLadderTasks$ = this.store.select(fromTasks.selectActiveTasks('well', 'recalculate_ladder'));
+    this.activeUploadPlatesTasks$ = this.store.select(fromTasks.selectActiveTasks('plate', 'upload_plate'));
+    this.activeUploadPlateMapTasks$ = this.store.select(fromTasks.selectActiveTasks('plate', 'upload_plate_map'));
+    this.activeTasks$ = this.store.select(fromTasks.selectActiveTasks());
+    this.createNonExistentSamples$ = this.store.select(fromPlates.selectCreateNonExistentSamples);
   }
 
   selectPlate(id: number | string) {
@@ -150,20 +187,33 @@ export class PlatesComponent {
     this.store.dispatch(new plates.SetLadderPeakIndicesAction(indices));
   }
 
-  recalculateLadder() {
-    this.store.dispatch(new plates.RecalculateLadderAction());
+  recalculateWellLadder() {
+    this.store.dispatch(new plates.RecalculateWellLadderAction());
+  }
+
+  recalculatePlateLadder(ladder_id: number | string) {
+    this.store.dispatch(new plates.RecalculatePlateLadderAction(ladder_id));
   }
 
   clearPeakIndices() {
     this.store.dispatch(new plates.SetLadderPeakIndicesAction([]));
   }
 
-  uploadPlateMap(e) {
-    console.log("Upload Plate Map", e);
+  uploadPlateMap(e: UploadPlateMapAction) {
+    console.log('Upload Plate Map', e);
+    this.plateService.uploadPlateMap(e.plateMap, +e.plateID, e.createNonExistentSamples);
   }
 
   uploadPlate(e: UploadPlateAction) {
+    // this.store.dispatch(new plates.UploadPlatesAction({plateFiles: e.plates, ladderID: +e.ladder}));
+    this.plateService.uploadPlate(e.plates, +e.ladder)
     console.log(e);
   }
+
+  setNonExistentSamples(e: MatCheckboxChange) {
+    console.log(e);
+    this.store.dispatch(new plates.SetNonExistentSamplesAction(e.checked));
+  }
+
 
 }

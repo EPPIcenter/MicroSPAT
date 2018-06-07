@@ -54,7 +54,7 @@ def create_app(config_name):
     app.register_blueprint(plasmotrack)
     app.logger.debug("PlasmoTrack Initialized")
 
-    from app.microspat.events import microspat
+    from app.microspat.api_v2 import microspat
     app.register_blueprint(microspat)
     app.logger.debug("MicroSPAT Initialized")
 

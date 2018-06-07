@@ -31,30 +31,31 @@ export class BaseDBEffects {
     })
   );
 
-    @Effect()
-    getRequested$: Observable<any> = this.actions$.pipe(
-      ofType(db.GET_REQUESTED),
-      map((action: db.GetRequestedAction) => action.payload),
-      switchMap(payload => {
-        return this.store.pipe(
-          select(fromDB.modelToPendingReqs[payload.model]),
-          take(1),
-          switchMap(pendingReqs => {
-            let toRequest = [];
-            toRequest = payload.ids.filter(id => !(pendingReqs[id]));
-            const service = this.injector.get(modelToService[payload.model]);
-            if (toRequest.length > 0) {
-              service.get(toRequest);
-            };
-            return of({model: payload.model, ids: toRequest});
-          })
-        );
-      }),
-      switchMap(payload => {
-        console.log(payload);
-        return of(new db.GetInFlightAction(payload));
-      })
-    );
+  @Effect()
+  getRequested$: Observable<Action> = this.actions$.pipe(
+    ofType(db.GET_REQUESTED),
+    map((action: db.GetRequestedAction) => action.payload),
+    switchMap(payload => {
+      return this.store.pipe(
+        select(fromDB.modelToPendingReqs[payload.model]),
+        take(1),
+        switchMap(pendingReqs => {
+          let toRequest = [];
+          toRequest = payload.ids.filter(id => !(pendingReqs[id]));
+          const service = this.injector.get(modelToService[payload.model]);
+          if (toRequest.length > 0) {
+            service.get(toRequest);
+          };
+          return of({model: payload.model, ids: toRequest});
+        })
+      );
+    }),
+    switchMap(payload => {
+      console.log(payload);
+      console.log("GET IN FLIGHT");
+      return of(new db.GetInFlightAction(payload));
+    })
+  );
 
   constructor(private actions$: Actions, private store: Store<fromRoot.AppState>, private injector: Injector) { }
 }

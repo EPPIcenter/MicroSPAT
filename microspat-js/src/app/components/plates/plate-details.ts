@@ -6,6 +6,8 @@ import { Trace, Legend } from 'app/components/plots/canvas';
 import { selectActivePlateDiagnosticLegend } from 'app/reducers/plates/plates';
 import { Well } from 'app/models/ce/well';
 import { Locus } from 'app/models/locus/locus';
+import { Ladder } from 'app/models/ce/ladder';
+import { Task } from 'app/models/task';
 
 @Component({
   selector: 'mspat-plate-details',
@@ -18,7 +20,7 @@ import { Locus } from 'app/models/locus/locus';
       </mat-card-content>
       <mat-card-content *ngIf="plate">
         <mat-tab-group>
-          <mat-tab [label]="'Details'">
+          <mat-tab [disabled]="tasksActive" [label]="'Details'">
             <div class="details-container">
               <mat-form-field [floatLabel]="'always'">
                 <mat-label>Label</mat-label>
@@ -41,10 +43,22 @@ import { Locus } from 'app/models/locus/locus';
               <h6>Select Plate Map</h6>
               <input type="file" (change)="plateMapChangeEvent($event)" placeholder="Select Plate Map"/>
               <br>
-              <button mat-raised-button color="primary" [disabled]="!plateMapFile" (click)="uploadPlateMap.emit(this.plateMapFile)">Upload</button> <span *ngIf="warning" class="mspat-warning">{{warning}}</span>
+              <mat-checkbox
+                [disabled]="tasksActive"
+                [checked]="createNonExistentSamples"
+                (change)="setNonExistentSamples.emit($event)">
+                Create Non-Existent Samples
+              </mat-checkbox>
+              <button mat-raised-button color="primary"
+                [disabled]="!plateMapFile || tasksActive"
+                (click)="uploadPlateMap.emit({plateMap: this.plateMapFile, plateID: this.plate.id, createNonExistentSamples: this.createNonExistentSamples})">
+                Upload
+              </button>
+              <span *ngIf="warning" class="mspat-warning">{{warning}}</span>
+              <mspat-task-progress-display *ngIf="activeUploadPlateMapTask" [task]="activeUploadPlateMapTask"></mspat-task-progress-display>
             </div>
           </mat-tab>
-          <mat-tab #ladderTab [label]="'Ladder'">
+          <mat-tab [disabled]="tasksActive" #ladderTab [label]="'Ladder'">
             <mat-grid-list cols="8" rowHeight="80px">
               <mat-grid-tile *ngIf="ladderRenderable"
                 [colspan] = "3"
@@ -59,7 +73,17 @@ import { Locus } from 'app/models/locus/locus';
               <mat-grid-tile
                 [colspan] = "5"
                 [rowspan] = "2">
-              LADDER DETAILS
+                <mat-card style="width:100%; height:100%">
+                  <mat-card-content>
+                    <mspat-task-progress-display *ngIf="activeRecalculatePlateLadderTask" [task]="activeRecalculatePlateLadderTask"></mspat-task-progress-display>
+                  </mat-card-content>
+                  <mat-card-actions>
+                    <button mat-raised-button [matMenuTriggerFor]="changeLadderMenu" [disabled]="tasksActive">CHANGE LADDER</button>
+                    <mat-menu #changeLadderMenu="matMenu">
+                      <button mat-menu-item *ngFor="let ladder of ladders" (click)="recalculatePlateLadder.emit(ladder.id)"> {{ladder.label}} </button>
+                    </mat-menu>
+                  </mat-card-actions>
+                </mat-card>
               </mat-grid-tile>
               <mat-grid-tile *ngIf="wellLoading"
                 [colspan] = "8"
@@ -75,14 +99,16 @@ import { Locus } from 'app/models/locus/locus';
                     [peakIndices] = "peakIndices"
                     [activeWell] = "activeWell"
                     [active] = "ladderTab.isActive"
+                    [recalculateLadderTask] = "activeRecalculateWellLadderTask"
+                    [tasksActive]="tasksActive"
                     (setPeakIndices) = "setPeakIndices.emit($event)"
-                    (recalculateLadder) = "recalculateLadder.emit()"
-                    (clearPeakIndices) = "clearPeakIndices.emit()">
+                    (recalculateWellLadder) = "recalculateWellLadder.emit()"
+                    (clearPeakIndices) = "clearPeakIndices.emit($event)">
                   </mspat-ladder-editor>
               </mat-grid-tile>
             </mat-grid-list>
           </mat-tab>
-          <mat-tab #channelTab [label] = "'Channels'">
+          <mat-tab [disabled]="tasksActive" #channelTab [label] = "'Channels'">
             <mat-grid-list cols="4" rowHeight="80px" gutterSize="5px">
               <mat-grid-tile *ngFor="let channelConfig of channelConfigs"
                 [colspan] = "2"
@@ -109,7 +135,7 @@ import { Locus } from 'app/models/locus/locus';
               </mat-grid-tile>
             </mat-grid-list>
           </mat-tab>
-          <mat-tab #diagnosticTab [label]="'Diagnostics'">
+          <mat-tab [disabled]="tasksActive" #diagnosticTab [label]="'Diagnostics'">
             <mat-grid-list cols="4" rowHeight="80px" gutterSize="5px">
               <mat-grid-tile
                 [colspan] = "4"
@@ -193,13 +219,24 @@ export class PlateDetailsComponent implements OnChanges {
   @Input() activePlateDiagnosticDomain: [number, number];
   @Input() activePlateDiagnosticLegend: Legend;
 
+  @Input() ladders: Ladder[];
+
+  @Input() activeRecalculatePlateLadderTasks: Task[];
+  @Input() activeRecalculateWellLadderTasks: Task[];
+  @Input() activeUploadPlateMapTasks: Task[];
+  @Input() activeTasks: Task[];
+
+  @Input() createNonExistentSamples: boolean;
 
   @Output() selectWell = new EventEmitter();
   @Output() selectChannel = new EventEmitter();
   @Output() setPeakIndices = new EventEmitter();
-  @Output() recalculateLadder = new EventEmitter();
+  @Output() recalculateWellLadder = new EventEmitter();
   @Output() clearPeakIndices = new EventEmitter();
   @Output() uploadPlateMap = new EventEmitter();
+  @Output() recalculatePlateLadder = new EventEmitter();
+  @Output() setNonExistentSamples = new EventEmitter();
+
 
 
   private channelConfigs;
@@ -221,6 +258,37 @@ export class PlateDetailsComponent implements OnChanges {
 
   get showPlateCard() {
     return this.plateLoading || this.plate;
+  }
+
+  get tasksActive() {
+    return this.activeTasks.length > 0;
+  }
+
+  get activeRecalculatePlateLadderTask() {
+    const activeTask = this.activeRecalculatePlateLadderTasks.filter(t => +t.task_args['plate_id'] === +this.plate.id);
+    if (activeTask.length > 0) {
+      return activeTask[0];
+    } else {
+      return false;
+    }
+  }
+
+  get activeRecalculateWellLadderTask() {
+    const activeTask = this.activeRecalculatePlateLadderTasks.filter(t => +t.task_args['well_id'] === +this.activeWell.id);
+    if (activeTask.length > 0) {
+      return activeTask[0];
+    } else {
+      return false;
+    }
+  }
+
+  get activeUploadPlateMapTask() {
+    const activeTask = this.activeUploadPlateMapTasks.filter(t => +t.task_args['plate_id'] === +this.plate.id);
+    if (activeTask.length > 0) {
+      return activeTask[0];
+    } else {
+      return false;
+    }
   }
 
   plateMapChangeEvent(e) {

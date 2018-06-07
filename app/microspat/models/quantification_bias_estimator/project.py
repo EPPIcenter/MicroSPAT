@@ -1,7 +1,6 @@
-import eventlet
 from sqlalchemy.orm.exc import NoResultFound
 
-from app import db
+from app import db, socketio
 from ..sample.exceptions import ControlException
 from app.microspat.quantification_bias.BiasCalculator import correct_peak_proportion, calculate_beta
 from ..project.sample_annotations import ProjectSampleAnnotations
@@ -155,7 +154,7 @@ class QuantificationBiasEstimatorProject(SampleBasedProject, ArtifactEstimating,
         all_runs = self.get_runs(locus_id)
 
         for locus_annotation in locus_annotations:
-            eventlet.sleep()
+            socketio.sleep()
             try:
                 locus_annotation.alleles.pop('None')
             except KeyError:

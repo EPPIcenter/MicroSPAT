@@ -2,7 +2,7 @@ from collections import defaultdict
 
 import eventlet
 
-from app import db
+from app import db, socketio
 from ..project.sample_annotations import ProjectSampleAnnotations
 from ..project.project import Project
 from ..project.channel_annotations import ProjectChannelAnnotations, format_locus_annotations
@@ -174,7 +174,7 @@ class GenotypingProject(SampleBasedProject, ArtifactEstimating, QuantificationBi
         locus_annotations = self.get_locus_sample_annotations(locus_id)
         all_runs = self.get_runs(locus_id)
         for locus_annotation in locus_annotations:
-            eventlet.sleep()
+            socketio.sleep()
             try:
                 locus_annotation.alleles.pop('None')
                 locus_annotation.alleles.changed()
@@ -294,7 +294,7 @@ class GenotypingProject(SampleBasedProject, ArtifactEstimating, QuantificationBi
                 moi = calculate_moi(formatted_locus_annotations, offset=1)
 
                 for locus_annotation in locus_annotations:
-                    eventlet.sleep()
+                    socketio.sleep()
                     lp = self.get_locus_parameters(locus_annotation.locus_id)
                     assert isinstance(lp, GenotypingLocusParams)
                     if len(locus_annotation.annotated_peaks) > 0 and not locus_annotation.get_flag('failure'):
@@ -353,7 +353,7 @@ class GenotypingProject(SampleBasedProject, ArtifactEstimating, QuantificationBi
                     break
 
                 for locus_annotation in locus_annotations:
-                    eventlet.sleep()
+                    socketio.sleep()
                     lp = self.get_locus_parameters(locus_annotation.locus_id)
                     assert isinstance(lp, GenotypingLocusParams)
                     if len(locus_annotation.annotated_peaks) > 0 and not locus_annotation.get_flag('failure'):

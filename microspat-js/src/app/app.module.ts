@@ -45,11 +45,13 @@ import { PlateService } from 'app/services/ce/plate';
 import { WellService } from 'app/services/ce/well';
 
 import { BaseDBEffects } from 'app/effects/db/base';
+import { PlateEffects } from 'app/effects/plates';
+// import { TaskEffects } from 'app/effects/tasks';
 
 import { AppReducer, AppState } from 'app/reducers';
 import { EffectsModule } from '@ngrx/effects';
 
-import { BsDropdownModule } from 'ngx-bootstrap/dropdown';
+// import { BsDropdownModule } from 'ngx-bootstrap/dropdown';
 import { ComponentModule } from 'app/components';
 import { AppRoutingModule } from 'app/routes';
 
@@ -63,9 +65,8 @@ import { LociComponent } from 'app/containers/loci';
 import { LocusSetsComponent } from 'app/containers/locus-sets';
 import { QuantificationBiasEstimatorsComponent } from 'app/containers/quant-bias-estimators';
 import { SamplesComponent } from 'app/containers/samples';
-import { MspatMaterialModule } from 'app/material.module';
-import { PlateEffects } from 'app/effects/plates';
 import { KeyboardService } from 'app/services/keyboard';
+import { TaskComponent } from './containers/task-progresss';
 
 export const REDUCER_TOKEN = new InjectionToken<ActionReducerMap<AppState>>('Registered Reducers');
 
@@ -88,6 +89,7 @@ export function getMetaReducers(appReducer: AppReducer) {
     LociComponent,
     LocusSetsComponent,
     PlatesComponent,
+    TaskComponent,
     QuantificationBiasEstimatorsComponent,
     SamplesComponent,
   ],
@@ -99,8 +101,7 @@ export function getMetaReducers(appReducer: AppReducer) {
     HttpClientModule,
     ComponentModule,
     AppRoutingModule,
-    MspatMaterialModule,
-    BsDropdownModule.forRoot(),
+    // BsDropdownModule.forRoot(),
     StoreModule.forRoot(REDUCER_TOKEN),
     EffectsModule.forRoot([BaseDBEffects, PlateEffects])
   ],

@@ -241,7 +241,7 @@ def load_plate_map(plate_map_file, plate, create_samples_if_not_exist=False):
     clear_plate_map(plate.id)
     stale_tracker = {}
     for entry in r:
-        eventlet.sleep()
+        socketio.sleep()
         well_label = entry['Well'].strip()
         for locus_label in locus_labels:
             sample_barcode = entry[locus_label]

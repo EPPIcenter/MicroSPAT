@@ -1,4 +1,6 @@
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+
 
 import { WebSocketBaseService } from '../base';
 import { Genotype } from '../../models/sample/genotype';
@@ -9,9 +11,9 @@ import * as fromRoot from 'app/reducers';
 export class GenotypeService extends WebSocketBaseService<Genotype> {
 
   constructor(
-    protected store: Store<fromRoot.AppState>
+    protected store: Store<fromRoot.AppState>, protected http: HttpClient
   ) {
-    super('genotype', store);
+    super('genotype', store, http);
   }
 
 }

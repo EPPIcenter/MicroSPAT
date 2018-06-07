@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 
 import { WebSocketBaseService } from '../base';
 import { Sample } from '../../models/sample/sample';
@@ -9,9 +10,9 @@ import * as fromRoot from 'app/reducers';
 export class SampleService extends WebSocketBaseService<Sample> {
 
   constructor(
-    protected store: Store<fromRoot.AppState>
+    protected store: Store<fromRoot.AppState>, protected http: HttpClient
   ) {
-    super('sample', store);
+    super('sample', store, http);
   }
 
 }

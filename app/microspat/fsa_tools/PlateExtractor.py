@@ -21,16 +21,14 @@ import os
 import zipfile
 from io import IOBase
 
-import eventlet
-
+from app import socketio
 from app.microspat.fsa_tools.FSAExtractor import FSAFile
 from app.microspat.peak_annotator.PeakAnnotators import *
 from ..signal_processor.TraceProcessor import LadderProcessor, MicrosatelliteProcessor, NoLadderException
 
-if os.name != 'nt':
-    print(os.name)
+# if os.name != 'nt':
+#     print(os.name)
     # import dill
-
 
 # import multiprocessing
 
@@ -56,6 +54,7 @@ well_order_96 = [l + num for l in letters for num in nums]
 letters = [chr(x) for x in range(ord("A"), ord("P") + 1)]
 nums = [str(x).rjust(2, '0') for x in range(1, 25)]
 well_order_384 = [l + num for l in letters for num in nums]
+
 
 class ExtractedPlate(object):
     # The order of capillaries that are fed into the CE machine.  This is used during crosstalk detection as adjacent
@@ -326,7 +325,7 @@ class ExtractedPlate(object):
             scanning_parameters = {}
 
         for well in self.wells_dict.values():
-            eventlet.sleep()
+            socketio.sleep()
             well.calculate_base_sizes(ladder=ladder, color=color, base_size_precision=base_size_precision,
                                       sq_limit=sq_limit, filter_parameters=filter_parameters,
                                       scanning_parameters=scanning_parameters)
@@ -611,13 +610,13 @@ class WellExtractor(object):
                              filter_parameters=None, scanning_parameters=None):
         """
         Interpolate base sizes by using peaks found in ladder channel.  Sets base_size and sizing_quality params.
-        :param sq_limit:
-        :param base_size_precision: Digits after decimal to be stored.
-        :param scanning_parameters:
         :param ladder: List of expected peak base sizes
         :param color: Color of channel containing ladder
+        :param base_size_precision: Digits after decimal to be stored.
+        :param sq_limit:
         :param filter_parameters: Dict containing tuning params that modify how peaks are identified and
-        base sizes are interpolated
+               base sizes are interpolated
+        :param scanning_parameters:
         :return:
         """
         if scanning_parameters is None:
@@ -631,15 +630,16 @@ class WellExtractor(object):
 
         bleedthrough_channels.remove(ladder_channel)
 
-        l = LadderProcessor(channel=ladder_channel, ladder=ladder, sq_limit=sq_limit,
-                            base_size_precision=base_size_precision, filter_parameters=filter_parameters,
-                            scanning_parameters=scanning_parameters, bleedthrough_channels=bleedthrough_channels)
+        processed_ladder = LadderProcessor(channel=ladder_channel, ladder=ladder, sq_limit=sq_limit,
+                                           base_size_precision=base_size_precision, filter_parameters=filter_parameters,
+                                           scanning_parameters=scanning_parameters,
+                                           bleedthrough_channels=bleedthrough_channels)
         try:
-            self.base_sizes = l.get_base_sizes(peak_indices=peak_indices)
-            self.sizing_quality = l.sizing_quality
-            self.ladder_peak_indices = list(map(int, l.peaks))
+            self.base_sizes = processed_ladder.get_base_sizes(peak_indices=peak_indices)
+            self.sizing_quality = processed_ladder.sizing_quality
+            self.ladder_peak_indices = list(map(int, processed_ladder.peaks))
             self.static_pre_annotators['base_size'] = self.base_size_annotator()
-            ladder_channel.set_peak_indices(l.peaks)
+            ladder_channel.set_peak_indices(processed_ladder.peaks)
         except NoLadderException:
             self.sizing_quality = 1000
 

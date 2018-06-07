@@ -1,6 +1,7 @@
 import { Component, Input, EventEmitter, Output, ChangeDetectionStrategy } from '@angular/core';
 import { Plate } from 'app/models/ce/plate';
 import { Ladder } from 'app/models/ce/ladder';
+import { Task } from '../../models/task';
 
 @Component({
   selector: 'mspat-plate-uploader',
@@ -21,8 +22,15 @@ import { Ladder } from 'app/models/ce/ladder';
       </mat-form-field>
     </mat-card-content>
     <mat-card-actions>
-      <button mat-raised-button color="primary" (click)="uploadPlateClicked()">Upload</button> <span *ngIf="warning" class="mspat-warning">{{warning}}</span>
+      <button mat-raised-button color="primary"
+      [disabled]="taskActive"
+      (click)="uploadPlateClicked()">Upload</button> <span *ngIf="warning" class="mspat-warning">{{warning}}</span>
     </mat-card-actions>
+    <mat-card-footer>
+      <mspat-task-progress-display *ngIf="activeUploadPlateTask"
+        [task]="activeUploadPlateTask">
+      </mspat-task-progress-display>
+    </mat-card-footer>
   </mat-card>
   `,
   styles: [`
@@ -33,6 +41,8 @@ import { Ladder } from 'app/models/ce/ladder';
 })
 export class PlateUploaderComponent {
   @Input() ladders: Ladder[] = [];
+  @Input() activeUploadPlatesTasks: Task[];
+  @Input() activeTasks: Task[];
   @Output() uploadPlate = new EventEmitter();
 
   private selectedFiles;
@@ -59,18 +69,32 @@ export class PlateUploaderComponent {
   }
 
   uploadPlateClicked() {
-    console.log("Upload Plate", this.selectedFiles, this.selectedLadder);
+    console.log('Upload Plate', this.selectedFiles, this.selectedLadder);
     if (!this.selectedFiles || this.selectedFiles.length === 0) {
-      this.warning = "Please Select Plates";
+      this.warning = 'Please Select Plates';
     } else if (!this.selectedLadder) {
-      this.warning = "Please Select a Ladder";
+      this.warning = 'Please Select a Ladder';
     } else {
       this.warning = null;
       this.uploadPlate.emit({
         plates: this.selectedFiles,
-        ladder:this.selectedLadder
+        ladder: this.selectedLadder
       });
-      console.log("Success");
+      console.log('Success');
+    }
+  }
+
+  get taskActive() {
+    return this.activeTasks.length > 0;
+  }
+
+  get activeUploadPlateTask() {
+    const activeTask = this.activeUploadPlatesTasks;
+    console.log("Active Task", activeTask);
+    if (activeTask.length > 0) {
+      return activeTask[0];
+    } else {
+      return false;
     }
   }
 

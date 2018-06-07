@@ -1,7 +1,7 @@
 from sqlalchemy.ext.declarative import declared_attr
 import eventlet
 
-from app import db
+from app import db, socketio
 from ..project.sample_annotations import SampleLocusAnnotation
 from ..project.channel_annotations import ProjectChannelAnnotations
 from ..project.sample_annotations import ProjectSampleAnnotations
@@ -66,19 +66,19 @@ class BinEstimating(object):
         self.clear_sample_annotations(locus_id)
 
     def bin_estimator_changed(self, locus_id):
-        eventlet.sleep()
+        socketio.sleep()
         lp = self.get_locus_parameters(locus_id)
         lp.set_filter_parameters_stale()
         self.clear_locus_bin_annotations(locus_id)
         return self
 
     def clear_bin_annotations(self, channel_annotations):
-        eventlet.sleep()
+        socketio.sleep()
         for annotation in channel_annotations:
             assert isinstance(annotation, ProjectChannelAnnotations)
             if annotation.annotated_peaks:
                 for peak in annotation.annotated_peaks:
-                    eventlet.sleep()
+                    socketio.sleep()
                     if self.bin_estimator_id:
                         peak['in_bin'] = False
                         peak['bin'] = ""
@@ -89,11 +89,11 @@ class BinEstimating(object):
                         peak.pop('bin_id')
 
     def annotate_bins(self, channel_annotations):
-        eventlet.sleep()
+        socketio.sleep()
         if self.bin_estimator_id:
             self.clear_bin_annotations(channel_annotations)
             for annotation in channel_annotations:
-                eventlet.sleep()
+                socketio.sleep()
                 assert isinstance(annotation, ProjectChannelAnnotations)
                 if annotation.annotated_peaks:
                     self.bin_estimator.annotate_bins(

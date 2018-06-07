@@ -41,14 +41,14 @@ def get_artifact_estimator_project(json):
         if p:
             project_dump = project_schema.dumps([p], many=True)
             socketio.emit('get', {PROJECT_NAMESPACE: project_dump.data}, namespace=make_namespace(PROJECT_NAMESPACE))
-            eventlet.sleep()
+            socketio.sleep()
 
             locus_params = p.locus_parameters.all()
             locus_params_dump = locus_params_schema.dumps(locus_params, many=True)
             socketio.emit('get',
                           {LOCUS_PARAMS_NAMESPACE, locus_params_dump.data},
                           namespace=make_namespace(LOCUS_PARAMS_NAMESPACE))
-            eventlet.sleep()
+            socketio.sleep()
 
             locus_artifact_estimators = LocusArtifactEstimator.query\
                 .filter(LocusArtifactEstimator.project_id == project_id).all()
@@ -56,7 +56,7 @@ def get_artifact_estimator_project(json):
             socketio.emit('get',
                           {LOCUS_ARTIFACT_ESTIMATOR_NAMESPACE: locus_artifact_estimators_dump.data},
                           namespace=make_namespace(LOCUS_ARTIFACT_ESTIMATOR_NAMESPACE))
-            eventlet.sleep()
+            socketio.sleep()
 
             artifact_estimators = ArtifactEstimator.query\
                 .join(LocusArtifactEstimator)\
@@ -65,7 +65,7 @@ def get_artifact_estimator_project(json):
             artifact_estimators_dump = artifact_estimator_schema.dumps(artifact_estimators, many=True)
             socketio.emit('get', {ARTIFACT_ESTIMATOR_NAMESPACE: artifact_estimators_dump.data},
                           namespace=make_namespace(ARTIFACT_ESTIMATOR_NAMESPACE))
-            eventlet.sleep()
+            socketio.sleep()
 
             artifact_equations = ArtifactEquation.query\
                 .join(ArtifactEstimator)\
@@ -75,21 +75,21 @@ def get_artifact_estimator_project(json):
             artifact_equations_dump = artifact_equation_schema.dumps(artifact_equations, many=True)
             socketio.emit('get', {ARTIFACT_EQUATION_NAMESPACE: artifact_equations_dump.data},
                           namespace=make_namespace(ARTIFACT_EQUATION_NAMESPACE))
-            eventlet.sleep()
+            socketio.sleep()
 
             project_sample_annotations = ProjectSampleAnnotations.query\
                 .filter(ProjectSampleAnnotations.project_id == project_id).all()
             project_sample_annotations_dump = project_sample_annotations_schema.dumps(project_sample_annotations, many=True)
             socketio.emit('get', {PROJECT_SAMPLE_ANNOTATIONS_NAMESPACE: project_sample_annotations_dump.data},
                           namespace=make_namespace(PROJECT_SAMPLE_ANNOTATIONS_NAMESPACE))
-            eventlet.sleep()
+            socketio.sleep()
 
             sample_locus_annotations = SampleLocusAnnotation.query\
                 .filter(SampleLocusAnnotation.project_id == project_id).all()
             sample_locus_annotations_dump = sample_locus_annotations_schema.dumps(sample_locus_annotations, many=True)
             socketio.emit('get', {SAMPLE_LOCUS_ANNOTATIONS_NAMESPACE: sample_locus_annotations_dump.data},
                           namespace=make_namespace(SAMPLE_LOCUS_ANNOTATIONS_NAMESPACE))
-            eventlet.sleep()
+            socketio.sleep()
 
             project_channel_annotations = ProjectChannelAnnotations.query\
                 .filter(ProjectChannelAnnotations.project_id == project_id).all()
@@ -97,7 +97,7 @@ def get_artifact_estimator_project(json):
                                                                                         many=True)
             socketio.emit('get', {PROJECT_CHANNEL_ANNOTATIONS_NAMESPACE: project_channel_annotations_dump.data},
                           namespace=make_namespace(PROJECT_CHANNEL_ANNOTATIONS_NAMESPACE))
-            eventlet.sleep()
+            socketio.sleep()
 
 
 # @socketio.on('list', namespace='/' + PROJECT_NAMESPACE)

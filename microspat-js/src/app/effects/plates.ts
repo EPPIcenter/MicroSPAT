@@ -18,6 +18,7 @@ import { WellService } from 'app/services/ce/well';
 
 @Injectable()
 export class PlateEffects {
+
   @Effect()
   selectPlate$: Observable<any> = this.actions$.pipe(
     ofType<plates.SelectPlateAction>(plates.SELECT_PLATE),
@@ -108,59 +109,64 @@ export class PlateEffects {
     })
   );
 
-    // @Effect()
-    // selectChannel$: Observable<any> = this.actions$
-    //   .ofType(plates.SELECT_CHANNEL)
-    //   .pipe(
-    //     map(action => {
-      //   return action.payload;
-      // }),
-    //     withLatestFrom(this.store.select(fromDB.selectChannelEntities), this.store.select(fromDB.selectWellEntities)),
-    //     map(([channelId, channelEntities, wellEntities]) => {
-    //       const channel = channelEntities[channelId];
-    //       const well = wellEntities[channel.well];
-    //       if (!well.detailed) {
-    //         return of([new plates.LoadWellAction(well.id), new plates.LoadingChannelAction(channelId)]);
-    //       };
-    //       if (channel && channel.detailed) {
-    //         return new plates.ActivateChannelAction(channelId);
-    //       } else {
-    //         return new plates.LoadingChannelAction(channelId);
-    //       }
-    //     })
-    //   )
+  @Effect()
+  loadingChannel$: Observable<any> = this.actions$.pipe(
+    ofType<plates.LoadingChannelAction>(plates.LOADING_CHANNEL),
+    map(action => {
+      return action.payload;
+    }),
+    map(ids => {
+      if (!Array.isArray(ids)) {
+        return [ids];
+      } else {
+        return ids;
+      }
+    }),
+    map(ids => new db.GetRequestedAction({model: 'channel', ids: ids}))
+  );
 
-    @Effect()
-    loadingChannel$: Observable<any> = this.actions$
-      .ofType<plates.LoadingChannelAction>(plates.LOADING_CHANNEL)
-      .pipe(
-        map(action => {
-        return action.payload;
-      }),
-        map(ids => {
-          if (!Array.isArray(ids)) {
-            return [ids];
-          } else {
-            return ids;
-          }
-        }),
-        map(ids => new db.GetRequestedAction({model: 'channel', ids: ids}))
-      );
+  @Effect({dispatch: false})
+  recalculateWellLadder$: Observable<any> = this.actions$.pipe(
+    ofType(plates.RECALCULATE_WELL_LADDER),
+    tap(() => {
+      this.store.pipe(
+        select(fromPlates.selectRecalculateLadderPayload),
+        take(1)
+      )
+      .subscribe(payload => {
+        this.wellService.recalculateLadder(payload.well_id, payload.ladder_peak_indices);
+      });
+    })
+  );
 
-    @Effect({dispatch: false})
-    recalculateLadder$: Observable<any> = this.actions$.pipe(
-      ofType(plates.RECALCULATE_LADDER),
-      tap(() => {
-        this.store.pipe(
-          select(fromPlates.selectRecalculateLadderPayload),
-          take(1)
-        )
-        .subscribe(payload => {
-          console.log("Recalculating Ladder")
-          this.wellService.recalculateLadder(payload.well_id, payload.ladder_peak_indices);
-        });
-      })
-    );
+  @Effect({dispatch: false})
+  recalculatePlateLadder$: Observable<any> = this.actions$.pipe(
+    ofType<plates.RecalculatePlateLadderAction>(plates.RECALCULATE_PLATE_LADDER),
+    map(action => {
+      return action.payload;
+    }),
+    map(ladder_id => {
+      this.store.pipe(
+        select(fromPlates.selectActivePlateId),
+        take(1)
+      )
+      .subscribe(plate_id => {
+        this.plateService.recalculateLadder(ladder_id, plate_id);
+      });
+    })
+  );
 
-  constructor(private actions$: Actions, private store: Store<fromRoot.AppState>, private injector: Injector, private wellService: WellService) {}
+  // @Effect({dispatch: false})
+  // uploadPlates$: Observable<any> = this.actions$.pipe(
+  //   ofType<plates.UploadPlatesAction>(plates.UPLOAD_PLATES),
+  //   map(action => {
+  //     console.log('Uploading Plates Effect', action.payload);
+  //     return action.payload;
+  //   }),
+  //   map(payload => {
+  //     this.plateService.uploadPlate(payload.plateFiles, payload.ladderID);
+  //   })
+  // )
+
+  constructor(private actions$: Actions, private store: Store<fromRoot.AppState>, private injector: Injector, private wellService: WellService, private plateService: PlateService) {}
 }

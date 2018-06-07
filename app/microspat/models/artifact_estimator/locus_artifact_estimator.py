@@ -1,7 +1,7 @@
 import eventlet
 from sqlalchemy.orm import make_transient, reconstructor
 
-from app import db
+from app import db, socketio
 from app.microspat.artifact_estimator import ArtifactEstimator as AE
 from app.microspat.models.attributes import TimeStamped
 from ..locus.locus import Locus
@@ -50,14 +50,14 @@ class LocusArtifactEstimator(AE.ArtifactEstimatorSet, TimeStamped, db.Model):
                                                 nucleotide_repeat_length=locus.nucleotide_repeat_length)
 
         for estimator in ae.artifact_estimators:
-            eventlet.sleep()
+            socketio.sleep()
             assert isinstance(estimator, AE.ArtifactEstimator)
             artifact_estimator = ArtifactEstimator(artifact_distance=estimator.artifact_distance,
                                                    artifact_distance_buffer=estimator.artifact_distance_buffer,
                                                    peak_data=estimator.peak_data, label=estimator.label)
 
             for eqn in estimator.artifact_equations:
-                eventlet.sleep()
+                socketio.sleep()
                 assert isinstance(eqn, AE.ArtifactEquation)
                 artifact_equation = ArtifactEquation(sd=eqn.sd, r_squared=eqn.r_squared, slope=eqn.slope,
                                                      intercept=eqn.intercept, start_size=eqn.start_size,

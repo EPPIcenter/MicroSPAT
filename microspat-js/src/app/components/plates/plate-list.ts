@@ -12,7 +12,14 @@ class DateOnlyPipe extends DatePipe {
   selector: 'mspat-plates-list',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-  <ngx-datatable class="material fullscreen" id="plates-list"
+  <mat-card *ngIf='newPlatesLoading'>
+    <mat-card-content>
+      <div>
+        <mat-spinner [diameter]='spinnerDiameter'></mat-spinner>
+      </div>
+    </mat-card-content>
+  </mat-card>
+  <ngx-datatable *ngIf="!newPlatesLoading" class="material fullscreen" id="plates-list"
     [rows]="plates"
     [columns]="columns"
     [messages]="messages"
@@ -27,6 +34,10 @@ class DateOnlyPipe extends DatePipe {
   </ngx-datatable>
   `,
   styles: [`
+    mat-spinner {
+      margin: 0 auto
+    }
+
     ngx-datatable {
       height: 70vh;
       user-select: none;
@@ -36,7 +47,10 @@ class DateOnlyPipe extends DatePipe {
 })
 export class PlatesListComponent {
   @Input() plates: Plate[] = [];
+  @Input() newPlatesLoading: boolean;
   @Output() selectPlate = new EventEmitter();
+
+  private spinnerDiameter = 300;
 
   public columns = [
     {
@@ -51,19 +65,19 @@ export class PlatesListComponent {
     {
       prop: 'date_processed',
       name: 'Date Processed',
-      width: 75,
+      width: 50,
       pipe: new DateOnlyPipe('en-US')
     },
     {
       prop: 'date_run',
       name: 'Date Run',
-      width: 60,
+      width: 45,
       pipe: new DateOnlyPipe('en-US')
     }
   ];
 
   public messages = {
-    emptyMessage: "No Plates Loaded"
+    emptyMessage: 'No Plates Loaded'
   };
 
   constructor() {}

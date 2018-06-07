@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 
 import { WebSocketBaseService } from '../base';
 import { ArtifactEstimatorProject } from '../../models/artifact-estimator/project';
@@ -9,9 +10,9 @@ import * as fromRoot from 'app/reducers';
 export class ArtifactEstimatorProjectService extends WebSocketBaseService<ArtifactEstimatorProject> {
 
   constructor(
-    protected store: Store<fromRoot.AppState>
+    protected store: Store<fromRoot.AppState>, protected http: HttpClient
   ) {
-    super('artifact_estimator_project', store);
+    super('artifact_estimator_project', store, http);
   }
 
 }

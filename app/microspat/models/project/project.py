@@ -4,7 +4,7 @@ import eventlet
 from flask import current_app as app
 from sqlalchemy.orm import make_transient, reconstructor, validates, subqueryload
 
-from app import db
+from app import db, socketio
 from ..locus.locus import Locus
 from ..locus.locus_set import LocusSet, locus_set_association_table
 from ..ce.channel import Channel
@@ -149,7 +149,7 @@ class Project(LocusSetAssociatedMixin, TimeStamped, db.Model):
     def add_channels(self, channel_ids):
 
         for channel_id in channel_ids:
-            eventlet.sleep()
+            socketio.sleep()
             channel_locus_id = Channel.query.filter(Channel.id == channel_id).value(Channel.locus_id)
 
             if not channel_locus_id:
@@ -203,7 +203,7 @@ class Project(LocusSetAssociatedMixin, TimeStamped, db.Model):
 
             total_peaks = -1
             while len(channel.peaks) != total_peaks:
-                eventlet.sleep()
+                socketio.sleep()
                 channel.post_annotate_peaks()
                 channel.post_filter_peaks(filter_params)
                 total_peaks = len(channel.peaks)
@@ -215,7 +215,7 @@ class Project(LocusSetAssociatedMixin, TimeStamped, db.Model):
     def recalculate_channels(self, channel_annotations, rescan_peaks):
         recalculated_channel_annotations = []
         for channel_annotation in channel_annotations:
-            eventlet.sleep()
+            socketio.sleep()
             recalculated_channel_annotations.append(
                 self.recalculate_channel(channel_annotation, rescan_peaks))
 

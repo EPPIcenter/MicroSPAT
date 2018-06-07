@@ -5,7 +5,7 @@ import eventlet
 from sqlalchemy.ext.mutable import MutableList
 from sqlalchemy.orm import deferred, validates, reconstructor
 
-from app import db
+from app import db, socketio
 from app.custom_sql_types.custom_types import CompressedJSONEncodedData
 from app.microspat.fsa_tools.PlateExtractor import ExtractedPlate
 from ..attributes import TimeStamped, Flaggable
@@ -87,7 +87,7 @@ class Plate(ExtractedPlate, TimeStamped, Flaggable, db.Model):
                 current=extracted_plate.current, voltage=extracted_plate.voltage,
                 temperature=extracted_plate.temperature, power=extracted_plate.power)
         db.session.add(p)
-        eventlet.sleep()
+        socketio.sleep()
 
         for well in extracted_plate.wells:
             w = Well(well_label=well.well_label, comments=well.comments, base_sizes=well.base_sizes,
@@ -97,13 +97,13 @@ class Plate(ExtractedPlate, TimeStamped, Flaggable, db.Model):
             w.plate = p
             w.ladder = ladder
             db.session.add(w)
-            eventlet.sleep()
+            socketio.sleep()
 
             for channel in well.channels:
                 c = Channel(wavelength=channel.wavelength, data=channel.data, color=channel.color)
                 c.well = w
                 db.session.add(c)
-                eventlet.sleep()
+                socketio.sleep()
         return p
 
     @classmethod

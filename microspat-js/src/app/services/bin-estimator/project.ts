@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 
 import { WebSocketBaseService } from '../base';
 import { BinEstimatorProject } from '../../models/bin-estimator/project';
@@ -9,9 +10,9 @@ import * as fromRoot from 'app/reducers';
 export class BinEstimatorProjectService extends WebSocketBaseService<BinEstimatorProject> {
 
   constructor(
-    protected store: Store<fromRoot.AppState>
+    protected store: Store<fromRoot.AppState>, http: HttpClient
   ) {
-    super('bin_estimator_project', store);
+    super('bin_estimator_project', store, http);
   }
 
 }

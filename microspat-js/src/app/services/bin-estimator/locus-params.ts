@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 
 import { WebSocketBaseService } from '../base';
 import { BinEstimatorLocusParams } from '../../models/bin-estimator/locus-params';
@@ -10,9 +11,9 @@ import * as fromRoot from 'app/reducers';
 export class BinEstimatorLocusParamsService extends WebSocketBaseService<BinEstimatorLocusParams> {
 
   constructor(
-    protected store: Store<fromRoot.AppState>
+    protected store: Store<fromRoot.AppState>, protected http: HttpClient
   ) {
-    super('bin_estimator_locus_params', store);
+    super('bin_estimator_locus_params', store, http);
   }
 
 }

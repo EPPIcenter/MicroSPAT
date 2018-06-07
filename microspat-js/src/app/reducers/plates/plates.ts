@@ -1,17 +1,23 @@
 import { createSelector } from 'reselect';
-import * as fromDB from '../db';
-import * as db from 'app/actions/db';
-import * as plates from 'app/actions/plates';
+import { createFeatureSelector } from '@ngrx/store';
+
+import * as d3 from 'd3';
+
+import * as fromDB from 'app/reducers/db';
+import * as fromTasks from 'app/reducers/tasks';
+
+import * as DBActions from 'app/actions/db';
+import * as PlatesActions from 'app/actions/plates';
+
 import { Plate } from 'app/models/ce/plate';
 import { Ladder } from 'app/models/ce/ladder';
-import { createFeatureSelector } from '@ngrx/store';
 import { Well } from 'app/models/ce/well';
 import { Square } from 'app/models/square';
 import { Channel } from 'app/models/ce/channel';
-import * as d3 from 'd3';
-import { active } from 'd3';
+
 import { Trace, Legend } from 'app/components/plots/canvas';
 import { Locus } from 'app/models/locus/locus';
+import { Task, IN_PROGRESS } from 'app/models/task';
 
 export interface State {
   platesLoaded: boolean;
@@ -24,6 +30,8 @@ export interface State {
   activeChannels: number[];
   ladderPeakIndices: number[] | null;
   selectedLocus: number;
+  recalcuatePlateLadderTaskInProgress: boolean;
+  createNonExistentSamples: boolean;
 }
 
 const initialState: State = {
@@ -36,159 +44,227 @@ const initialState: State = {
   loadingChannels: [],
   activeChannels: [],
   ladderPeakIndices: null,
-  selectedLocus: null
+  selectedLocus: null,
+  recalcuatePlateLadderTaskInProgress: false,
+  createNonExistentSamples: true
 };
 
-export function reducer(state = initialState, action: db.Actions | plates.Actions): State {
+export function reducer(state = initialState, action: DBActions.Actions | PlatesActions.Actions): State {
   switch (action.type) {
-  case db.LIST_RECEIVED:
-    if (action.payload.model === fromDB.models.plate) {
-      return Object.assign({}, state, {
-        loadingPlates: false,
-        platesLoaded: true
-      });
-    }
-    return state;
+    case DBActions.LIST_RECEIVED:
+      return dbListReceived(state, action);
 
-  case db.GET_RECEIVED:
-    if (action.payload.model === fromDB.models.plate && state.loadingPlate !== null) {
-      let plateReceived = false;
+    case DBActions.GET_RECEIVED:
+      return dbGetReceived(state, action);
 
-      for (let index = 0; index < action.payload.entities.length; index++) {
-        const e = action.payload.entities[index];
-        if (+e.id === +state.loadingPlate) {
-          plateReceived = true;
-          break;
-        }
-      }
+    case PlatesActions.LOADING_PLATE:
+      return loadingPlate(state, action);
 
-      if (plateReceived) {
-        return Object.assign({}, state, {
-          loadingPlate: null,
-          activePlateId: state.loadingPlate,
-          loadingWell: null,
-          activeWellId: null,
-          loadingChannels: [],
-          activeChannels: [],
-          ladderPeakIndices: null
-        });
-      }
-    } else if (action.payload.model === fromDB.models.well && state.loadingWell !== null) {
-      let wellReceived = false;
+    case PlatesActions.LOADING_PLATES:
+      return loadingPlates(state, action);
 
-      for (let index = 0; index < action.payload.entities.length; index++) {
-        const e = action.payload.entities[index];
-        if (+e.id === +state.loadingWell) {
-          wellReceived = true;
-          break;
-        }
-      }
+    case PlatesActions.ACTIVATE_PLATE:
+      return activatePlate(state, action);
 
-      if (wellReceived) {
-        return Object.assign({}, state, {
-          loadingWell: null,
-          activeWellId: state.loadingWell
-        });
-      }
-    } else if (action.payload.model === fromDB.models.channel && state.loadingChannels.length > 0) {
-      const channelsReceived = [];
-      const remainingChannels = state.loadingChannels.slice();
+    case PlatesActions.LOADING_WELL:
+      return loadingWell(state, action);
 
-      for (let index = 0; index < action.payload.entities.length; index++) {
-        const e = action.payload.entities[index];
-        const channelReceivedIndex = remainingChannels.indexOf(+e);
-        if (channelReceivedIndex !== -1) {
-          channelsReceived.push(e);
-          remainingChannels.splice(channelReceivedIndex, 1);
-        }
-      }
-      return Object.assign({}, state, {
-        loadingChannels: remainingChannels,
-        activeChannels: [...state.activeChannels, ...channelsReceived],
-      });
+    case PlatesActions.ACTIVATE_WELL:
+      return activateWell(state, action);
 
-    }
+    case PlatesActions.LOADING_CHANNEL:
+      return loadingChannel(state, action);
 
-    return state;
+    case PlatesActions.ACTIVATE_CHANNEL:
+      return activateChannel(state, action);
 
-  case plates.LOADING_PLATE:
+    case PlatesActions.CLEAR_SELECTED_CHANNELS:
+      return clearSelectedChannels(state, action);
+
+    case PlatesActions.SET_LADDER_PEAK_INDICES:
+      return setLadderPeakIndices(state, action);
+
+    case PlatesActions.RECALCULATE_PLATE_LADDER_TASK_IN_PROGRESS:
+      return setRecalculatePlateLadderInProgress(state, action, true);
+
+    case PlatesActions.RECALCULATE_PLATE_LADDER_TASK_FINISHED:
+      return setRecalculatePlateLadderInProgress(state, action, false);
+
+    case PlatesActions.SET_NON_EXISTENT_SAMPLES:
+      return setNonExistentSamples(state, action);
+
+    default:
+      return state;
+  }
+}
+
+function dbListReceived(state: State, action: DBActions.ListReceivedAction): State {
+  if (action.payload.model === fromDB.models.plate) {
     return Object.assign({}, state, {
-      loadingPlate: action.payload,
-      activePlateId: null
+      loadingPlates: false,
+      platesLoaded: true
     });
+  }
+  return state;
+}
 
-  case plates.LOADING_PLATES:
-    return Object.assign({}, state, {
-      loadingPlates: true
-    });
+function dbGetReceived(state: State, action: DBActions.GetReceivedAction): State {
+  if (action.payload.model === fromDB.models.plate && state.loadingPlate !== null) {
+    let plateReceived = false;
 
-  case plates.ACTIVATE_PLATE:
-    if (!(+action.payload === +state.activePlateId)) {
+    for (let index = 0; index < action.payload.entities.length; index++) {
+      const e = action.payload.entities[index];
+      if (+e.id === +state.loadingPlate) {
+        plateReceived = true;
+        break;
+      }
+    }
+
+    if (plateReceived) {
       return Object.assign({}, state, {
         loadingPlate: null,
-        activePlateId: action.payload,
+        activePlateId: state.loadingPlate,
         loadingWell: null,
         activeWellId: null,
-        activeChannels: [],
         loadingChannels: [],
+        activeChannels: [],
         ladderPeakIndices: null
       });
-    } else {
-      return state;
+    }
+  } else if (action.payload.model === fromDB.models.well && state.loadingWell !== null) {
+    let wellReceived = false;
+
+    for (let index = 0; index < action.payload.entities.length; index++) {
+      const e = action.payload.entities[index];
+      if (+e.id === +state.loadingWell) {
+        wellReceived = true;
+        break;
+      }
     }
 
-  case plates.LOADING_WELL:
-    return Object.assign({}, state, {
-      loadingWell: action.payload,
-      activeWellId: null,
-      ladderPeakIndices: null
-    });
-
-  case plates.ACTIVATE_WELL:
-    if (!(+action.payload === +state.activeWellId)) {
+    if (wellReceived) {
       return Object.assign({}, state, {
         loadingWell: null,
-        activeWellId: action.payload,
-        ladderPeakIndices: null
-      });
-    } else {
-      return state;
-    }
-
-  case plates.LOADING_CHANNEL:
-    if (state.loadingChannels.indexOf(+action.payload) === -1) {
-      return Object.assign({}, state, {
-        loadingChannels: [+action.payload, ...state.loadingChannels]
+        activeWellId: state.loadingWell
       });
     }
-    return state;
+  } else if (action.payload.model === fromDB.models.channel && state.loadingChannels.length > 0) {
+    const channelsReceived = [];
+    const remainingChannels = state.loadingChannels.slice();
 
-  case plates.ACTIVATE_CHANNEL:
-    if (state.activeChannels.indexOf(+action.payload) === -1) {
-      return Object.assign({}, state, {
-        activeChannels: [+action.payload, ...state.activeChannels]
-      });
-    } else {
-      return Object.assign({}, state, {
-        activeChannels: state.activeChannels.filter(i => i !== +action.payload)
-      });
+    for (let index = 0; index < action.payload.entities.length; index++) {
+      const e = action.payload.entities[index];
+      const channelReceivedIndex = remainingChannels.indexOf(+e);
+      if (channelReceivedIndex !== -1) {
+        channelsReceived.push(e);
+        remainingChannels.splice(channelReceivedIndex, 1);
+      }
     }
-
-  case plates.CLEAR_SELECTED_CHANNELS:
     return Object.assign({}, state, {
+      loadingChannels: remainingChannels,
+      activeChannels: [...state.activeChannels, ...channelsReceived],
+    });
+
+  }
+
+  return state;
+}
+
+function loadingPlate(state: State, action: PlatesActions.LoadingPlateAction): State {
+  return Object.assign({}, state, {
+    loadingPlate: action.payload,
+    activePlateId: null
+  });
+}
+
+function loadingPlates(state: State, action: PlatesActions.LoadingPlatesAction): State {
+  return Object.assign({}, state, {
+    loadingPlates: true
+  });
+}
+
+function activatePlate(state: State, action: PlatesActions.ActivatePlateAction): State {
+  if (!(+action.payload === +state.activePlateId)) {
+    return Object.assign({}, state, {
+      loadingPlate: null,
+      activePlateId: action.payload,
+      loadingWell: null,
+      activeWellId: null,
+      activeChannels: [],
       loadingChannels: [],
-      activeChannels: []
+      ladderPeakIndices: null
     });
-
-  case plates.SET_LADDER_PEAK_INDICES:
-    return Object.assign({}, state, {
-      ladderPeakIndices: action.payload
-    });
-
-  default:
+  } else {
     return state;
   }
 }
+
+function loadingWell(state: State, action: PlatesActions.LoadingWellAction): State {
+  return Object.assign({}, state, {
+    loadingWell: action.payload,
+    activeWellId: null,
+    ladderPeakIndices: null
+  });
+}
+
+function activateWell(state: State, action: PlatesActions.ActivateWellAction): State {
+  if (!(+action.payload === +state.activeWellId)) {
+    return Object.assign({}, state, {
+      loadingWell: null,
+      activeWellId: action.payload,
+      ladderPeakIndices: null
+    });
+  } else {
+    return state;
+  }
+}
+
+function loadingChannel(state: State, action: PlatesActions.LoadingChannelAction): State {
+  if (state.loadingChannels.indexOf(+action.payload) === -1) {
+    return Object.assign({}, state, {
+      loadingChannels: [+action.payload, ...state.loadingChannels]
+    });
+  }
+  return state;
+}
+
+function activateChannel(state: State, action: PlatesActions.ActivateChannelAction): State {
+  if (state.activeChannels.indexOf(+action.payload) === -1) {
+    return Object.assign({}, state, {
+      activeChannels: [+action.payload, ...state.activeChannels]
+    });
+  } else {
+    return Object.assign({}, state, {
+      activeChannels: state.activeChannels.filter(i => i !== +action.payload)
+    });
+  }
+}
+
+function clearSelectedChannels(state: State, action: PlatesActions.ClearSelectedChannelsAction): State {
+  return Object.assign({}, state, {
+    loadingChannels: [],
+    activeChannels: []
+  });
+}
+
+function setLadderPeakIndices(state: State, action: PlatesActions.SetLadderPeakIndicesAction): State {
+  return Object.assign({}, state, {
+    ladderPeakIndices: action.payload
+  });
+}
+
+function setRecalculatePlateLadderInProgress(state: State, action: PlatesActions.SetRecalculatePlateLadderTaskInProgress, status: boolean): State {
+  return Object.assign({}, state, {
+    recalcuatePlateLadderTaskInProgress: status
+  });
+}
+
+function setNonExistentSamples(state: State, action: PlatesActions.SetNonExistentSamplesAction) {
+  return Object.assign({}, state, {
+    createNonExistentSamples: action.payload
+  });
+}
+
 
 export const selectPlateState = createFeatureSelector<State>('plates');
 export const selectActivePlateId = createSelector(selectPlateState, (state: State) => state.activePlateId);
@@ -197,13 +273,21 @@ export const selectActiveChannelIds = createSelector(selectPlateState, (state: S
 export const selectLoadingChannelIds = createSelector(selectPlateState, (state: State) => state.loadingChannels);
 export const selectWellLoading = createSelector(selectPlateState, (state: State) => state.loadingWell != null);
 export const selectSetLadderPeakIndices = createSelector(selectPlateState, (state: State) => state.ladderPeakIndices);
-export const selectSelectedLocus = createSelector(selectPlateState, (state: State) => state.selectedLocus)
+export const selectSelectedLocus = createSelector(selectPlateState, (state: State) => state.selectedLocus);
+export const selectRecalculatePlateLadderInProgress = createSelector(selectPlateState, (state: State) => state.recalcuatePlateLadderTaskInProgress);
+export const selectCreateNonExistentSamples = createSelector(selectPlateState, (state: State) => state.createNonExistentSamples);
 
 export const selectPlateList = createSelector(fromDB.selectPlateEntities, (plateEntities) => {
   const plates: Plate[] = [];
   Object.keys(plateEntities).forEach(k => plates.push(plateEntities[k]));
   return plates;
 });
+
+export const selectNewPlatesLoading = createSelector(fromDB.selectPlatePendingReqs, fromDB.selectPlateEntities, (pendingReqs, entities) => {
+  return Object.keys(pendingReqs).some(id => {
+    return !(id in entities)
+  })
+})
 
 export const selectActivePlate = createSelector(fromDB.selectPlateEntities, selectActivePlateId, (plates, id) => {
   if (id != null) {
@@ -212,7 +296,7 @@ export const selectActivePlate = createSelector(fromDB.selectPlateEntities, sele
   return null;
 });
 
-export const selectActiveWell = createSelector(fromDB.selectWellEntities, selectActiveWellId, (wells, id) : Well => {
+export const selectActiveWell = createSelector(fromDB.selectWellEntities, selectActiveWellId, (wells, id): Well => {
   if (id != null) {
     return wells[id];
   }
@@ -280,8 +364,8 @@ export const selectRenderableChannelInfo = createSelector(
     });
     return renderableChannelInfo;
   });
+  export const selectLadderChannel = createSelector(selectActiveWell, fromDB.selectLadderEntities, fromDB.selectChannelEntities, (activeWell, ladders, channels): Channel | null => {
 
-export const selectLadderChannel = createSelector(selectActiveWell, fromDB.selectLadderEntities, fromDB.selectChannelEntities, (activeWell, ladders, channels): Channel | null => {
   if (activeWell && ladders) {
     const ladder: Ladder = ladders[activeWell.ladder];
     for (let index = 0; index < activeWell.channels.length; index++) {
@@ -443,3 +527,15 @@ export const selectLocusWindow = createSelector(selectSelectedLocus, fromDB.sele
     return null;
   }
 });
+
+export const selectActiveRecalculatePlateLadderTasks = fromTasks.selectActiveTasks('plate', 'recalculate_ladder');
+
+export const selectActiveRecalculatePlateLadderTask = createSelector(selectActivePlateId, selectActiveRecalculatePlateLadderTasks, (plateId, tasks) => {
+  const taskIds = Object.keys(tasks);
+  for (const taskId of taskIds) {
+    const task = tasks[taskId];
+    if (task.status === IN_PROGRESS && task.task_args['plate_id'] === plateId) {
+      return task;
+    }
+  }
+})

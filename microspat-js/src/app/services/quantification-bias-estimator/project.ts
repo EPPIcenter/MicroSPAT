@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 
 import { WebSocketBaseService } from '../base';
 import { QuantificationBiasEstimatorProject } from '../../models/quantification-bias-estimator/project';
@@ -9,9 +10,9 @@ import * as fromRoot from 'app/reducers';
 export class QuantificationBiasEstimatorProjectService extends WebSocketBaseService<QuantificationBiasEstimatorProject> {
 
   constructor(
-    protected store: Store<fromRoot.AppState>
+    protected store: Store<fromRoot.AppState>, protected http: HttpClient
   ) {
-    super('quantification_bias_estimator_project', store);
+    super('quantification_bias_estimator_project', store, http);
   }
 
 }

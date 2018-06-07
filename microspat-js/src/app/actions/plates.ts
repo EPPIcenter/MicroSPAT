@@ -19,7 +19,18 @@ export const ACTIVATE_CHANNEL = '[Plate] Activate Channel';
 export const CLEAR_SELECTED_CHANNELS = '[Plate] Clear Selected Channels';
 
 export const SET_LADDER_PEAK_INDICES = '[Plate] Set Ladder Peak Indices';
-export const RECALCULATE_LADDER = '[Plate] Recalculate Ladder';
+
+export const RECALCULATE_WELL_LADDER = '[Plate] Recalculate Well Ladder';
+
+export const RECALCULATE_PLATE_LADDER = '[Plate] Recalculate Plate Ladder';
+export const RECALCULATE_PLATE_LADDER_TASK_IN_PROGRESS = '[Plate] Recalculate Plate Ladder Task In Progress';
+export const RECALCULATE_PLATE_LADDER_TASK_FINISHED = '[Plate] Recalculate Plate Ladder Task In Progress';
+
+export const UPLOAD_PLATES = '[Plate] Upload Plates';
+
+export const UPLOAD_PLATE_MAP = '[Plate] Upload Plate Map';
+
+export const SET_NON_EXISTENT_SAMPLES = '[Plate] Set Non Existent Samples Toggle';
 
 export class LoadPlatesAction implements Action {
   readonly type = LOAD_PLATES;
@@ -101,9 +112,37 @@ export class SetLadderPeakIndicesAction implements Action {
   constructor(public payload: number[]) {};
 }
 
-export class RecalculateLadderAction implements Action {
-  readonly type = RECALCULATE_LADDER;
+export class RecalculateWellLadderAction implements Action {
+  readonly type = RECALCULATE_WELL_LADDER;
   constructor() {};
+}
+
+export class RecalculatePlateLadderAction implements Action {
+  readonly type = RECALCULATE_PLATE_LADDER;
+  constructor(public payload: number | string) {};
+}
+
+export class UploadPlatesAction implements Action {
+  readonly type = UPLOAD_PLATES;
+  constructor(public payload: {
+    plateFiles: FileList,
+    ladderID: number
+  }) {}
+}
+
+export class SetRecalculatePlateLadderTaskInProgress implements Action {
+  readonly type = RECALCULATE_PLATE_LADDER_TASK_IN_PROGRESS;
+  constructor() {}
+}
+
+export class SetRecalculatePlateLadderTaskFinished implements Action {
+  readonly type = RECALCULATE_PLATE_LADDER_TASK_FINISHED;
+  constructor() {}
+}
+
+export class SetNonExistentSamplesAction implements Action {
+  readonly type = SET_NON_EXISTENT_SAMPLES;
+  constructor(public payload: boolean) {};
 }
 
 export type Actions
@@ -121,4 +160,10 @@ export type Actions
 | SelectChannelAction
 | ActivateChannelAction
 | ClearSelectedChannelsAction
-| SetLadderPeakIndicesAction;
+| SetLadderPeakIndicesAction
+| RecalculateWellLadderAction
+| RecalculatePlateLadderAction
+| SetRecalculatePlateLadderTaskInProgress
+| SetRecalculatePlateLadderTaskFinished
+| SetNonExistentSamplesAction
+| UploadPlatesAction;
