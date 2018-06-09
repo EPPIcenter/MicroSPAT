@@ -2,8 +2,7 @@ import eventlet
 
 from app.microspat.schemas import WellSchema, ChannelSchema
 from app.microspat.models import Well, Channel
-from ..base import table_to_string_mapping, make_namespace, extract_ids, generate_task_id, emit_task_start, \
-    emit_task_failure, emit_task_progress, emit_task_success
+from ..base import table_to_string_mapping, make_namespace, extract_ids, TaskNotifier
 from app import socketio
 
 JSON_NAMESPACE = table_to_string_mapping[Well]
@@ -38,86 +37,45 @@ def get_well(json):
 @socketio.on('recalculate_ladder', namespace=SOCK_NAMESPACE)
 def recalculate_ladder(json):
     i = 1
-    task = 'recalculate_ladder'
-    task_id = generate_task_id()
     well_id = json['well_id']
     peak_indices = json['ladder_peak_indices']
+    task = 'recalculate_ladder'
 
-    emit_task_start(task=task,
-                    task_id=task_id,
-                    task_args={
-                        'well_id': well_id
-                    },
-                    namespace=SOCK_NAMESPACE,
-                    data={
-                        'well_id': well_id
-                    })
+    task_notifier = TaskNotifier(task=task, namespace=SOCK_NAMESPACE, well_id=well_id)
+
+    task_notifier.emit_task_start()
     socketio.sleep()
 
     if not well_id:
-        emit_task_failure(task=task,
-                          task_id=task_id,
-                          task_args={
-                              'well_id': well_id
-                          },
-                          message="Well Not Selected.",
-                          namespace=SOCK_NAMESPACE)
+        task_notifier.emit_task_failure(message="Well Not Selected.")
         return
 
     if not isinstance(peak_indices, list):
-        emit_task_failure(task=task,
-                          task_id=task_id,
-                          task_args={
-                              'well_id': well_id
-                          },
-                          message="Peak Indices malformed.",
-                          namespace=SOCK_NAMESPACE)
+        task_notifier.emit_task_failure(message="Peak Indices malformed.")
 
     well = Well.query.get(well_id)
 
     if not well:
-        emit_task_failure(task=task,
-                          task_id=task_id,
-                          task_args={
-                              'well_id': well_id
-                          },
-                          message="Well No Longer Exists. Reload Page.",
-                          namespace=SOCK_NAMESPACE)
+        task_notifier.emit_task_failure(message="Well No Longer Exists. Reload Page.")
 
-    emit_task_progress(task=task,
-                       task_id=task_id,
-                       task_args={
-                           'well_id': well_id
-                       },
-                       progress={
-                           'style': 'determinate',
-                           'total': 5,
-                           'current_state': i,
-                           'message': 'Recalculating Well Ladder...'
-                       },
-                       namespace=SOCK_NAMESPACE)
+        task_notifier.emit_task_progress(progress={
+            'style': 'determinate',
+            'total': 5,
+            'current_state': i,
+            'message': 'Recalculating Well Ladder...'
+        })
+
     i += 1
     well.calculate_base_sizes(peak_indices)
+
     for channel in well.channels:
         if channel.locus_id:
-            emit_task_progress(task=task,
-                               task_id=task_id,
-                               task_args={
-                                   'well_id': well_id
-                               },
-                               progress={
-                                   'style': 'indeterminate',
-                                   'total': 5,
-                                   'current_state': i,
-                                   'message': 'Recalculating Well Ladder...'
-                               },
-                               namespace=SOCK_NAMESPACE)
+            task_notifier.emit_task_progress(progress={
+                'style': 'indeterminate',
+                'total': 5,
+                'current_state': i,
+                'message': 'Recalculating Well Ladder...'
+            })
             channel.find_max_data_point()
             i += 1
-    emit_task_success(task=task,
-                      task_id=task_id,
-                      task_args={
-                          'well_id': well_id
-                      },
-                      message="Well Ladder Recalculated Successfully.",
-                      namespace=SOCK_NAMESPACE)
+    task_notifier.emit_task_success(message="Well Ladder Recalculated Successfully.")

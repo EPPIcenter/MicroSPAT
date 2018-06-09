@@ -16,53 +16,60 @@ class GetException(Exception):
         super(GetException, self).__init__(*args)
 
 
+class TaskNotifier(object):
+    def __init__(self, task, namespace, **kwargs):
+        self.task = task
+        self.task_id = self.generate_task_id()
+        self.namespace = namespace
+        self.task_args = kwargs
+
+    @staticmethod
+    def generate_task_id():
+        return str(uuid.uuid4())
+
+    def emit_task_failure(self, message=None):
+        socketio.emit(self.task, {
+            'task_args': self.task_args,
+            'status': 'failure',
+            'id': self.task_id,
+            'payload': message
+        }, namespace=self.namespace)
+        socketio.sleep()
+
+    def emit_task_success(self, message=None):
+        socketio.emit(self.task, {
+            'task_args': self.task_args,
+            'status': 'success',
+            'id': self.task_id,
+            'payload': message
+        }, namespace=self.namespace)
+        socketio.sleep()
+
+    def emit_task_start(self, data=None):
+        socketio.emit(self.task, {
+            'task_args': self.task_args,
+            'status': 'start',
+            'id': self.task_id,
+            'payload': data
+        }, namespace=self.namespace)
+        socketio.sleep()
+
+    def emit_task_progress(self, progress):
+        socketio.emit(self.task, {
+            'task_args': self.task_args,
+            'status': 'in_progress',
+            'id': self.task_id,
+            'payload': progress
+        }, namespace=self.namespace)
+        socketio.sleep()
+
+
 def respond_404(error):
     res = flask.jsonify({
         'error': error
     })
     res.status_code = 404
     return res
-
-
-def emit_task_failure(task, task_id, task_args, namespace, message=None):
-    socketio.emit(task, {
-        'task_args': task_args,
-        'status': 'failure',
-        'id': task_id,
-        'payload': message
-    }, namespace=namespace)
-
-
-def emit_task_success(task, task_id, task_args, namespace, message=None):
-    socketio.emit(task, {
-        'task_args': task_args,
-        'status': 'success',
-        'id': task_id,
-        'payload': message
-    }, namespace=namespace)
-
-
-def emit_task_start(task, task_id, task_args, namespace, data=None):
-    print(f"Starting Task {task} with id {task_id} in {namespace}")
-    socketio.emit(task, {
-        'task_args': task_args,
-        'status': 'start',
-        'id': task_id,
-        'payload': data
-    }, namespace=namespace)
-
-
-def emit_task_progress(task, task_id, task_args, namespace, progress):
-    socketio.emit(task, {
-        'task_args': task_args,
-        'status': 'in_progress',
-        'id': task_id,
-        'payload': progress
-    }, namespace=namespace)
-
-
-def generate_task_id():
-    return str(uuid.uuid4())
 
 
 def emit_list(model_namespace, schema_dump):
@@ -81,11 +88,17 @@ def base_get(model, schema, namespace, subset_size=384):
         print(f"Base Get Request Received {namespace}, {len(ids)}")
         for id_subset in subset(ids, subset_size):
             instances = model.query.filter(model.id.in_(id_subset)).all()
+            instance_ids = set([_.id for _ in instances])
+            not_found = list(set(id_subset) - instance_ids)
             dump = schema.dumps(instances, many=True, separators=(',', ':'))
             res = {
                 namespace: dump.data
             }
+            not_found_res = {
+                namespace: not_found
+            }
             socketio.emit('get', res, namespace=flask.request.namespace)
+            socketio.emit('get_failed', not_found_res, namespace=flask.request.namespace)
             socketio.sleep()
     return get_fn
 

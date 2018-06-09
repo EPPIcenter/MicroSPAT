@@ -3,10 +3,11 @@ from flask_sqlalchemy import SignallingSession
 from sqlalchemy import event
 
 from app import db
+
 from ..attributes import TimeStamped
 from ..sample.sample import Sample
 from ..sample.sample_locus_annotation import SampleLocusAnnotation
-
+from .channel_annotations import ProjectChannelAnnotations
 
 @event.listens_for(SignallingSession, 'before_flush')
 def clear_channel_annotations(session, _, __):
