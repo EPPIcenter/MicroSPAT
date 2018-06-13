@@ -29,7 +29,9 @@ export class PlateEffects {
       return this.store.select(fromDB.selectPlateEntities)
         .pipe(
           map((plateEntities: {[id: string]: Plate}) => {
-            if (plateEntities[payload] && plateEntities[payload].detailed) {
+            if (!plateEntities[payload]) {
+              return new plates.ActivatePlateAction(null);
+            } else if (plateEntities[payload] && plateEntities[payload].detailed) {
               return new plates.ActivatePlateAction(payload);
             } else {
               return new plates.LoadingPlateAction(payload);
@@ -127,7 +129,7 @@ export class PlateEffects {
 
   @Effect({dispatch: false})
   recalculateWellLadder$: Observable<any> = this.actions$.pipe(
-    ofType(plates.RECALCULATE_WELL_LADDER),
+    ofType<plates.RecalculateWellLadderAction>(plates.RECALCULATE_WELL_LADDER),
     tap(() => {
       this.store.pipe(
         select(fromPlates.selectRecalculateLadderPayload),

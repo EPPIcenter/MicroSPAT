@@ -24,7 +24,7 @@ import { Task } from '../../models/task';
     <mat-card-actions>
       <button mat-raised-button color="primary"
       [disabled]="taskActive"
-      (click)="uploadPlateClicked()">Upload</button> <span *ngIf="warning" class="mspat-warning">{{warning}}</span>
+      (click)="uploadPlateClicked()">UPLOAD</button> <span *ngIf="warning" class="mspat-warning">{{warning}}</span>
     </mat-card-actions>
     <mat-card-footer>
       <mspat-task-progress-display *ngIf="activeUploadPlateTask"
@@ -90,7 +90,6 @@ export class PlateUploaderComponent {
 
   get activeUploadPlateTask() {
     const activeTask = this.activeUploadPlatesTasks;
-    console.log("Active Task", activeTask);
     if (activeTask.length > 0) {
       return activeTask[0];
     } else {

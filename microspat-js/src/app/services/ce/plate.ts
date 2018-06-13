@@ -19,6 +19,7 @@ export class PlateService extends WebSocketBaseService<Plate> {
     this.registerTask('recalculate_ladder', store);
     this.registerTask('upload_plate', store);
     this.registerTask('upload_plate_map', store);
+    this.registerTask('delete', store);
   }
 
   public recalculateLadder(ladderID, plateID) {
@@ -42,6 +43,12 @@ export class PlateService extends WebSocketBaseService<Plate> {
     })
     .subscribe(res => {
       console.log(res);
+    })
+  }
+
+  public deletePlate(plateID: string | number) {
+    this.socket.emit('delete', {
+      'plate_id': plateID
     })
   }
 

@@ -1,11 +1,11 @@
 import { Component, ChangeDetectionStrategy, Input, Output, ElementRef, OnChanges, OnInit, EventEmitter } from '@angular/core';
 import * as d3 from 'd3';
-import { OnDestroy } from '@angular/core/src/metadata/lifecycle_hooks';
+import { OnDestroy } from '@angular/core';
 import { Well } from 'app/models/ce/well';
 import { Task } from '../../models/task';
 
 @Component({
-  selector: 'mspat-ladder-editor',
+  selector: 'mspat-well-ladder-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <mat-list id="ladder-editor">
@@ -61,7 +61,7 @@ import { Task } from '../../models/task';
   `]
 })
 
-export class LadderEditorComponent implements OnChanges, OnDestroy {
+export class WellLadderEditorComponent implements OnChanges, OnDestroy {
   @Input() data: number[];
   @Input() baseSizes: number[];
   @Input() peakIndices: number[];

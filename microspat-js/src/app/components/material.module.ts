@@ -11,7 +11,9 @@ import { MatButtonModule,
          MatProgressBarModule,
          MatListModule,
          MatFormFieldModule,
-         MatInputModule} from '@angular/material';
+         MatInputModule,
+         MatDividerModule } from '@angular/material';
+
 @NgModule({
   imports: [
     MatButtonModule,
@@ -26,7 +28,8 @@ import { MatButtonModule,
     MatProgressBarModule,
     MatListModule,
     MatFormFieldModule,
-    MatInputModule
+    MatInputModule,
+    MatDividerModule
   ],
   exports: [
     MatButtonModule,
@@ -41,7 +44,8 @@ import { MatButtonModule,
     MatProgressBarModule,
     MatListModule,
     MatFormFieldModule,
-    MatInputModule
+    MatInputModule,
+    MatDividerModule
   ],
 })
 export class MspatMaterialModule { }

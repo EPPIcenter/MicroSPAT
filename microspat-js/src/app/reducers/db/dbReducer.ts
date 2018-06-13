@@ -18,7 +18,7 @@ export const getList = (state: State) => {
 
 export function generateReducer(model: string, initialState: any) {
   return function reducer(state = initialState, action: db.Actions): State {
-    if ('payload' in action && action.payload.model === model) {
+    if ('payload' in action && action.payload !== null && action.payload.model === model) {
       switch (action.type) {
 
         // case db.GET_REQUESTED:
@@ -85,7 +85,7 @@ export function generateReducer(model: string, initialState: any) {
           });
 
         case db.SET_STALE:
-          console.log("Setting STALE");
+          console.log('Setting STALE');
           const staleIds = action.payload.ids;
           const staleEntries = staleIds.map(id => state.entities[id]).map(e => Object.assign({}, e, {stale: true}));
           const setStaleEntities = staleEntries.reduce((entries: { [id: string]: any }, entry: any) => {

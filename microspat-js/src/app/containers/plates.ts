@@ -24,7 +24,7 @@ import { Trace, Legend } from 'app/components/plots/canvas';
 import { Locus } from 'app/models/locus/locus';
 import { DisplayTaskAction } from '../actions/tasks';
 import { Task } from '../models/task';
-import { MatCheckboxChange } from '@angular/material';
+import { MatCheckboxChange, MatSelectChange } from '@angular/material';
 
 export interface UploadPlateAction {
   plates: FileList;
@@ -81,20 +81,26 @@ export interface UploadPlateMapAction {
           [activePlateDiagnosticDomain]="activePlateDiagnosticDomain$ | async"
           [activePlateDiagnosticLegend]="activePlateDiagnosticLegend$ | async"
           [activeLoci]="activeLoci$ | async"
+          [inactiveLoci]="inactiveLoci$ | async"
+          [selectedLocus]="selectedLocus$ | async"
+          [activeLocusDomain]="activeLocusDomain$ | async"
           [activeRecalculatePlateLadderTasks]="activeRecalculatePlateLadderTasks$ | async"
           [activeRecalculateWellLadderTasks]="activeRecalculateWellLadderTasks$ | async"
           [activeUploadPlateMapTasks]="activeUploadPlateMapTasks$ | async"
+          [activeDeletePlateTasks]="activeDeletePlateTasks$ | async"
           [activeTasks]="activeTasks$ | async"
           [ladders]="ladders$ | async"
           [createNonExistentSamples]="createNonExistentSamples$ | async"
           (selectWell)="selectWell($event)"
           (selectChannel)="selectChannel($event)"
+          (selectLocus)="selectLocus($event)"
           (setPeakIndices)="setPeakIndices($event)"
           (recalculateWellLadder)="recalculateWellLadder()"
           (recalculatePlateLadder)="recalculatePlateLadder($event)"
           (clearPeakIndices)="clearPeakIndices()"
           (uploadPlateMap)="uploadPlateMap($event)"
-          (setNonExistentSamples)="setNonExistentSamples($event)">
+          (setNonExistentSamples)="setNonExistentSamples($event)"
+          (deletePlate)="deletePlate($event)">
         </mspat-plate-details>
       </div>
     </div>
@@ -123,10 +129,14 @@ export class PlatesComponent {
   activePlateDiagnosticDomain$: Observable<[number, number]>;
   activePlateDiagnosticLegend$: Observable<Legend>;
   activeLoci$: Observable<Locus[]>;
+  inactiveLoci$: Observable<Locus[]>;
+  activeLocusDomain$: Observable<[number, number]>;
+  selectedLocus$: Observable<number>;
   activeRecalculatePlateLadderTasks$: Observable<Task[]>;
   activeRecalculateWellLadderTasks$: Observable<Task[]>;
   activeUploadPlatesTasks$: Observable<Task[]>;
   activeUploadPlateMapTasks$: Observable<Task[]>;
+  activeDeletePlateTasks$: Observable<Task[]>;
   activeTasks$: Observable<Task[]>;
   createNonExistentSamples$: Observable<boolean>;
 
@@ -155,11 +165,15 @@ export class PlatesComponent {
     this.activePlateDiagnosticDomain$ = this.store.select(fromPlates.selectActivePlateDiagnosticDomain);
     this.activePlateDiagnosticRange$ = this.store.select(fromPlates.selectActivePlateDiagnosticRange);
     this.activePlateDiagnosticLegend$ = this.store.select(fromPlates.selectActivePlateDiagnosticLegend);
-    this.activeLoci$ = this.store.select(fromPlates.selectActiveLoci);
+    this.activeLoci$ = this.store.select(fromPlates.selectActiveChannelLociList);
+    this.inactiveLoci$ = this.store.select(fromPlates.selectInactiveLoci);
+    this.activeLocusDomain$ = this.store.select(fromPlates.selectActiveLocusDomain);
+    this.selectedLocus$ = this.store.select(fromPlates.selectSelectedLocus);
     this.activeRecalculatePlateLadderTasks$ = this.store.select(fromTasks.selectActiveTasks('plate', 'recalculate_ladder'));
     this.activeRecalculateWellLadderTasks$ = this.store.select(fromTasks.selectActiveTasks('well', 'recalculate_ladder'));
     this.activeUploadPlatesTasks$ = this.store.select(fromTasks.selectActiveTasks('plate', 'upload_plate'));
     this.activeUploadPlateMapTasks$ = this.store.select(fromTasks.selectActiveTasks('plate', 'upload_plate_map'));
+    this.activeDeletePlateTasks$ = this.store.select(fromTasks.selectActiveTasks('plate', 'delete'));
     this.activeTasks$ = this.store.select(fromTasks.selectActiveTasks());
     this.createNonExistentSamples$ = this.store.select(fromPlates.selectCreateNonExistentSamples);
   }
@@ -210,9 +224,17 @@ export class PlatesComponent {
     console.log(e);
   }
 
+  deletePlate(e) {
+    this.plateService.deletePlate(e)
+  }
+
   setNonExistentSamples(e: MatCheckboxChange) {
     console.log(e);
     this.store.dispatch(new plates.SetNonExistentSamplesAction(e.checked));
+  }
+
+  selectLocus(e: MatSelectChange) {
+    this.store.dispatch(new plates.ActivateLocusAction(+e.value))
   }
 
 

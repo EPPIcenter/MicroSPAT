@@ -16,7 +16,7 @@ import { Task } from 'app/models/task';
 
     <mat-card *ngIf="showPlateCard" class="plate-details">
       <mat-card-content *ngIf="plateLoading">
-        <mat-progress-spinner mode="indeterminate"></mat-progress-spinner>
+        <mat-spinner [diameter]='spinnerDiameter'></mat-spinner>
       </mat-card-content>
       <mat-card-content *ngIf="plate">
         <mat-tab-group>
@@ -38,28 +38,37 @@ import { Task } from 'app/models/task';
                 <mat-label>CE Machine</mat-label>
                 <input matInput [value]="plate.ce_machine" disabled="true">
               </mat-form-field>
+              <button mat-raised-button
+               color='warn'
+               (click)="deletePlate.emit(plate.id)"
+               [disabled]='tasksActive'>
+                DELETE PLATE
+               </button>
+              <mspat-task-progress-display *ngIf="activeDeletePlateTask" [task]="activeDeletePlateTask"></mspat-task-progress-display>
             </div>
-            <div class="details-controller">
-              <h6>Select Plate Map</h6>
-              <input type="file" (change)="plateMapChangeEvent($event)" placeholder="Select Plate Map"/>
-              <br>
-              <mat-checkbox
-                [disabled]="tasksActive"
-                [checked]="createNonExistentSamples"
-                (change)="setNonExistentSamples.emit($event)">
-                Create Non-Existent Samples
-              </mat-checkbox>
-              <button mat-raised-button color="primary"
-                [disabled]="!plateMapFile || tasksActive"
-                (click)="uploadPlateMap.emit({plateMap: this.plateMapFile, plateID: this.plate.id, createNonExistentSamples: this.createNonExistentSamples})">
-                Upload
-              </button>
-              <span *ngIf="warning" class="mspat-warning">{{warning}}</span>
-              <mspat-task-progress-display *ngIf="activeUploadPlateMapTask" [task]="activeUploadPlateMapTask"></mspat-task-progress-display>
+            <div>
+              <div class="details-controller">
+                <h6>Select Plate Map</h6>
+                <input type="file" (change)="plateMapChangeEvent($event)" placeholder="Select Plate Map"/>
+                <br>
+                <mat-checkbox
+                  [disabled]="tasksActive"
+                  [checked]="createNonExistentSamples"
+                  (change)="setNonExistentSamples.emit($event)">
+                  Create Non-Existent Samples
+                </mat-checkbox>
+                <button mat-raised-button color="primary"
+                  [disabled]="!plateMapFile || tasksActive"
+                  (click)="uploadPlateMap.emit({plateMap: this.plateMapFile, plateID: this.plate.id, createNonExistentSamples: this.createNonExistentSamples})">
+                  UPLOAD PLATE MAP
+                </button>
+                <span *ngIf="warning" class="mspat-warning">{{warning}}</span>
+                <mspat-task-progress-display *ngIf="activeUploadPlateMapTask" [task]="activeUploadPlateMapTask"></mspat-task-progress-display>
+              </div>
             </div>
           </mat-tab>
           <mat-tab [disabled]="tasksActive" #ladderTab [label]="'Ladder'">
-            <mat-grid-list cols="8" rowHeight="80px">
+            <mat-grid-list *ngIf="ladderTab.isActive" cols="8" rowHeight="80px">
               <mat-grid-tile *ngIf="ladderRenderable"
                 [colspan] = "3"
                 [rowspan] = "2">
@@ -88,12 +97,12 @@ import { Task } from 'app/models/task';
               <mat-grid-tile *ngIf="wellLoading"
                 [colspan] = "8"
                 [rowspan] = "3">
-                <mat-progress-spinner mode="indeterminate"></mat-progress-spinner>
+                <mat-spinner [diameter]='spinnerDiameter'></mat-spinner>
               </mat-grid-tile>
               <mat-grid-tile *ngIf="ladderData"
                 [colspan] = "8"
                 [rowspan] = "6">
-                  <mspat-ladder-editor class="trace-container"
+                  <mspat-well-ladder-editor class="trace-container"
                     [data] = "ladderData"
                     [baseSizes] = "baseSizes"
                     [peakIndices] = "peakIndices"
@@ -104,12 +113,12 @@ import { Task } from 'app/models/task';
                     (setPeakIndices) = "setPeakIndices.emit($event)"
                     (recalculateWellLadder) = "recalculateWellLadder.emit()"
                     (clearPeakIndices) = "clearPeakIndices.emit($event)">
-                  </mspat-ladder-editor>
+                  </mspat-well-ladder-editor>
               </mat-grid-tile>
             </mat-grid-list>
           </mat-tab>
           <mat-tab [disabled]="tasksActive" #channelTab [label] = "'Channels'">
-            <mat-grid-list cols="4" rowHeight="80px" gutterSize="5px">
+            <mat-grid-list *ngIf="channelTab.isActive" cols="4" rowHeight="80px" gutterSize="5px">
               <mat-grid-tile *ngFor="let channelConfig of channelConfigs"
                 [colspan] = "2"
                 [rowspan] = "2">
@@ -127,16 +136,27 @@ import { Task } from 'app/models/task';
                 <mspat-trace-display class="trace-container"
                   [traces]="activeChannelTraces"
                   [range]="activeChannelsRange"
-                  [active] = "channelTab.isActive">
+                  [domain]="activeLocusDomain"
+                  [active]="channelTab.isActive">
                 </mspat-trace-display>
-                <ul>
-                  <li *ngFor="let locus of activeLoci">{{locus.label}}</li>
-                </ul>
+                <mat-form-field class="locus-window-selector">
+                  <mat-select placeholder="Select Locus"
+                   [value]='selectedLocus'
+                   (selectionChange)='selectLocus.emit($event)'>
+                    <mat-option [value]='null'> None </mat-option>
+                    <mat-optgroup [label]="'Active Loci'">
+                      <mat-option *ngFor="let locus of activeLoci" [value]="+locus.id">{{locus.label}} ({{locus.color}})</mat-option>
+                    </mat-optgroup>
+                    <mat-optgroup [label]="'Inactive Loci'">
+                      <mat-option *ngFor="let locus of inactiveLoci" [value]="+locus.id">{{locus.label}} ({{locus.color}})</mat-option>
+                    </mat-optgroup>
+                  </mat-select>
+                </mat-form-field>
               </mat-grid-tile>
             </mat-grid-list>
           </mat-tab>
           <mat-tab [disabled]="tasksActive" #diagnosticTab [label]="'Diagnostics'">
-            <mat-grid-list cols="4" rowHeight="80px" gutterSize="5px">
+            <mat-grid-list *ngIf="diagnosticTab.isActive" cols="4" rowHeight="80px" gutterSize="5px">
               <mat-grid-tile
                 [colspan] = "4"
                 [rowspan] = "4">
@@ -155,11 +175,20 @@ import { Task } from 'app/models/task';
     </mat-card>
   `,
   styles: [`
+    mat-spinner {
+      margin: 0 auto
+    }
+
+    .locus-window-selector {
+      margin: 5px;
+    }
+
     .details-container {
       width: 100%;
       float: left;
       display: flex;
       flex-direction: column;
+      padding-bottom: 15px;
     }
 
     .details-controller {
@@ -167,6 +196,10 @@ import { Task } from 'app/models/task';
       float: right;
       display: flex;
       flex-direction: column;
+    }
+
+    .details-controller button {
+      margin: 5px;
     }
 
     .details-container > * {
@@ -212,7 +245,10 @@ export class PlateDetailsComponent implements OnChanges {
 
   @Input() activeChannelTraces: Trace[];
   @Input() activeChannelsRange: [number, number];
+  @Input() activeLocusDomain: [number, number];
+  @Input() selectedLocus: number;
   @Input() activeLoci: Locus[];
+  @Input() inactiveLoci: Locus[];
 
   @Input() activePlateDiagnosticTraces: Trace[];
   @Input() activePlateDiagnosticRange: [number, number];
@@ -224,6 +260,7 @@ export class PlateDetailsComponent implements OnChanges {
   @Input() activeRecalculatePlateLadderTasks: Task[];
   @Input() activeRecalculateWellLadderTasks: Task[];
   @Input() activeUploadPlateMapTasks: Task[];
+  @Input() activeDeletePlateTasks: Task[];
   @Input() activeTasks: Task[];
 
   @Input() createNonExistentSamples: boolean;
@@ -236,11 +273,16 @@ export class PlateDetailsComponent implements OnChanges {
   @Output() uploadPlateMap = new EventEmitter();
   @Output() recalculatePlateLadder = new EventEmitter();
   @Output() setNonExistentSamples = new EventEmitter();
-
+  @Output() deletePlate = new EventEmitter();
+  @Output() selectLocus = new EventEmitter();
 
 
   private channelConfigs;
   private plateMapFile;
+
+  private activeLocus;
+
+  private spinnerDiameter = 250;
 
   ngOnChanges() {
     this.setChannelConfigs();
@@ -286,6 +328,15 @@ export class PlateDetailsComponent implements OnChanges {
     const activeTask = this.activeUploadPlateMapTasks.filter(t => +t.task_args['plate_id'] === +this.plate.id);
     if (activeTask.length > 0) {
       return activeTask[0];
+    } else {
+      return false;
+    }
+  }
+
+  get activeDeletePlateTask() {
+    const activeTask = this.activeDeletePlateTasks.filter(t => +t.task_args['plate_id'] === +this.plate.id);
+    if (activeTask.length > 0) {
+      return activeTask[0]
     } else {
       return false;
     }

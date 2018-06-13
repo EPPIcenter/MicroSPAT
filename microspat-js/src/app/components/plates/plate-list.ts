@@ -50,7 +50,7 @@ export class PlatesListComponent {
   @Input() newPlatesLoading: boolean;
   @Output() selectPlate = new EventEmitter();
 
-  private spinnerDiameter = 300;
+  private spinnerDiameter = 250;
 
   public columns = [
     {

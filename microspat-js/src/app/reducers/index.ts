@@ -5,12 +5,14 @@ import { storeFreeze } from 'ngrx-store-freeze';
 import { environment } from 'environments/environment';
 import * as fromDB from './db';
 import * as fromPlates from './plates/plates';
+import * as fromLadders from './ladders/ladders';
 import * as fromKeyboard from './keyboard';
 import * as fromTasks from './tasks';
 
 export interface AppState {
   db: fromDB.DBState;
   plates: fromPlates.State;
+  ladders: fromLadders.State;
   keyboard: fromKeyboard.State;
   tasks: fromTasks.State
 }
@@ -35,6 +37,7 @@ export class AppReducer {
     this.reducers = {
       db: fromDB.reducer,
       plates: fromPlates.reducer,
+      ladders: fromLadders.reducer,
       keyboard: fromKeyboard.reducer,
       tasks: fromTasks.reducer
     };

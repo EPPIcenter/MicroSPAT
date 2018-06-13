@@ -6,7 +6,7 @@ import { ArtifactEstimatorsComponent } from 'app/containers/artifact-estimators'
 import { BinEstimatorsComponent } from 'app/containers/bin-estimators';
 import { ControlsComponent } from 'app/containers/controls';
 import { GenotypingProjectsComponent } from 'app/containers/genotyping-projects';
-import { LaddersComponent } from 'app/containers/ladder';
+import { LaddersComponent } from 'app/containers/ladders';
 import { LociComponent } from 'app/containers/loci';
 import { LocusSetsComponent } from 'app/containers/locus-sets';
 import { QuantificationBiasEstimatorsComponent } from 'app/containers/quant-bias-estimators';

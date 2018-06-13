@@ -28,6 +28,7 @@ export interface State {
   activeWellId: number | string | null;
   loadingChannels: (number | string)[];
   activeChannels: number[];
+  activeLocusId: number;
   ladderPeakIndices: number[] | null;
   selectedLocus: number;
   recalcuatePlateLadderTaskInProgress: boolean;
@@ -43,6 +44,7 @@ const initialState: State = {
   activeWellId: null,
   loadingChannels: [],
   activeChannels: [],
+  activeLocusId: null,
   ladderPeakIndices: null,
   selectedLocus: null,
   recalcuatePlateLadderTaskInProgress: false,
@@ -56,6 +58,9 @@ export function reducer(state = initialState, action: DBActions.Actions | Plates
 
     case DBActions.GET_RECEIVED:
       return dbGetReceived(state, action);
+
+    case DBActions.DELETE_RECEIVED:
+      return dbDeleteReceived(state, action);
 
     case PlatesActions.LOADING_PLATE:
       return loadingPlate(state, action);
@@ -77,6 +82,9 @@ export function reducer(state = initialState, action: DBActions.Actions | Plates
 
     case PlatesActions.ACTIVATE_CHANNEL:
       return activateChannel(state, action);
+
+    case PlatesActions.ACTIVATE_LOCUS:
+      return activateLocus(state, action);
 
     case PlatesActions.CLEAR_SELECTED_CHANNELS:
       return clearSelectedChannels(state, action);
@@ -127,6 +135,7 @@ function dbGetReceived(state: State, action: DBActions.GetReceivedAction): State
         loadingWell: null,
         activeWellId: null,
         loadingChannels: [],
+        activeLocusId: null,
         activeChannels: [],
         ladderPeakIndices: null
       });
@@ -170,6 +179,21 @@ function dbGetReceived(state: State, action: DBActions.GetReceivedAction): State
   return state;
 }
 
+function dbDeleteReceived(state: State, action: DBActions.DeleteReceivedAction): State {
+  if (action.payload.model === fromDB.models.plate &&
+      action.payload.ids.indexOf(state.activePlateId) >= 0) {
+    return Object.assign({}, state, {
+      oadingPlate: null,
+      activePlateId: null,
+      loadingWell: null,
+      activeWellId: null,
+      activeChannels: [],
+      loadingChannels: [],
+      ladderPeakIndices: null
+    });
+  }
+}
+
 function loadingPlate(state: State, action: PlatesActions.LoadingPlateAction): State {
   return Object.assign({}, state, {
     loadingPlate: action.payload,
@@ -191,6 +215,7 @@ function activatePlate(state: State, action: PlatesActions.ActivatePlateAction):
       loadingWell: null,
       activeWellId: null,
       activeChannels: [],
+      activeLocusId: null,
       loadingChannels: [],
       ladderPeakIndices: null
     });
@@ -240,10 +265,16 @@ function activateChannel(state: State, action: PlatesActions.ActivateChannelActi
   }
 }
 
+function activateLocus(state: State, action: PlatesActions.ActivateLocusAction): State {
+  return Object.assign({}, state, {
+    activeLocusId: action.payload
+  })
+}
+
 function clearSelectedChannels(state: State, action: PlatesActions.ClearSelectedChannelsAction): State {
   return Object.assign({}, state, {
     loadingChannels: [],
-    activeChannels: []
+    activeChannels: [],
   });
 }
 
@@ -273,9 +304,10 @@ export const selectActiveChannelIds = createSelector(selectPlateState, (state: S
 export const selectLoadingChannelIds = createSelector(selectPlateState, (state: State) => state.loadingChannels);
 export const selectWellLoading = createSelector(selectPlateState, (state: State) => state.loadingWell != null);
 export const selectSetLadderPeakIndices = createSelector(selectPlateState, (state: State) => state.ladderPeakIndices);
-export const selectSelectedLocus = createSelector(selectPlateState, (state: State) => state.selectedLocus);
+export const selectSelectedLocus = createSelector(selectPlateState, (state: State) => state.activeLocusId );
 export const selectRecalculatePlateLadderInProgress = createSelector(selectPlateState, (state: State) => state.recalcuatePlateLadderTaskInProgress);
 export const selectCreateNonExistentSamples = createSelector(selectPlateState, (state: State) => state.createNonExistentSamples);
+export const selectActiveLocus = createSelector(selectPlateState, (state: State) => state.activeLocusId);
 
 export const selectPlateList = createSelector(fromDB.selectPlateEntities, (plateEntities) => {
   const plates: Plate[] = [];
@@ -440,6 +472,8 @@ export const selectActiveChannelRange = createSelector(selectActiveChannels, (ch
     ];
 });
 
+
+
 export const selectActivePlateDiagnosticTraces = createSelector(selectActivePlate, (plate: Plate) => {
   if (!plate) {
     return [];
@@ -514,11 +548,33 @@ export const selectActivePlateDiagnosticDomain = createSelector(selectActivePlat
   return <[number, number]>[0, plate.power.length];
 });
 
-export const selectActiveLoci = createSelector(fromDB.selectLocusEntities, selectActiveChannels, (loci: {[id: string]: Locus}, channels): Locus[] => {
-  const activeLoci = Array.from(new Set(channels.map(channel => loci[channel.locus]))).filter(l => l != null).sort((a, b) => a.label.localeCompare(b.label));
+export const selectActiveChannelLoci = createSelector(fromDB.selectLocusEntities, selectActiveChannels, (loci: {[id: string]: Locus}, channels): {[id: string]: Locus} => {
+  const locusIDs = channels.filter(c => c.locus).map(c => c.locus);
+  const activeLoci = locusIDs.reduce((prev: { [id: string]: Locus }, next: string) => {
+    return Object.assign(prev, {
+      [next]: loci[next]
+    });
+  }, {})
   return activeLoci;
 });
 
+export const selectInactiveLoci = createSelector(selectActiveChannelLoci, fromDB.selectLocusEntities, (activeLoci, allLoci) => {
+  return Object.keys(allLoci).filter(id => !(id in activeLoci)).map(id => allLoci[id]);
+})
+
+
+export const selectActiveChannelLociList = createSelector(selectActiveChannelLoci, (activeLoci): Locus[] => {
+  return Object.keys(activeLoci).map(id => activeLoci[id]);
+})
+
+
+export const selectActiveLocusDomain = createSelector(selectActiveLocus, fromDB.selectLocusEntities, (chosenLocus, allLoci) => {
+  if (chosenLocus && allLoci) {
+    return <[number, number]>[+allLoci[chosenLocus].min_base_length, +allLoci[chosenLocus].max_base_length];
+  } else {
+    return <[number, number]>[0, 500];
+  }
+})
 
 export const selectLocusWindow = createSelector(selectSelectedLocus, fromDB.selectLocusEntities, (locusId, locusEntities) => {
   if (locusId) {

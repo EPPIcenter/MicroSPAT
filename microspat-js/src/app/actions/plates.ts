@@ -17,6 +17,7 @@ export const LOADING_CHANNEL = '[Plate] Loading Channel';
 export const SELECT_CHANNEL = '[Plate] Select Channel';
 export const ACTIVATE_CHANNEL = '[Plate] Activate Channel';
 export const CLEAR_SELECTED_CHANNELS = '[Plate] Clear Selected Channels';
+export const ACTIVATE_LOCUS = '[Plate] Activate Locus';
 
 export const SET_LADDER_PEAK_INDICES = '[Plate] Set Ladder Peak Indices';
 
@@ -59,7 +60,7 @@ export class SelectPlateAction implements Action {
 
 export class ActivatePlateAction implements Action {
   readonly type = ACTIVATE_PLATE;
-  constructor(public payload: number | string) {};
+  constructor(public payload: number | string | null) {};
 }
 
 export class LoadWellAction implements Action {
@@ -105,6 +106,11 @@ export class ActivateChannelAction implements Action {
 export class ClearSelectedChannelsAction implements Action {
   readonly type = CLEAR_SELECTED_CHANNELS;
   constructor() {};
+}
+
+export class ActivateLocusAction implements Action {
+  readonly type = ACTIVATE_LOCUS;
+  constructor(public payload: number) {}
 }
 
 export class SetLadderPeakIndicesAction implements Action {
@@ -160,6 +166,7 @@ export type Actions
 | SelectChannelAction
 | ActivateChannelAction
 | ClearSelectedChannelsAction
+| ActivateLocusAction
 | SetLadderPeakIndicesAction
 | RecalculateWellLadderAction
 | RecalculatePlateLadderAction

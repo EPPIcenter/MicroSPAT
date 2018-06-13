@@ -1,6 +1,6 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { NgModule, InjectionToken } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { ReactiveFormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 import { StoreModule, ActionReducerMap, ActionReducerFactory, MetaReducer, META_REDUCERS } from '@ngrx/store';
 import { NgxDatatableModule } from '@swimlane/ngx-datatable';
@@ -60,7 +60,7 @@ import { ArtifactEstimatorsComponent } from 'app/containers/artifact-estimators'
 import { BinEstimatorsComponent } from 'app/containers/bin-estimators';
 import { ControlsComponent } from 'app/containers/controls';
 import { GenotypingProjectsComponent } from 'app/containers/genotyping-projects';
-import { LaddersComponent } from 'app/containers/ladder';
+import { LaddersComponent } from 'app/containers/ladders';
 import { LociComponent } from 'app/containers/loci';
 import { LocusSetsComponent } from 'app/containers/locus-sets';
 import { QuantificationBiasEstimatorsComponent } from 'app/containers/quant-bias-estimators';
@@ -97,7 +97,7 @@ export function getMetaReducers(appReducer: AppReducer) {
     NgxDatatableModule,
     CommonModule,
     BrowserModule,
-    FormsModule,
+    // ReactiveFormsModule,
     HttpClientModule,
     ComponentModule,
     AppRoutingModule,
