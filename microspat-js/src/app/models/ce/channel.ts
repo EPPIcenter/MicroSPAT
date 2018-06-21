@@ -1,7 +1,7 @@
 import { Colored, TimeStamped, Flaggable } from '../attributes';
 import { BaseModel } from '../base';
 
-export interface Channel extends BaseModel, Colored, TimeStamped, Flaggable {
+export interface Channel extends BaseModel, Colored, Flaggable {
   annotations: string[];
   data: number[];
   ignored: boolean;

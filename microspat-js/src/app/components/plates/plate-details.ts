@@ -45,6 +45,7 @@ import { Task } from 'app/models/task';
                 DELETE PLATE
                </button>
               <mspat-task-progress-display *ngIf="activeDeletePlateTask" [task]="activeDeletePlateTask"></mspat-task-progress-display>
+              <mspat-task-progress-display *ngIf="failedDeletePlateTask" [task]="failedDeletePlateTask"></mspat-task-progress-display>
             </div>
             <div>
               <div class="details-controller">
@@ -64,6 +65,7 @@ import { Task } from 'app/models/task';
                 </button>
                 <span *ngIf="warning" class="mspat-warning">{{warning}}</span>
                 <mspat-task-progress-display *ngIf="activeUploadPlateMapTask" [task]="activeUploadPlateMapTask"></mspat-task-progress-display>
+                <mspat-task-progress-display *ngIf="failedUploadPlateMapTask" [task]="failedUploadPlateMapTask"></mspat-task-progress-display>
               </div>
             </div>
           </mat-tab>
@@ -85,6 +87,7 @@ import { Task } from 'app/models/task';
                 <mat-card style="width:100%; height:100%">
                   <mat-card-content>
                     <mspat-task-progress-display *ngIf="activeRecalculatePlateLadderTask" [task]="activeRecalculatePlateLadderTask"></mspat-task-progress-display>
+                    <mspat-task-progress-display *ngIf="failedRecalculatePlateLadderTask" [task]="failedRecalculatePlateLadderTask"></mspat-task-progress-display>
                   </mat-card-content>
                   <mat-card-actions>
                     <button mat-raised-button [matMenuTriggerFor]="changeLadderMenu" [disabled]="tasksActive">CHANGE LADDER</button>
@@ -109,7 +112,8 @@ import { Task } from 'app/models/task';
                     [activeWell] = "activeWell"
                     [active] = "ladderTab.isActive"
                     [recalculateLadderTask] = "activeRecalculateWellLadderTask"
-                    [tasksActive]="tasksActive"
+                    [failedRecalculateLadderTask] = "failedRecalculateLadderTask"
+                    [tasksActive] = "tasksActive"
                     (setPeakIndices) = "setPeakIndices.emit($event)"
                     (recalculateWellLadder) = "recalculateWellLadder.emit()"
                     (clearPeakIndices) = "clearPeakIndices.emit($event)">
@@ -261,6 +265,12 @@ export class PlateDetailsComponent implements OnChanges {
   @Input() activeRecalculateWellLadderTasks: Task[];
   @Input() activeUploadPlateMapTasks: Task[];
   @Input() activeDeletePlateTasks: Task[];
+
+  @Input() failedRecalculatePlateLadderTasks: Task[];
+  @Input() failedRecalculateWellLadderTasks: Task[];
+  @Input() failedUploadPlateMapTasks: Task[];
+  @Input() failedDeletePlateTasks: Task[];
+
   @Input() activeTasks: Task[];
 
   @Input() createNonExistentSamples: boolean;
@@ -337,6 +347,42 @@ export class PlateDetailsComponent implements OnChanges {
     const activeTask = this.activeDeletePlateTasks.filter(t => +t.task_args['plate_id'] === +this.plate.id);
     if (activeTask.length > 0) {
       return activeTask[0]
+    } else {
+      return false;
+    }
+  }
+
+  get failedRecalculatePlateLadderTask() {
+    const failedTask = this.failedRecalculatePlateLadderTasks.filter(t => +t.task_args['plate_id'] === +this.plate.id);
+    if (failedTask.length > 0) {
+      return failedTask[0];
+    } else {
+      return false;
+    }
+  }
+
+  get failedRecalculateWellLadderTask() {
+    const failedTask = this.failedRecalculatePlateLadderTasks.filter(t => +t.task_args['well_id'] === +this.activeWell.id);
+    if (failedTask.length > 0) {
+      return failedTask[0];
+    } else {
+      return false;
+    }
+  }
+
+  get failedUploadPlateMapTask() {
+    const failedTask = this.failedUploadPlateMapTasks.filter(t => +t.task_args['plate_id'] === +this.plate.id);
+    if (failedTask.length > 0) {
+      return failedTask[0];
+    } else {
+      return false;
+    }
+  }
+
+  get failedDeletePlateTask() {
+    const failedTask = this.failedDeletePlateTasks.filter(t => +t.task_args['plate_id'] === +this.plate.id);
+    if (failedTask.length > 0) {
+      return failedTask[0]
     } else {
       return false;
     }

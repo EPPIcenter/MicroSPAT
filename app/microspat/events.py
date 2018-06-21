@@ -42,7 +42,7 @@ from app.microspat.utils import load_plate_zips
 from app.utils import CaseInsensitiveDictReader
 
 
-microspat = Blueprint('microspat', import_name=__name__, template_folder='templates',
+microspat2 = Blueprint('microspat', import_name=__name__, template_folder='templates',
                       url_prefix='/microspat/api/v1')
 
 
@@ -52,7 +52,7 @@ class StaleParametersError(Exception):
         self.locus = locus
 
 
-@microspat.after_request
+@microspat2.after_request
 def after_request(response):
     response.headers.add('Access-Control-Allow-Origin', '*')
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
@@ -307,8 +307,8 @@ def send_message(msg):
     socketio.emit('message', {'message': msg}, namespace='/')
 
 
-@microspat.route('/', defaults={'path': ''})
-@microspat.route('/<path:path>')
+@microspat2.route('/', defaults={'path': ''})
+@microspat2.route('/<path:path>')
 def catch_all(path):
     res = jsonify(error='Not Found')
     res.status_code = 404
@@ -356,7 +356,7 @@ def send_notification(type, message):
                   }, broadcast=True)
 
 
-@microspat.route('/genotyping-project/', methods=['GET', 'POST'])
+@microspat2.route('/genotyping-project/', methods=['GET', 'POST'])
 def get_or_post_genotyping_projects():
     if request.method == 'GET':
         return table_list_all(GenotypingProject)
@@ -374,7 +374,7 @@ def get_or_post_genotyping_projects():
             return handle_error(e)
 
 
-@microspat.route('/genotyping-project/<int:id>/get-alleles/', methods=['GET'])
+@microspat2.route('/genotyping-project/<int:id>/get-alleles/', methods=['GET'])
 def get_alleles(id):
     try:
         gp = GenotypingProject.query.get(id)
@@ -421,7 +421,7 @@ def get_alleles(id):
         return handle_error(e)
 
 
-@microspat.route('/genotyping-project/<int:id>/get-dominant-alleles/', methods=['GET'])
+@microspat2.route('/genotyping-project/<int:id>/get-dominant-alleles/', methods=['GET'])
 def get_dominant_alleles(id):
     try:
         gp = GenotypingProject.query.get(id)
@@ -478,7 +478,7 @@ def get_dominant_alleles(id):
         return handle_error(e)
 
 
-@microspat.route('/genotyping-project/<int:id>/get-peak-data/', methods=['GET'])
+@microspat2.route('/genotyping-project/<int:id>/get-peak-data/', methods=['GET'])
 def get_genotyping_peak_data(id):
     try:
         gp_title = GenotypingProject.query.filter(GenotypingProject.id == id).value(GenotypingProject.title)
@@ -536,7 +536,7 @@ def get_genotyping_peak_data(id):
         return handle_error(e)
 
 
-@microspat.route('/quantification-bias-estimator-project/<int:id>/get-peak-data/', methods=['GET'])
+@microspat2.route('/quantification-bias-estimator-project/<int:id>/get-peak-data/', methods=['GET'])
 def get_quantification_bias_estimator_peak_data(id):
     try:
         qbe_title = QuantificationBiasEstimatorProject.query.filter(QuantificationBiasEstimatorProject.id == id).value(
@@ -591,7 +591,7 @@ def get_quantification_bias_estimator_peak_data(id):
         return handle_error(e)
 
 
-@microspat.route('/genotyping-project/calculate-probability/', methods=['POST'])
+@microspat2.route('/genotyping-project/calculate-probability/', methods=['POST'])
 def calculate_probability():
     project_json = json.loads(request.get_json())
     project = GenotypingProject.query.get(project_json['id'])
@@ -601,7 +601,7 @@ def calculate_probability():
     return jsonify(wrap_data(project.serialize_details()))
 
 
-@microspat.route('/genotyping-project/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
+@microspat2.route('/genotyping-project/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
 def get_or_update_genotyping_project(id):
     if request.method == 'GET':
         return table_get_details(GenotypingProject, id)
@@ -655,7 +655,7 @@ def get_sample_ids_from_csv(f):
     return sample_ids
 
 
-@microspat.route('/genotyping-project/<int:id>/add-samples/', methods=['POST'])
+@microspat2.route('/genotyping-project/<int:id>/add-samples/', methods=['POST'])
 def genotyping_project_add_samples(id):
     gp = GenotypingProject.query.get(id)
     assert isinstance(gp, GenotypingProject)
@@ -676,7 +676,7 @@ def genotyping_project_add_samples(id):
         return handle_error(e)
 
 
-@microspat.route('/quantification-bias-estimator-project/', methods=['GET', 'POST'])
+@microspat2.route('/quantification-bias-estimator-project/', methods=['GET', 'POST'])
 def get_or_post_bias_estimator_projects():
     if request.method == 'GET':
         return table_list_all(QuantificationBiasEstimatorProject)
@@ -691,7 +691,7 @@ def get_or_post_bias_estimator_projects():
             return handle_error(e)
 
 
-@microspat.route('/quantification-bias-estimator-project/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
+@microspat2.route('/quantification-bias-estimator-project/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
 def get_or_update_bias_estimator_project(id):
     if request.method == 'GET':
         return table_get_details(QuantificationBiasEstimatorProject, id)
@@ -716,7 +716,7 @@ def get_or_update_bias_estimator_project(id):
             return handle_error(e)
 
 
-@microspat.route('/quantification-bias-estimator-project/<int:id>/add-samples/', methods=['POST'])
+@microspat2.route('/quantification-bias-estimator-project/<int:id>/add-samples/', methods=['POST'])
 def quantification_bias_estimator_project_add_samples(id):
     qbe = QuantificationBiasEstimatorProject.query.get(id)
     assert isinstance(qbe, QuantificationBiasEstimatorProject)
@@ -733,7 +733,7 @@ def quantification_bias_estimator_project_add_samples(id):
     return jsonify(wrap_data(qbe.serialize_details()))
 
 
-@microspat.route('/artifact-estimator-project/', methods=['GET', 'POST'])
+@microspat2.route('/artifact-estimator-project/', methods=['GET', 'POST'])
 def get_or_create_artifact_estimators():
     if request.method == 'GET':
         return table_list_all(ArtifactEstimatorProject)
@@ -751,7 +751,7 @@ def get_or_create_artifact_estimators():
             return handle_error(e)
 
 
-@microspat.route('/artifact-estimator-project/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
+@microspat2.route('/artifact-estimator-project/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
 def get_or_update_artifact_estimator(id):
     if request.method == 'GET':
         q = ArtifactEstimatorProject.query.filter(ArtifactEstimatorProject.id == id)
@@ -791,7 +791,7 @@ def get_or_update_artifact_estimator(id):
             return handle_error(e)
 
 
-@microspat.route('/artifact-estimator-project/<int:id>/set-samples/', methods=['POST'])
+@microspat2.route('/artifact-estimator-project/<int:id>/set-samples/', methods=['POST'])
 def set_artifact_estimator_samples(id):
     ae = ArtifactEstimatorProject.query.get(id)
     assert isinstance(ae, ArtifactEstimatorProject)
@@ -809,7 +809,7 @@ def set_artifact_estimator_samples(id):
         return handle_error(e)
 
 
-@microspat.route('/artifact-estimator-project/<int:id>/get-samples/', methods=['GET'])
+@microspat2.route('/artifact-estimator-project/<int:id>/get-samples/', methods=['GET'])
 def get_artifact_estimator_samples(id):
     samples = Sample.query.join(Channel).join(ProjectChannelAnnotations).join(Project).filter(
         Project.id == id).distinct(Sample.id).values(Sample.id, Sample.barcode, Sample.last_updated)
@@ -820,7 +820,7 @@ def get_artifact_estimator_samples(id):
     return jsonify(wrap_data(samples))
 
 
-@microspat.route('/artifact-estimator/<int:id>/', methods=['DELETE'])
+@microspat2.route('/artifact-estimator/<int:id>/', methods=['DELETE'])
 def delete_artifact_estimator(id):
     try:
         estimator = ArtifactEstimator.query.get(id)
@@ -849,7 +849,7 @@ def delete_artifact_estimator(id):
         return handle_error(e)
 
 
-@microspat.route('/artifact-estimator/<int:id>/', methods=['POST'])
+@microspat2.route('/artifact-estimator/<int:id>/', methods=['POST'])
 def add_breakpoint(id):
     try:
         estimator = ArtifactEstimator.query.get(id)
@@ -863,7 +863,7 @@ def add_breakpoint(id):
         return handle_error(e)
 
 
-@microspat.route('/artifact-estimator/<int:id>/recalculate-artifact-equations/', methods=['POST'])
+@microspat2.route('/artifact-estimator/<int:id>/recalculate-artifact-equations/', methods=['POST'])
 def recalculate_artifact_equations(id):
     estimator = ArtifactEstimator.query.get(id)
     parameter_sets = request.get_json()
@@ -871,7 +871,7 @@ def recalculate_artifact_equations(id):
     return jsonify(wrap_data(estimator.serialize()))
 
 
-@microspat.route('/artifact-estimator/<int:id>/clear-breakpoints/', methods=['GET'])
+@microspat2.route('/artifact-estimator/<int:id>/clear-breakpoints/', methods=['GET'])
 def clear_breakpoints(id):
     try:
         estimator = ArtifactEstimator.query.get(id)
@@ -882,7 +882,7 @@ def clear_breakpoints(id):
         return handle_error(e)
 
 
-@microspat.route('/bin-estimator/', methods=['GET', 'POST'])
+@microspat2.route('/bin-estimator/', methods=['GET', 'POST'])
 def get_or_create_bin_estimators():
     if request.method == 'GET':
         return table_list_all(BinEstimatorProject)
@@ -898,7 +898,7 @@ def get_or_create_bin_estimators():
             return handle_error(e)
 
 
-@microspat.route('/bin-estimator/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
+@microspat2.route('/bin-estimator/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
 def get_or_update_bin_estimator(id):
     if request.method == 'GET':
         q = BinEstimatorProject.query.filter(BinEstimatorProject.id == id)
@@ -938,7 +938,7 @@ def get_or_update_bin_estimator(id):
             return handle_error(e)
 
 
-# @microspat.route('/bin-estimator/<int:id>/set-samples/', methods=['POST'])
+# @microspat2.route('/bin-estimator/<int:id>/set-samples/', methods=['POST'])
 # def set_bin_estimator_samples(id):
 #     be = BinEstimatorProject.query.get(id)
 #     assert isinstance(be, BinEstimatorProject)
@@ -956,7 +956,7 @@ def get_or_update_bin_estimator(id):
 #         return handle_error(e)
 
 
-@microspat.route('/bin-estimator/<int:id>/locus/<int:locus_id>/bins/', methods=['PUT', 'POST'])
+@microspat2.route('/bin-estimator/<int:id>/locus/<int:locus_id>/bins/', methods=['PUT', 'POST'])
 def create_or_update_bins(id, locus_id):
     bins = map(json.loads, request.json)
     old_bins = filter(lambda _: _.get('id'), bins)
@@ -1005,7 +1005,7 @@ def create_or_update_bins(id, locus_id):
     return jsonify(wrap_data({"status": "Success"}))
 
 
-@microspat.route('/locus-parameters/', methods=['POST'])
+@microspat2.route('/locus-parameters/', methods=['POST'])
 def batch_update_locus_parameters():
     update_fns = {
         'artifact_estimator_locus_params': update_artifact_locus_params,
@@ -1039,7 +1039,7 @@ def batch_update_locus_parameters():
         return jsonify(error="No Record Found", status=404)
 
 
-@microspat.route('/locus-parameters/<int:id>/', methods=['GET', 'PUT'])
+@microspat2.route('/locus-parameters/<int:id>/', methods=['GET', 'PUT'])
 def get_or_update_locus_parameters(id):
     update_fns = {
         'artifact_estimator_locus_params': update_artifact_locus_params,
@@ -1079,7 +1079,7 @@ def get_or_update_locus_parameters(id):
             return jsonify(error="No Record Found", status=404)
 
 
-@microspat.route('/locus/', methods=['GET', 'POST'])
+@microspat2.route('/locus/', methods=['GET', 'POST'])
 def get_or_post_loci():
     if request.method == 'GET':
         return table_list_all(Locus)
@@ -1094,7 +1094,7 @@ def get_or_post_loci():
             return handle_error(e)
 
 
-@microspat.route('/locus/from-csv/', methods=['POST'])
+@microspat2.route('/locus/from-csv/', methods=['POST'])
 def load_loci_from_csv_path(f=None):
     if not f:
         locus_csv = request.files.getlist('files')[0]
@@ -1112,7 +1112,7 @@ def load_loci_from_csv_path(f=None):
         return handle_error(e)
 
 
-@microspat.route('/locus/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
+@microspat2.route('/locus/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
 def get_locus(id):
     if request.method == 'GET':
         return table_get_details(Locus, id)
@@ -1130,7 +1130,7 @@ def get_locus(id):
                 return handle_error(e)
 
 
-@microspat.route('/locus-set/', methods=['GET', 'POST'])
+@microspat2.route('/locus-set/', methods=['GET', 'POST'])
 def get_or_post_locus_sets():
     if request.method == 'GET':
         return table_list_all(LocusSet)
@@ -1150,7 +1150,7 @@ def get_or_post_locus_sets():
             return handle_error(e)
 
 
-@microspat.route('/locus-set/<int:id>/', methods=['GET', 'DELETE'])
+@microspat2.route('/locus-set/<int:id>/', methods=['GET', 'DELETE'])
 def get_locus_set(id):
     if request.method == 'GET':
         return table_get_details(LocusSet, id)
@@ -1168,7 +1168,7 @@ def get_locus_set(id):
                 return handle_error(e)
 
 
-@microspat.route('/ladder/', methods=['GET', 'POST'])
+@microspat2.route('/ladder/', methods=['GET', 'POST'])
 def get_or_post_ladders():
     if request.method == 'GET':
         return table_list_all(Ladder)
@@ -1189,7 +1189,7 @@ def get_or_post_ladders():
             return handle_error(e)
 
 
-@microspat.route('/ladder/<int:id>/', methods=['GET', 'PUT'])
+@microspat2.route('/ladder/<int:id>/', methods=['GET', 'PUT'])
 def get_ladder(id):
     if request.method == 'GET':
         return table_get_details(Ladder, id)
@@ -1207,12 +1207,12 @@ def get_ladder(id):
             return handle_error(e)
 
 
-@microspat.route('/sample/', methods=['GET'])
+@microspat2.route('/sample/', methods=['GET'])
 def get_samples():
     return table_list_all(Sample)
 
 
-@microspat.route('/sample/', methods=['POST'])
+@microspat2.route('/sample/', methods=['POST'])
 def post_sample_csv():
     sample_csvs = request.files.getlist('files')
     if not sample_csvs:
@@ -1232,17 +1232,17 @@ def post_sample_csv():
     return jsonify(wrap_data([sample.serialize() for sample in samples]))
 
 
-@microspat.route('/sample/<int:id>/')
+@microspat2.route('/sample/<int:id>/')
 def get_sample(id):
     return table_get_details(Sample, id)
 
 
-@microspat.route('/plate/', methods=['GET'])
+@microspat2.route('/plate/', methods=['GET'])
 def get_plates():
     return jsonify(wrap_data(Plate.get_serialized_list()))
 
 
-@microspat.route('/plate/', methods=['POST'])
+@microspat2.route('/plate/', methods=['POST'])
 def save_plate():
     plate_zips = request.files.getlist('files')
     ladder_id = request.form['ladder_id']
@@ -1310,7 +1310,7 @@ def save_plate():
         return res
 
 
-# @microspat.route('/plate/', methods=['POST'])
+# @microspat2.route('/plate/', methods=['POST'])
 # def save_plate():
 #     plate_zips = request.files.getlist('files')
 #     ladder_id = request.form['ladder_id']
@@ -1334,14 +1334,14 @@ def save_plate():
 #         return res
 
 
-@microspat.route('/plate/<int:plate_id>/', methods=['DELETE'])
+@microspat2.route('/plate/<int:plate_id>/', methods=['DELETE'])
 def delete_plate(plate_id):
     p = Plate.query.get(plate_id)
     db.session.delete(p)
     return jsonify(wrap_data({'status': 'Success'}))
 
 
-@microspat.route('/plate/<int:id>/', methods=['GET', 'POST'])
+@microspat2.route('/plate/<int:id>/', methods=['GET', 'POST'])
 def get_plate_or_post_plate_map(id):
     if request.method == 'GET':
         return table_get_details(Plate, id)
@@ -1358,13 +1358,13 @@ def get_plate_or_post_plate_map(id):
             return handle_error("Nothing Submitted")
 
 
-@microspat.route('/plate/locus/<int:id>/', methods=['GET'])
+@microspat2.route('/plate/locus/<int:id>/', methods=['GET'])
 def get_plates_with_locus(id):
     plate_ids = set(Plate.query.join(Well).join(Channel).filter(Channel.locus_id == id).values(Plate.id))
     return jsonify(wrap_data({"ids": plate_ids}))
 
 
-@microspat.route('/plate/<int:plate_id>/recalculate-ladder/<int:ladder_id>/', methods=['GET'])
+@microspat2.route('/plate/<int:plate_id>/recalculate-ladder/<int:ladder_id>/', methods=['GET'])
 def recalculate_plate_ladder(plate_id, ladder_id):
     plate = Plate.query.get(plate_id)
     ladder = Ladder.query.get(ladder_id)
@@ -1377,12 +1377,12 @@ def recalculate_plate_ladder(plate_id, ladder_id):
     return jsonify(wrap_data(plate.serialize()))
 
 
-@microspat.route('/well/<int:id>/')
+@microspat2.route('/well/<int:id>/')
 def get_well(id):
     return table_get_details(Well, id)
 
 
-@microspat.route('/well/<int:id>/recalculate-ladder/', methods=['POST'])
+@microspat2.route('/well/<int:id>/recalculate-ladder/', methods=['POST'])
 def recalculate_ladder(id):
     well = Well.query.get(id)
     request_json = request.get_json()
@@ -1402,12 +1402,12 @@ def recalculate_ladder(id):
         return res
 
 
-@microspat.route('/channel/<int:id>/')
+@microspat2.route('/channel/<int:id>/')
 def get_channel(id):
     return table_get_details(Channel, id)
 
 
-@microspat.route('/channel-annotations/<int:project_id>/locus/<int:locus_id>/')
+@microspat2.route('/channel-annotations/<int:project_id>/locus/<int:locus_id>/')
 def get_project_locus_channel_annotations(project_id, locus_id):
     channel_annotations = ProjectChannelAnnotations.query.filter(
         ProjectChannelAnnotations.project_id == project_id).join(Channel).filter(Channel.locus_id == locus_id) \
@@ -1415,7 +1415,7 @@ def get_project_locus_channel_annotations(project_id, locus_id):
     return jsonify(wrap_data([x.serialize() for x in channel_annotations]))
 
 
-@microspat.route('/channel-annotations/<int:project_id>/sample/<int:sample_id>/')
+@microspat2.route('/channel-annotations/<int:project_id>/sample/<int:sample_id>/')
 def get_project_sample_channel_annotations(project_id, sample_id):
     channel_annotations = ProjectChannelAnnotations.query.filter(
         ProjectChannelAnnotations.project_id == project_id).join(Channel).filter(Channel.sample_id == sample_id) \
@@ -1423,7 +1423,7 @@ def get_project_sample_channel_annotations(project_id, sample_id):
     return jsonify(wrap_data([x.serialize() for x in channel_annotations]))
 
 
-@microspat.route('/locus-annotations/<int:project_id>/locus/<int:locus_id>/')
+@microspat2.route('/locus-annotations/<int:project_id>/locus/<int:locus_id>/')
 def get_project_sample_locus_annotations_by_locus(project_id, locus_id):
     annotations = SampleLocusAnnotation.query.join(ProjectSampleAnnotations).filter(
         SampleLocusAnnotation.project_id == project_id).filter(SampleLocusAnnotation.locus_id == locus_id) \
@@ -1431,7 +1431,7 @@ def get_project_sample_locus_annotations_by_locus(project_id, locus_id):
     return jsonify(wrap_data([x.serialize() for x in annotations]))
 
 
-@microspat.route('/locus-annotations/<int:project_id>/sample/<int:sample_id>/')
+@microspat2.route('/locus-annotations/<int:project_id>/sample/<int:sample_id>/')
 def get_project_sample_locus_annotations_by_sample(project_id, sample_id):
     annotations = SampleLocusAnnotation.query.join(ProjectSampleAnnotations).filter(
         SampleLocusAnnotation.project_id == project_id).filter(ProjectSampleAnnotations.sample_id == sample_id) \
@@ -1439,7 +1439,7 @@ def get_project_sample_locus_annotations_by_sample(project_id, sample_id):
     return jsonify(wrap_data([x.serialize() for x in annotations]))
 
 
-@microspat.route('/locus-annotations/', methods=['POST'])
+@microspat2.route('/locus-annotations/', methods=['POST'])
 def update_locus_annotations():
     annotations = map(json.loads, request.get_json())
     for annotation in annotations:
@@ -1451,7 +1451,7 @@ def update_locus_annotations():
     return jsonify(wrap_data({'status': 'Success'}))
 
 
-@microspat.route('/control/', methods=['GET', 'POST'])
+@microspat2.route('/control/', methods=['GET', 'POST'])
 def get_controls():
     if request.method == 'GET':
         return table_list_all(Control)
@@ -1471,7 +1471,7 @@ def get_controls():
             handle_error(e)
 
 
-@microspat.route('/control/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
+@microspat2.route('/control/<int:id>/', methods=['GET', 'PUT', 'DELETE'])
 def get_control(id):
     if request.method == 'GET':
         return table_get_details(Control, id)

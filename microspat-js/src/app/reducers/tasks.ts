@@ -1,6 +1,6 @@
 import { Task, InProgressTask, START, IN_PROGRESS } from 'app/models/task';
 import * as TaskActions from 'app/actions/tasks';
-import { createFeatureSelector } from '@ngrx/store';
+import { createFeatureSelector, Action } from '@ngrx/store';
 import { createSelector } from 'reselect';
 import { MatDialogRef } from '@angular/material';
 import { TaskDisplayComponent } from '../components/task-progress';
@@ -23,12 +23,14 @@ export function reducer(state = initialState, action: TaskActions.Actions) {
   switch (action.type) {
     // case TaskActions.REGISTER_TASK:
     //   return registerTask(state, action);
+    case TaskActions.SET_TASK:
+      return setTask(state, action);
     case TaskActions.TASK_STARTED:
       return taskStarted(state, action);
     case TaskActions.TASK_PROGRESSED:
       return taskProgressed(state, action);
-    case TaskActions.TASK_FAILED:
-      return taskFailed(state, action);
+    // case TaskActions.TASK_FAILED:
+    //   return taskFailed(state, action);
     case TaskActions.TASK_COMPLETED:
       return taskCompleted(state, action);
     case TaskActions.CLEAR_TASK:
@@ -129,6 +131,44 @@ export function selectActiveTasks(namespace: string = null, taskType: string = n
         return false;
       }
       if (['start', 'in_progress'].some(s => s === e.status)) {
+        return true;
+      } else {
+        return false;
+      }
+    }).map(id => state.tasks[id]);
+  });
+}
+
+export function selectFailedTasks(namespace: string = null, taskType: string = null) {
+  return createSelector(selectTasksState, (state: State): Task[] => {
+    return Object.keys(state.tasks).filter(id => {
+      const e = state.tasks[id];
+      if (namespace && e.namespace !== namespace) {
+        return false;
+      }
+      if (taskType && e.task !== taskType) {
+        return false;
+      }
+      if (['failure'].some(s => s === e.status)) {
+        return true;
+      } else {
+        return false;
+      }
+    }).map(id => state.tasks[id]);
+  });
+}
+
+export function selectSuccessfulTasks(namespace: string = null, taskType: string = null) {
+  return createSelector(selectTasksState, (state: State): Task[] => {
+    return Object.keys(state.tasks).filter(id => {
+      const e = state.tasks[id];
+      if (namespace && e.namespace !== namespace) {
+        return false;
+      }
+      if (taskType && e.task !== taskType) {
+        return false;
+      }
+      if (['success'].some(s => s === e.status)) {
         return true;
       } else {
         return false;

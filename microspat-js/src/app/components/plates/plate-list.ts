@@ -27,9 +27,10 @@ class DateOnlyPipe extends DatePipe {
     [headerHeight]="35"
     [footerHeight]="0"
     [rowHeight]="30"
-    [selectionType]="'single'"
     [scrollbarV]="true"
-    [rowIdentity]="rowIdentity"
+    [selectionType]="'single'"
+    [selected]="[selectedPlate]"
+    [trackByProp]="'id'"
     (select)='onSelect($event)'>
   </ngx-datatable>
   `,
@@ -47,6 +48,7 @@ class DateOnlyPipe extends DatePipe {
 })
 export class PlatesListComponent {
   @Input() plates: Plate[] = [];
+  @Input() selectedPlate: Plate;
   @Input() newPlatesLoading: boolean;
   @Output() selectPlate = new EventEmitter();
 
@@ -86,10 +88,6 @@ export class PlatesListComponent {
     if (selected[0]) {
       this.selectPlate.emit(selected[0].id);
     }
-  }
-
-  rowIdentity(p: Plate) {
-    return p.id;
   }
 
 }

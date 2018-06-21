@@ -48,6 +48,7 @@ export interface UploadPlateMapAction {
             <mspat-plate-uploader
             [ladders]="ladders$ | async"
             [activeUploadPlatesTasks]="activeUploadPlatesTasks$ | async"
+            [failedUploadPlatesTasks]="failedUploadPlatesTasks$ | async"
             [activeTasks]="activeTasks$ | async"
             (uploadPlate)="uploadPlate($event)"
             ></mspat-plate-uploader>
@@ -58,6 +59,7 @@ export interface UploadPlateMapAction {
             <mspat-plates-list
             [plates]="plates$ | async"
             [newPlatesLoading]="newPlatesLoading$ | async"
+            [selectedPlate]="selectedPlate$ | async"
             (selectPlate)="selectPlate($event)">
             </mspat-plates-list>
           </div>
@@ -88,6 +90,10 @@ export interface UploadPlateMapAction {
           [activeRecalculateWellLadderTasks]="activeRecalculateWellLadderTasks$ | async"
           [activeUploadPlateMapTasks]="activeUploadPlateMapTasks$ | async"
           [activeDeletePlateTasks]="activeDeletePlateTasks$ | async"
+          [failedRecalculatePlateLadderTasks]="failedRecalculatePlateLadderTasks$ | async"
+          [failedRecalculateWellLadderTasks]="failedRecalculateWellLadderTasks$ | async"
+          [failedUploadPlateMapTasks]="failedUploadPlateMapTasks$ | async"
+          [failedDeletePlateTasks]="failedDeletePlateTasks$ | async"
           [activeTasks]="activeTasks$ | async"
           [ladders]="ladders$ | async"
           [createNonExistentSamples]="createNonExistentSamples$ | async"
@@ -137,6 +143,11 @@ export class PlatesComponent {
   activeUploadPlatesTasks$: Observable<Task[]>;
   activeUploadPlateMapTasks$: Observable<Task[]>;
   activeDeletePlateTasks$: Observable<Task[]>;
+  failedRecalculatePlateLadderTasks$: Observable<Task[]>;
+  failedRecalculateWellLadderTasks$: Observable<Task[]>;
+  failedUploadPlatesTasks$: Observable<Task[]>;
+  failedUploadPlateMapTasks$: Observable<Task[]>;
+  failedDeletePlateTasks$: Observable<Task[]>;
   activeTasks$: Observable<Task[]>;
   createNonExistentSamples$: Observable<boolean>;
 
@@ -174,6 +185,11 @@ export class PlatesComponent {
     this.activeUploadPlatesTasks$ = this.store.select(fromTasks.selectActiveTasks('plate', 'upload_plate'));
     this.activeUploadPlateMapTasks$ = this.store.select(fromTasks.selectActiveTasks('plate', 'upload_plate_map'));
     this.activeDeletePlateTasks$ = this.store.select(fromTasks.selectActiveTasks('plate', 'delete'));
+    this.failedRecalculatePlateLadderTasks$ = this.store.select(fromTasks.selectFailedTasks('plate', 'recalculate_ladder'));
+    this.failedRecalculateWellLadderTasks$ = this.store.select(fromTasks.selectFailedTasks('well', 'recalculate_ladder'));
+    this.failedUploadPlatesTasks$ = this.store.select(fromTasks.selectFailedTasks('plate', 'upload_plate'));
+    this.failedUploadPlateMapTasks$ = this.store.select(fromTasks.selectFailedTasks('plate', 'upload_plate_map'));
+    this.failedDeletePlateTasks$ = this.store.select(fromTasks.selectFailedTasks('plate', 'delete'));
     this.activeTasks$ = this.store.select(fromTasks.selectActiveTasks());
     this.createNonExistentSamples$ = this.store.select(fromPlates.selectCreateNonExistentSamples);
   }

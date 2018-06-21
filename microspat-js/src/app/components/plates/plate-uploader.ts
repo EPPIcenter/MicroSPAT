@@ -27,9 +27,8 @@ import { Task } from '../../models/task';
       (click)="uploadPlateClicked()">UPLOAD</button> <span *ngIf="warning" class="mspat-warning">{{warning}}</span>
     </mat-card-actions>
     <mat-card-footer>
-      <mspat-task-progress-display *ngIf="activeUploadPlateTask"
-        [task]="activeUploadPlateTask">
-      </mspat-task-progress-display>
+      <mspat-task-progress-display *ngIf="activeUploadPlateTask" [task]="activeUploadPlateTask"></mspat-task-progress-display>
+      <mspat-task-progress-display *ngIf="failedUploadPlateTask"[task]="failedUploadPlateTask"></mspat-task-progress-display>
     </mat-card-footer>
   </mat-card>
   `,
@@ -42,6 +41,7 @@ import { Task } from '../../models/task';
 export class PlateUploaderComponent {
   @Input() ladders: Ladder[] = [];
   @Input() activeUploadPlatesTasks: Task[];
+  @Input() failedUploadPlatesTasks: Task[];
   @Input() activeTasks: Task[];
   @Output() uploadPlate = new EventEmitter();
 
@@ -65,11 +65,9 @@ export class PlateUploaderComponent {
     } else {
       this.selectedFiles = null;
     }
-    console.log(this.selectedFiles);
   }
 
   uploadPlateClicked() {
-    console.log('Upload Plate', this.selectedFiles, this.selectedLadder);
     if (!this.selectedFiles || this.selectedFiles.length === 0) {
       this.warning = 'Please Select Plates';
     } else if (!this.selectedLadder) {
@@ -80,7 +78,6 @@ export class PlateUploaderComponent {
         plates: this.selectedFiles,
         ladder: this.selectedLadder
       });
-      console.log('Success');
     }
   }
 
@@ -89,12 +86,11 @@ export class PlateUploaderComponent {
   }
 
   get activeUploadPlateTask() {
-    const activeTask = this.activeUploadPlatesTasks;
-    if (activeTask.length > 0) {
-      return activeTask[0];
-    } else {
-      return false;
-    }
+    return this.activeUploadPlatesTasks.length > 0 ? this.activeUploadPlatesTasks[0] : false;
+  }
+
+  get failedUploadPlateTask() {
+    return this.failedUploadPlatesTasks.length > 0 ? this.failedUploadPlatesTasks[0] : false
   }
 
 }

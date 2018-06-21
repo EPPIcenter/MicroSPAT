@@ -1,3 +1,11 @@
+export const VALID_COLORS = [
+  {value: 'red', label: 'Red'},
+  {value: 'yellow', label: 'Yellow'},
+  {value: 'green', label: 'Green'},
+  {value: 'blue', label: 'Blue'},
+  {value: 'orange', label: 'Orange'}
+]
+
 export interface Colored {
   color: 'orange' | 'red' | 'yellow' | 'green' | 'blue';
 }
@@ -17,7 +25,7 @@ export interface PeakScanner {
 }
 
 export interface TimeStamped {
-  last_updated: Date;
+  last_updated?: Date;
 }
 
 export interface Flaggable {

@@ -7,10 +7,12 @@ import { Ladder } from 'app/models/ce/ladder';
 import * as fromRoot from 'app/reducers';
 import * as fromDB from 'app/reducers/db';
 import * as fromLadder from 'app/reducers/ladders/ladders'
+import * as fromTasks from 'app/reducers/tasks';
 
 import { LadderService } from 'app/services/ce/ladder';
 
 import * as ladders from 'app/actions/ladders';
+import { Task } from 'app/models/task';
 
 
 @Component({
@@ -30,6 +32,10 @@ import * as ladders from 'app/actions/ladders';
       <div class="col-sm-7">
         <mspat-ladder-editor
           [ladder]="activeLadder$ | async"
+          [activeTasks]="activeTasks$ | async"
+          [activeSaveLadderTasks]="activeSaveLadderTasks$ | async"
+          [failedSaveLadderTasks]="failedSaveLadderTasks$ | async"
+          (submit)="submitLadder($event)"
           (cancel)="cancelEdit()">
         </mspat-ladder-editor>
       </div>
@@ -42,6 +48,9 @@ export class LaddersComponent {
   laddersLoading$: Observable<boolean>;
   laddersLoaded$: Observable<boolean>;
   activeLadder$: Observable<Ladder>;
+  activeTasks$: Observable<Task[]>;
+  activeSaveLadderTasks$: Observable<Task[]>;
+  failedSaveLadderTasks$: Observable<Task[]>;
 
   constructor(
     private store: Store<fromRoot.AppState>,
@@ -52,11 +61,18 @@ export class LaddersComponent {
     this.laddersLoading$ = this.store.select(fromLadder.selectLoadingLadders);
     this.laddersLoaded$ = this.store.select(fromLadder.selectLaddersLoaded);
     this.activeLadder$ = this.store.select(fromLadder.selectActiveLadder);
+    this.activeTasks$ = this.store.select(fromTasks.selectActiveTasks());
+    this.activeSaveLadderTasks$ = this.store.select(fromTasks.selectActiveTasks('ladder', 'save'));
+    this.failedSaveLadderTasks$ = this.store.select(fromTasks.selectFailedTasks('ladder', 'save'));
   }
 
 
   selectLadder(e: string | number) {
     this.store.dispatch(new ladders.SelectLadderAction(+e))
+  }
+
+  submitLadder(e: Ladder) {
+    this.store.dispatch(new ladders.SubmitLadderAction(e));
   }
 
   cancelEdit() {

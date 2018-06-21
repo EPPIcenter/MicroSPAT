@@ -1,7 +1,7 @@
 import { BaseModel } from '../base';
 import { TimeStamped, Flaggable } from '../attributes';
 
-export interface SampleLocusAnnotation extends BaseModel, TimeStamped, Flaggable {
+export interface SampleLocusAnnotation extends BaseModel, Flaggable {
   project: string;
   sample_annotations: string[];
   locus: string;

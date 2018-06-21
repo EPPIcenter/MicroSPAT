@@ -39,3 +39,9 @@ export interface InProgressTask extends Task {
   status: 'in_progress';
   payload: InProgressPayload;
 }
+
+export type ServerTask
+= SuccessfulTask
+| FailedTask
+| StartTask
+| InProgressTask;

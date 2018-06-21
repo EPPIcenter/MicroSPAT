@@ -109,7 +109,6 @@ def delete_plate(json):
     plate = Plate.query.get(plate_id)
     if not plate:
         task_notifier.emit_task_failure(message='Plate Not Found.')
-        print("Plate not found")
         return
     else:
         task_notifier.emit_task_progress(progress={

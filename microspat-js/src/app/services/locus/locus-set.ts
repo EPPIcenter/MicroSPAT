@@ -13,6 +13,18 @@ export class LocusSetService extends WebSocketBaseService<LocusSet> {
     protected store: Store<fromRoot.AppState>, protected http: HttpClient
   ) {
     super('locus_set', store, http);
+    this.registerTask('save', store);
+    this.registerTask('delete', store)
+  }
+
+  public saveLocusSet(ls: {label: string; loci: number[]}) {
+    this.socket.emit('save', ls);
+  }
+
+  public deleteLocusSet(id: number) {
+    this.socket.emit('delete', {
+      id: id
+    });
   }
 
 }

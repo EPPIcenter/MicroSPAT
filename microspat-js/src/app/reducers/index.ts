@@ -6,6 +6,8 @@ import { environment } from 'environments/environment';
 import * as fromDB from './db';
 import * as fromPlates from './plates/plates';
 import * as fromLadders from './ladders/ladders';
+import * as fromLoci from './loci/loci';
+import * as fromLocusSets from './locus-sets/locus-sets';
 import * as fromKeyboard from './keyboard';
 import * as fromTasks from './tasks';
 
@@ -13,6 +15,8 @@ export interface AppState {
   db: fromDB.DBState;
   plates: fromPlates.State;
   ladders: fromLadders.State;
+  loci: fromLoci.State;
+  locusSets: fromLocusSets.State
   keyboard: fromKeyboard.State;
   tasks: fromTasks.State
 }
@@ -38,6 +42,8 @@ export class AppReducer {
       db: fromDB.reducer,
       plates: fromPlates.reducer,
       ladders: fromLadders.reducer,
+      loci: fromLoci.reducer,
+      locusSets: fromLocusSets.reducer,
       keyboard: fromKeyboard.reducer,
       tasks: fromTasks.reducer
     };

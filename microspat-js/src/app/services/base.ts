@@ -202,7 +202,6 @@ export abstract class WebSocketBaseService<T> {
   protected initCreated(store: Store<any>) {
     this._createdListener = this.bufferedCreatedStream.subscribe(data => {
       const ids = data.map(m => m.id);
-      console.log("Received Created Signal", this.namespace, ids);
       store.dispatch(new GetRequestedAction({
         model: this.namespace,
         ids: ids

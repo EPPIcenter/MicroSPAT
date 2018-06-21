@@ -13,6 +13,17 @@ export class LocusService extends WebSocketBaseService<Locus> {
     protected store: Store<fromRoot.AppState>, protected http: HttpClient
   ) {
     super('locus', store, http);
+    this.registerTask('save', store);
+    this.registerTask('delete', store);
   }
 
+  public saveLocus(locus: Locus) {
+    this.socket.emit('save', locus);
+  }
+
+  public deleteLocus(locusID: number) {
+    this.socket.emit('delete', {
+      id: locusID
+    })
+  }
 }

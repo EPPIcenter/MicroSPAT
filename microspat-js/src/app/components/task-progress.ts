@@ -8,9 +8,11 @@ import { Task } from 'app/models/task';
   <div>
     <h6>{{_message}}</h6>
     <mat-progress-bar
+      [color]="color"
       [mode]="mode"
       [value]="value">
     </mat-progress-bar>
+
   </div>
   `
 })
@@ -22,7 +24,9 @@ export class TaskDisplayComponent {
     if (this.task.status === 'in_progress') {
       return this.task.payload.style;
     } else if (this.task.status === 'start') {
-      return 'buffer'
+      return 'buffer';
+    } else if (this.task.status === 'failure') {
+      return 'buffer';
     } else {
       return 'indeterminate'
     }
@@ -37,14 +41,21 @@ export class TaskDisplayComponent {
   }
 
   get _message() {
+    console.log(this.task);
     if (!this.message) {
       if (this.task.status === 'in_progress') {
         return this.task.payload.message;
       } else if (this.task.status === 'start') {
         return 'Starting...'
+      } else if (this.task.status === 'failure') {
+        return this.task.payload;
       }
     } else {
       return this.message
     }
+  }
+
+  get color() {
+    return this.task.status === 'failure' ? 'warn' : 'primary'
   }
 }

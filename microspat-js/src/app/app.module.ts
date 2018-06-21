@@ -1,6 +1,5 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { NgModule, InjectionToken } from '@angular/core';
-import { ReactiveFormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 import { StoreModule, ActionReducerMap, ActionReducerFactory, MetaReducer, META_REDUCERS } from '@ngrx/store';
 import { NgxDatatableModule } from '@swimlane/ngx-datatable';
@@ -46,12 +45,14 @@ import { WellService } from 'app/services/ce/well';
 
 import { BaseDBEffects } from 'app/effects/db/base';
 import { PlateEffects } from 'app/effects/plates';
-// import { TaskEffects } from 'app/effects/tasks';
+import { LadderEffects } from 'app/effects/ladders';
+import { LocusEffects } from 'app/effects/loci';
+import { LocusSetEffects } from 'app/effects/locus-sets';
+import { TaskEffects } from 'app/effects/tasks';
 
 import { AppReducer, AppState } from 'app/reducers';
 import { EffectsModule } from '@ngrx/effects';
 
-// import { BsDropdownModule } from 'ngx-bootstrap/dropdown';
 import { ComponentModule } from 'app/components';
 import { AppRoutingModule } from 'app/routes';
 
@@ -67,6 +68,7 @@ import { QuantificationBiasEstimatorsComponent } from 'app/containers/quant-bias
 import { SamplesComponent } from 'app/containers/samples';
 import { KeyboardService } from 'app/services/keyboard';
 import { TaskComponent } from './containers/task-progresss';
+
 
 export const REDUCER_TOKEN = new InjectionToken<ActionReducerMap<AppState>>('Registered Reducers');
 
@@ -103,7 +105,7 @@ export function getMetaReducers(appReducer: AppReducer) {
     AppRoutingModule,
     // BsDropdownModule.forRoot(),
     StoreModule.forRoot(REDUCER_TOKEN),
-    EffectsModule.forRoot([BaseDBEffects, PlateEffects])
+    EffectsModule.forRoot([BaseDBEffects, TaskEffects, PlateEffects, LadderEffects, LocusEffects, LocusSetEffects])
   ],
   providers: [
     GlobalWebSocket,

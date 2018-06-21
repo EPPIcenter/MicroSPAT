@@ -15,7 +15,7 @@ locus_set_association_table = db.Table('locus_set_association',
 class LocusSet(TimeStamped, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     loci = db.relationship('Locus', secondary=locus_set_association_table)
-    label = db.Column(db.String(255), nullable=False)
+    label = db.Column(db.String(255), unique=True, nullable=False)
 
     __table_args__ = {'sqlite_autoincrement': True}
 

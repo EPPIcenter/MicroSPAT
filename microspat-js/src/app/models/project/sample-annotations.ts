@@ -1,7 +1,7 @@
 import { BaseModel } from '../base';
 import { TimeStamped } from '../attributes';
 
-export interface ProjectSampleAnnotations extends BaseModel, TimeStamped {
+export interface ProjectSampleAnnotations extends BaseModel {
   sample: string;
   project: string;
   moi: number;

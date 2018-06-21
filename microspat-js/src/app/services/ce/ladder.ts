@@ -14,6 +14,12 @@ export class LadderService extends WebSocketBaseService<Ladder> {
     protected store: Store<fromRoot.AppState>, protected http: HttpClient
   ) {
     super('ladder', store, http);
+    this.registerTask('save', store);
+    this.registerTask('delete', store);
+  }
+
+  public saveLadder(ladder: Ladder) {
+    this.socket.emit('save', ladder);
   }
 
 }

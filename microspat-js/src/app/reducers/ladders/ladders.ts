@@ -2,10 +2,8 @@ import { createSelector } from 'reselect';
 import { createFeatureSelector } from '@ngrx/store';
 
 import * as fromDB from 'app/reducers/db';
-import * as fromTasks from 'app/reducers/tasks';
 import * as DBActions from 'app/actions/db';
 import * as LaddersActions from 'app/actions/ladders';
-import { selectLadderBaseSizes } from '../plates/plates';
 import { Ladder } from '../../models/ce/ladder';
 
 export interface State {

@@ -68,6 +68,7 @@ export class WellLadderEditorComponent implements OnChanges, OnDestroy {
   @Input() activeWell: Well;
   @Input() active: boolean;
   @Input() recalculateLadderTask: Task;
+  @Input() failedRecalculateLadderTask: Task;
   @Input() tasksActive: boolean;
 
   @Output() setPeakIndices = new EventEmitter();

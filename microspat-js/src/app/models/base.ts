@@ -1,7 +1,7 @@
 export interface BaseModel {
-  detailed: boolean;
-  stale: boolean;
-  last_updated: Date;
+  detailed?: boolean;
+  stale?: boolean;
+  last_updated?: Date;
   id: string;
 }
 

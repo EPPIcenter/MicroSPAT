@@ -2,7 +2,7 @@ import { TimeStamped, Flaggable } from '../attributes';
 import { BaseModel, SortableField } from '../base';
 
 
-export interface Plate extends BaseModel, TimeStamped, Flaggable {
+export interface Plate extends BaseModel, Flaggable {
   label: string;
   creator: string;
   date_processed: Date;

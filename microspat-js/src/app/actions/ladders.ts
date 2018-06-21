@@ -1,10 +1,11 @@
 import { Action } from '@ngrx/store';
-import { UniqueSelectionDispatcher } from '@angular/cdk/collections';
+import { Ladder } from 'app/models/ce/ladder';
 
 export const LOAD_LADDERS = '[Ladder] Load Ladders';
 export const LOADING_LADDERS = '[Ladder] Loading Ladders';
 export const SELECT_LADDER = '[Ladder] Select Ladder';
 export const UNSELECT_LADDER = '[Ladder] Unselect Ladder';
+export const SUBMIT_LADDER = '[Ladder] Submit Ladder';
 
 export class LoadLaddersAction implements Action {
   readonly type = LOAD_LADDERS;
@@ -26,8 +27,14 @@ export class UnselectLadderAction implements Action {
   constructor() {}
 }
 
+export class SubmitLadderAction implements Action {
+  readonly type = SUBMIT_LADDER;
+  constructor(public payload: Ladder) {};
+}
+
 export type Actions
 = LoadLaddersAction
 | LoadingLaddersAction
 | SelectLadderAction
-| UnselectLadderAction;
+| UnselectLadderAction
+| SubmitLadderAction;

@@ -1,7 +1,7 @@
 import { TimeStamped, Flaggable } from '../attributes';
 import { BaseModel } from '../base';
 
-export interface Well extends BaseModel, TimeStamped, Flaggable {
+export interface Well extends BaseModel, Flaggable {
   plate: string;
   well_label: string;
   sizing_quality: number;

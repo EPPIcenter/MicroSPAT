@@ -1,5 +1,4 @@
 import uuid
-import eventlet
 import flask
 
 from app import socketio

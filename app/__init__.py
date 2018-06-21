@@ -58,6 +58,10 @@ def create_app(config_name):
     app.register_blueprint(microspat)
     app.logger.debug("MicroSPAT Initialized")
 
+    from app.microspat.events import microspat2
+    app.register_blueprint(microspat2)
+    app.logger.debug("Old MicroSPAT Init")
+
     db.create_all()
 
     # configure_uploads(app, (plate_zips,))
