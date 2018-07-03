@@ -9,7 +9,6 @@ import * as fromRoot from 'app/reducers';
 import * as fromDB from 'app/reducers/db';
 import * as fromPlates from 'app/reducers/plates/plates';
 import { PlateService } from 'app/services/ce/plate';
-import { Injector } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { Plate } from 'app/models/ce/plate';
 import { Well } from 'app/models/ce/well';
@@ -158,17 +157,9 @@ export class PlateEffects {
     })
   );
 
-  // @Effect({dispatch: false})
-  // uploadPlates$: Observable<any> = this.actions$.pipe(
-  //   ofType<plates.UploadPlatesAction>(plates.UPLOAD_PLATES),
-  //   map(action => {
-  //     console.log('Uploading Plates Effect', action.payload);
-  //     return action.payload;
-  //   }),
-  //   map(payload => {
-  //     this.plateService.uploadPlate(payload.plateFiles, payload.ladderID);
-  //   })
-  // )
-
-  constructor(private actions$: Actions, private store: Store<fromRoot.AppState>, private injector: Injector, private wellService: WellService, private plateService: PlateService) {}
+  constructor(
+    private actions$: Actions,
+    private store: Store<fromRoot.AppState>,
+    private wellService: WellService,
+    private plateService: PlateService) {}
 }

@@ -1,4 +1,4 @@
-from sqlalchemy.orm import validates
+from sqlalchemy.orm import validates, reconstructor
 from app import db
 from ..attributes import TimeStamped, Flaggable
 from app.utils import CaseInsensitiveDictReader
@@ -9,9 +9,13 @@ class Sample(TimeStamped, Flaggable, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     barcode = db.Column(db.String(255), nullable=False, unique=True)
     designation = db.Column(db.String(255), nullable=False, default='sample', index=True)
-    channels = db.relationship('Channel', backref=db.backref('sample'), lazy='dynamic')
+    channels = db.relationship('Channel', backref=db.backref('sample'), lazy='immediate')
 
     __table_args__ = {'sqlite_autoincrement': True}
+
+    # @reconstructor
+    # def init_on_load(self):
+    #     super(Sample, self).__init__(barcode=self.barcode, designation=self.designation, channels=self.channels)
 
     @validates('designation')
     def validate_designation(self, key, designation):

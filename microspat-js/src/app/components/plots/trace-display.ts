@@ -1,5 +1,5 @@
 import { Component, ChangeDetectionStrategy, OnChanges, SimpleChanges, Input, ElementRef } from '@angular/core';
-import { Trace, MspatCanvas, MspatCanvasConfig, Legend } from 'app/components/plots/canvas';
+import { Trace, MspatSVGCanvas, MspatCanvasConfig, Legend } from 'app/components/plots/canvas';
 import * as d3 from 'd3';
 
 @Component({
@@ -24,7 +24,7 @@ export class TraceDisplayComponent implements OnChanges {
   @Input() active = false;
 
   private canvasConfig: MspatCanvasConfig;
-  private canvas: MspatCanvas;
+  private canvas: MspatSVGCanvas;
 
   constructor(private _elementRef: ElementRef) {
   }
@@ -47,10 +47,11 @@ export class TraceDisplayComponent implements OnChanges {
         'yellow': 'yellow'
       }
     };
-    this.canvas = new MspatCanvas(this.canvasConfig);
+    this.canvas = new MspatSVGCanvas(this.canvasConfig);
     this.traces.forEach(trace => {
       this.canvas.addTrace(trace);
     });
+
     if (this.legend) {
       this.canvas.addLegend(this.legend);
     }

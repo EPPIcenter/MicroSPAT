@@ -1,6 +1,6 @@
 import { Effect, Actions, ofType } from '@ngrx/effects';
 import { Injectable } from '@angular/core';
-import { Observable, empty, of } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { Action } from '@ngrx/store/src/models';
 import { tap, take, map, switchMap } from 'rxjs/operators';
 import * as db from 'app/actions/db';
@@ -51,8 +51,6 @@ export class BaseDBEffects {
       );
     }),
     switchMap(payload => {
-      console.log(payload);
-      console.log("GET IN FLIGHT");
       return of(new db.GetInFlightAction(payload));
     })
   );

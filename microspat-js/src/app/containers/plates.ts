@@ -16,14 +16,11 @@ import * as plates from 'app/actions/plates';
 
 import { Plate } from 'app/models/ce/plate';
 import { Well } from 'app/models/ce/well';
-import { LadderService } from 'app/services/ce/ladder';
 import { Ladder } from 'app/models/ce/ladder';
 import { Square } from 'app/models/square';
-import { ChannelService } from 'app/services/ce/channel';
 import { Trace, Legend } from 'app/components/plots/canvas';
 import { Locus } from 'app/models/locus/locus';
-import { DisplayTaskAction } from '../actions/tasks';
-import { Task } from '../models/task';
+import { Task } from 'app/models/task';
 import { MatCheckboxChange, MatSelectChange } from '@angular/material';
 
 export interface UploadPlateAction {
@@ -180,16 +177,22 @@ export class PlatesComponent {
     this.inactiveLoci$ = this.store.select(fromPlates.selectInactiveLoci);
     this.activeLocusDomain$ = this.store.select(fromPlates.selectActiveLocusDomain);
     this.selectedLocus$ = this.store.select(fromPlates.selectSelectedLocus);
+
     this.activeRecalculatePlateLadderTasks$ = this.store.select(fromTasks.selectActiveTasks('plate', 'recalculate_ladder'));
-    this.activeRecalculateWellLadderTasks$ = this.store.select(fromTasks.selectActiveTasks('well', 'recalculate_ladder'));
-    this.activeUploadPlatesTasks$ = this.store.select(fromTasks.selectActiveTasks('plate', 'upload_plate'));
-    this.activeUploadPlateMapTasks$ = this.store.select(fromTasks.selectActiveTasks('plate', 'upload_plate_map'));
-    this.activeDeletePlateTasks$ = this.store.select(fromTasks.selectActiveTasks('plate', 'delete'));
     this.failedRecalculatePlateLadderTasks$ = this.store.select(fromTasks.selectFailedTasks('plate', 'recalculate_ladder'));
+
+    this.activeRecalculateWellLadderTasks$ = this.store.select(fromTasks.selectActiveTasks('well', 'recalculate_ladder'));
     this.failedRecalculateWellLadderTasks$ = this.store.select(fromTasks.selectFailedTasks('well', 'recalculate_ladder'));
+
+    this.activeUploadPlatesTasks$ = this.store.select(fromTasks.selectActiveTasks('plate', 'upload_plate'));
     this.failedUploadPlatesTasks$ = this.store.select(fromTasks.selectFailedTasks('plate', 'upload_plate'));
+
+    this.activeUploadPlateMapTasks$ = this.store.select(fromTasks.selectActiveTasks('plate', 'upload_plate_map'));
     this.failedUploadPlateMapTasks$ = this.store.select(fromTasks.selectFailedTasks('plate', 'upload_plate_map'));
+
+    this.activeDeletePlateTasks$ = this.store.select(fromTasks.selectActiveTasks('plate', 'delete'));
     this.failedDeletePlateTasks$ = this.store.select(fromTasks.selectFailedTasks('plate', 'delete'));
+
     this.activeTasks$ = this.store.select(fromTasks.selectActiveTasks());
     this.createNonExistentSamples$ = this.store.select(fromPlates.selectCreateNonExistentSamples);
   }

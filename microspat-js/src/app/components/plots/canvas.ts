@@ -111,7 +111,7 @@ const contextMenu = function(menu, openCallback = null) {
   };
 };
 
-export class MspatCanvas {
+export class MspatSVGCanvas {
     private canvas: d3.Selection<any, any, any, any>;
     private canvasConfig: MspatCanvasConfig;
     private fullWidth: number;
@@ -276,8 +276,6 @@ export class MspatCanvas {
 
     }
 
-
-
     addLine(line: Line) {
         const lineGenerator = d3.line()
           .x(d => this.x(d[0]))
@@ -297,4 +295,9 @@ export class MspatCanvas {
           .style('fill', 'none')
           .style('stroke-width', 1.5);
     }
+}
+
+
+export class MspatCanvas {
+
 }

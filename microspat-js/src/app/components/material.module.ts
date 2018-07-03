@@ -14,7 +14,8 @@ import { MatButtonModule,
          MatInputModule,
          MatDividerModule,
          MatTableModule,
-         MatSortModule } from '@angular/material';
+         MatSortModule,
+         MatExpansionModule} from '@angular/material';
 
 @NgModule({
   imports: [
@@ -33,7 +34,8 @@ import { MatButtonModule,
     MatInputModule,
     MatDividerModule,
     MatTableModule,
-    MatSortModule
+    MatSortModule,
+    MatExpansionModule
   ],
   exports: [
     MatButtonModule,
@@ -51,7 +53,8 @@ import { MatButtonModule,
     MatInputModule,
     MatDividerModule,
     MatTableModule,
-    MatSortModule
+    MatSortModule,
+    MatExpansionModule
   ],
 })
 export class MspatMaterialModule { }

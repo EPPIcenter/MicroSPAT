@@ -12,6 +12,12 @@ from app.microspat.events_v2.base import table_to_string_mapping
 from app.microspat.schemas import *
 
 
+bidirectional_relationships = {
+    Sample: ['channels'],
+    Channel: ['sample']
+}
+
+
 class UpdateMsgSchema(Schema):
     last_updated = fields.DateTime()
     model = fields.Str()
@@ -45,10 +51,20 @@ def set_last_updated(_, __, target):
     target.last_updated = datetime.utcnow()
 
 
-def notify_updated(_, __, target):
+def notify_updated(mapper, conn, target):
+    _notify_object_updated(target)
+
+
+def _notify_object_updated(target):
     target_class = target.__class__
     string_mapping = table_to_string_mapping[target_class]
+
+    for attr in bidirectional_relationships.get(target_class, []):
+        related_objs = getattr(target_class, attr)
+        map(_notify_object_updated, related_objs)
+
     print("Updating class {} with id {}".format(string_mapping, str(target.id)))
+
     socketio.emit('updated', update_msg_schema.dump({
         'last_updated': target.last_updated,
         'model': string_mapping,
@@ -74,6 +90,7 @@ def notify_created(_, __, target):
         'model': string_mapping,
         'id': str(target.id)
     }, namespace=make_namespace(string_mapping), broadcast=True)
+
 
 
 monitor_create_classes = (

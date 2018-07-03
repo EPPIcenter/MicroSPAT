@@ -40,7 +40,7 @@ class DateOnlyPipe extends DatePipe {
     }
 
     ngx-datatable {
-      height: 70vh;
+      height: 65vh;
       user-select: none;
       cursor: default;
     }

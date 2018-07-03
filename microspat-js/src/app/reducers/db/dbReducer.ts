@@ -1,9 +1,10 @@
 import * as db from 'app/actions/db';
 import { createSelector } from 'reselect';
+import { EntityMap } from '../../models/base';
 
 export interface State {
   ids: string[];
-  entities: { [id: string]: any };
+  entities: EntityMap<any>;
   pendingRequests: {[id: number]: string};
 }
 
@@ -16,7 +17,7 @@ export const getList = (state: State) => {
   return items;
 };
 
-export function generateReducer(model: string, initialState: any) {
+export function generateReducer(model: string, initialState: any, listDetailed: boolean = false) {
   return function reducer(state = initialState, action: db.Actions): State {
     if ('payload' in action && action.payload !== null && action.payload.model === model) {
       switch (action.type) {
@@ -61,7 +62,7 @@ export function generateReducer(model: string, initialState: any) {
           const newListReqEntitiesIds = newListReqEntries.map(entity => entity.id);
           const newEntities = newListReqEntries.reduce((e: { [id: string]: any }, entity: any) => {
             return Object.assign(e, {
-              [entity.id]: Object.assign({}, entity, {detailed: false})
+              [entity.id]: Object.assign({}, entity, {detailed: listDetailed})
             });
           }, {});
 

@@ -13,6 +13,13 @@ export class SampleService extends WebSocketBaseService<Sample> {
     protected store: Store<fromRoot.AppState>, protected http: HttpClient
   ) {
     super('sample', store, http);
+    this.registerTask('upload_samples', store);
+  }
+
+  uploadSamples(f: File) {
+    this.uploadFile('upload_samples', f).subscribe(res => {
+      console.log(res);
+    })
   }
 
 }

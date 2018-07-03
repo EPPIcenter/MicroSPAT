@@ -9,7 +9,7 @@ from app import db
 class BaseSchema(ModelSchema):
     class Meta:
         sqla_session = db.session
-    id = fields.String()
+    id = fields.Integer()
 
 
 class JSONEncodedField(fields.Field):

@@ -12,6 +12,7 @@ import { KeyboardService } from 'app/services/keyboard';
 import * as plates from 'app/actions/plates';
 import { LadderService } from 'app/services/ce/ladder';
 import { LocusSetService } from '../services/locus/locus-set';
+import { SampleService } from '../services/sample/sample';
 
 @Component({
   selector: 'mspat-app',
@@ -37,12 +38,14 @@ export class AppComponent {
     private channelService: ChannelService,
     private ladderService: LadderService,
     private locusService: LocusService,
-    private locusSetService: LocusSetService
+    private locusSetService: LocusSetService,
+    private sampleService: SampleService
 
 ) {
     this.plateService.list();
     this.ladderService.list();
     this.locusService.list();
     this.locusSetService.list();
+    this.sampleService.list();
   }
 }

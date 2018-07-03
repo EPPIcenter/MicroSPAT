@@ -18,7 +18,6 @@
 
 import csv
 
-
 class CaseInsensitiveDict(dict):
     """
     Dict that removes whitespace, replaces inner spaces with underscores, removes periods, and is
@@ -36,7 +35,11 @@ class CaseInsensitiveDictReader(csv.DictReader, object):
 
     @property
     def fieldnames(self):
-        return [field.strip().replace(' ', '_').replace('.', '').lower() for field in super(CaseInsensitiveDictReader, self).fieldnames]
+        return [field.strip()
+                     .replace(' ', '_')
+                     .replace('.', '')
+                     .lower()
+                for field in super(CaseInsensitiveDictReader, self).fieldnames]
 
     def __next__(self):
         d_insensitive = CaseInsensitiveDict()
@@ -46,4 +49,3 @@ class CaseInsensitiveDictReader(csv.DictReader, object):
             d_insensitive[k] = v
 
         return d_insensitive
-

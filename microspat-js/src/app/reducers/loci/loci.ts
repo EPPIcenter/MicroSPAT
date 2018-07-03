@@ -1,5 +1,4 @@
-import { createSelector } from 'reselect';
-import { createFeatureSelector } from '@ngrx/store';
+import { createSelector, createFeatureSelector } from '@ngrx/store';
 
 import { Locus } from 'app/models/locus/locus';
 

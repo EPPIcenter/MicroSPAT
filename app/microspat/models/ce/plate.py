@@ -1,7 +1,6 @@
 import csv
 from datetime import datetime
 
-import eventlet
 from sqlalchemy.ext.mutable import MutableList
 from sqlalchemy.orm import deferred, validates, reconstructor
 
@@ -29,6 +28,7 @@ class Plate(ExtractedPlate, TimeStamped, Flaggable, db.Model):
     ce_machine = db.Column(db.String(255), default="Unknown")
     wells = db.relationship('Well', backref=db.backref('plate'), cascade='save-update, merge, delete, delete-orphan')
     plate_hash = db.Column(db.String(32), nullable=False, unique=True, index=True)
+
     power = deferred(db.Column(MutableList.as_mutable(CompressedJSONEncodedData)))
     current = deferred(db.Column(MutableList.as_mutable(CompressedJSONEncodedData)))
     voltage = deferred(db.Column(MutableList.as_mutable(CompressedJSONEncodedData)))

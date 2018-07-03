@@ -1,21 +1,20 @@
 import csv
 import tempfile
-from collections import defaultdict
-
-import eventlet
 import os
 import io
-from flask import request, jsonify, session, copy_current_request_context
-from sqlalchemy import exists
-from sqlalchemy.orm.exc import NoResultFound
 
+from flask import request, jsonify, copy_current_request_context
+from sqlalchemy import exists
+
+from app import socketio, db
 from app.microspat.fsa_tools.PlateExtractor import ExtractedPlate
 from app.microspat.schemas import PlateSchema, PlateListSchema, WellSchema, WellListSchema, ChannelListSchema
 from app.microspat.models import Plate, Well, Channel, Ladder, ProjectChannelAnnotations, Sample, Locus, \
     GenotypingProject, LocusSet, locus_set_association_table, ProjectSampleAnnotations, ProjectLocusParams
 from app.microspat.api_v2 import microspat
+
 from ..base import extract_ids, table_to_string_mapping, make_namespace, base_list, emit_list, emit_get, TaskNotifier
-from app import socketio, db
+
 
 JSON_NAMESPACE = table_to_string_mapping[Plate]
 SOCK_NAMESPACE = make_namespace(JSON_NAMESPACE)
@@ -96,7 +95,6 @@ def recalculate_ladder(json):
                     'message': 'Recalculating Ladders...'
                 }
             )
-            socketio.sleep()
     task_notifier.emit_task_success(message="Ladder Recalculated Successfully.")
 
 
@@ -138,7 +136,6 @@ def upload_plates():
 
         task_notifier.emit_task_start()
 
-        socketio.sleep()
         for idx, plate_zip_file in enumerate(plate_files):
             try:
                 with open(plate_zip_file, 'rb') as plate_zip:
@@ -190,7 +187,7 @@ def upload_plates():
 
     plate_zips = request.files.getlist('files')
     files = []
-    for i, f in enumerate(plate_zips):
+    for f in plate_zips:
         handle, tmpfile_path = tempfile.mkstemp()
         tmpfile = os.fdopen(handle, mode='wb')
         tmpfile.write(f.stream.read())
@@ -219,7 +216,7 @@ def upload_plate_map():
                 task_notifier.emit_task_failure(message="Plate Map Malformed.")
                 return
 
-            locus_labels = [_ for _ in plate_map.fieldnames if _.lower() not in ['', 'well']]
+            locus_labels = [_.strip() for _ in plate_map.fieldnames if _.lower() not in ['', 'well']]
             clear_plate_map(plate_id)
             stale_tracker = dict()
             plate_map = list(plate_map)

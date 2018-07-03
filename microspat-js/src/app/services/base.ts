@@ -249,7 +249,7 @@ export abstract class WebSocketBaseService<T> {
     return this.http.post(`${this.API_PATH}/${this.namespace}/${destination}/`, formData)
   }
 
-  protected uploadFile(destination: string, file: File, args: {[key: string]: any}) {
+  protected uploadFile(destination: string, file: File, args: {[key: string]: any} = {}) {
     const formData = new FormData();
     formData.append('files', file, file['name']);
     Object.keys(args).forEach(k => {

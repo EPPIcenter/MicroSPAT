@@ -5,6 +5,10 @@ export interface BaseModel {
   id: string;
 }
 
+export interface EntityMap<T> {
+  [id: string]: T
+}
+
 export abstract class SortableField<T> {
   readonly pprint: string;
   readonly field: string;

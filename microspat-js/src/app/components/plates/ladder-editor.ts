@@ -105,7 +105,6 @@ export class WellLadderEditorComponent implements OnChanges, OnDestroy {
       .attr('width', '100%')
       .attr('height', '100%')
       .style('background-color', '#252830');
-    console.log('LADDER CANVAS', this.canvas);
     this.fullWidth = parseInt(this.canvas.style('width'), 10);
     this.fullHeight = parseInt(this.canvas.style('height'), 10);
   }

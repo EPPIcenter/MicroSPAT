@@ -1,5 +1,4 @@
 import { Component, Input, EventEmitter, Output, ChangeDetectionStrategy } from '@angular/core';
-import { Plate } from 'app/models/ce/plate';
 import { Ladder } from 'app/models/ce/ladder';
 import { Task } from '../../models/task';
 
@@ -10,7 +9,7 @@ import { Task } from '../../models/task';
   <mat-card class="plate-uploader">
     <mat-card-header>
       <mat-card-title>
-        Upload Plates
+        <h4>Upload Plates</h4>
       </mat-card-title>
     </mat-card-header>
     <mat-card-content>
@@ -23,8 +22,9 @@ import { Task } from '../../models/task';
     </mat-card-content>
     <mat-card-actions>
       <button mat-raised-button color="primary"
-      [disabled]="taskActive"
-      (click)="uploadPlateClicked()">UPLOAD</button> <span *ngIf="warning" class="mspat-warning">{{warning}}</span>
+              [disabled]="taskActive"
+              (click)="uploadPlateClicked()">UPLOAD</button>
+      <span *ngIf="warning" class="mspat-warning">{{warning}}</span>
     </mat-card-actions>
     <mat-card-footer>
       <mspat-task-progress-display *ngIf="activeUploadPlateTask" [task]="activeUploadPlateTask"></mspat-task-progress-display>
@@ -34,8 +34,9 @@ import { Task } from '../../models/task';
   `,
   styles: [`
     .plate-uploader {
-      margin-bottom: 10px;
+      margin: 0 0 10px 0;
     }
+
   `]
 })
 export class PlateUploaderComponent {
@@ -45,18 +46,16 @@ export class PlateUploaderComponent {
   @Input() activeTasks: Task[];
   @Output() uploadPlate = new EventEmitter();
 
-  private selectedFiles;
-  private selectedLadder;
+  private selectedFiles: FileList;
+  private selectedLadder: string;
   private warning;
 
   ladderChange(e) {
-    console.log(e);
     if (e) {
       this.selectedLadder = e.value;
     } else {
       this.selectedLadder = null;
     }
-    console.log(this.selectedLadder);
   }
 
   fileChangeEvent(f) {

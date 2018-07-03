@@ -16,7 +16,7 @@ import { PlateDetailsComponent } from './plates/plate-details';
 import { PlateUploaderComponent } from './plates/plate-uploader';
 import { PlatePlotComponent } from './plates/plate-plot';
 import { WellLadderEditorComponent } from './plates/ladder-editor';
-import { TraceDisplayComponent } from './plates/trace-display';
+import { TraceDisplayComponent } from './plots/trace-display';
 
 import { LocusListComponent } from './loci/locus-list';
 import { LocusEditorComponent } from './loci/locus-editor';
@@ -28,8 +28,11 @@ import { LocusSetDetailsComponent } from './locus-sets/locus-set-details';
 import { LadderEditorComponent } from './ladders/ladders-editor';
 import { LadderListComponent } from './ladders/ladders-list';
 
-import { TaskDisplayComponent } from './task-progress';
+import { SampleListComponent } from './samples/samples-list';
+import { SampleUploaderComponent } from './samples/sample-uploader';
 
+import { TaskDisplayComponent } from './task-progress';
+import { SampleDetailsComponent } from './samples/sample-details';
 
 
 export const COMPONENTS = [
@@ -46,6 +49,9 @@ export const COMPONENTS = [
   LocusSetListComponent,
   LocusSetEditorComponent,
   LocusSetDetailsComponent,
+  SampleListComponent,
+  SampleUploaderComponent,
+  SampleDetailsComponent,
   TraceDisplayComponent,
   FileInputComponent,
   TaskDisplayComponent

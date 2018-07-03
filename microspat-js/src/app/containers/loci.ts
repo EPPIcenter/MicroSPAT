@@ -12,10 +12,6 @@ import * as fromTasks from 'app/reducers/tasks';
 
 import * as loci from 'app/actions/loci';
 
-import { LocusService } from 'app/services/locus/locus';
-
-
-
 @Component({
   selector: 'mspat-loci',
   template: `
@@ -55,7 +51,6 @@ export class LociComponent {
 
   constructor(
     private store: Store<fromRoot.AppState>,
-    private locusService: LocusService
   ) {
     this.loci$ = this.store.select(fromDB.selectLocusList);
     this.selectedLocus$ = this.store.select(fromLocus.selectActiveLocus);

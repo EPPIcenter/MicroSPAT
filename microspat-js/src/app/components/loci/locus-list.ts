@@ -1,23 +1,7 @@
 import { Component, ChangeDetectionStrategy, Input, EventEmitter, Output, SimpleChanges, OnChanges, ViewChild, OnInit } from '@angular/core';
-import { TitleCasePipe } from '@angular/common';
 import { Locus } from 'app/models/locus/locus';
 import { MatTableDataSource, MatSort } from '@angular/material';
 
-
-// <ngx-datatable *ngIf="!lociLoading" class="material fullscreen" id="locus-list"
-// [rows]="loci"
-// [columns]="columns"
-// [messages]="messages"
-// columnMode="force"
-// [headerHeight]="35"
-// [footerHeight]="0"
-// [rowHeight]="30"
-// [scrollbarV]="true"
-// [selectionType]="'single'"
-// [selected]="[selectedLocus]"
-// [trackByProp]="'id'"
-// (select)='onSelect($event)'>
-// </ngx-datatable>
 
 @Component({
   selector: 'mspat-locus-list',
@@ -31,7 +15,7 @@ import { MatTableDataSource, MatSort } from '@angular/material';
       </mat-card-content>
     </mat-card>
 
-    <div class="locus-table mat-elevation-z8">
+    <div *ngIf="!lociLoading" class="locus-table mat-elevation-z8">
       <table mat-table [dataSource]="dataSource" matSort>
 
         <ng-container matColumnDef="label">
@@ -68,7 +52,7 @@ import { MatTableDataSource, MatSort } from '@angular/material';
   `,
   styles: [`
     mat-spinner {
-      margin: 0 auto
+      margin: 0 auto;
     }
 
     .locus-table {
@@ -79,6 +63,10 @@ import { MatTableDataSource, MatSort } from '@angular/material';
     table.mat-table {
       width: 100%;
     }
+
+    .mat-row {
+      height: 28px;
+    }
   `]
 })
 export class LocusListComponent implements OnChanges, OnInit {
@@ -88,7 +76,7 @@ export class LocusListComponent implements OnChanges, OnInit {
   @Input() loci: Locus[];
   @Input() selectedLocus: Locus = null;
   @Input() lociLoading: boolean;
-  @Output() selectLocus = new EventEmitter();
+  @Output() selectLocus: EventEmitter<number> = new EventEmitter();
 
   private spinnerDiameter = 250;
 
@@ -102,18 +90,11 @@ export class LocusListComponent implements OnChanges, OnInit {
   ngOnChanges(changes: SimpleChanges) {
     if (changes.loci) {
       this.dataSource.data = this.loci;
-      console.log(this.dataSource);
     }
   }
 
   ngOnInit() {
     this.dataSource.sort = this.sort;
-  }
-
-  onSelect ({ selected }) {
-    if (selected[0]) {
-      this.selectLocus.emit(selected[0].id);
-    }
   }
 
 }

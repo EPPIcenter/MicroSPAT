@@ -68,6 +68,7 @@ import { QuantificationBiasEstimatorsComponent } from 'app/containers/quant-bias
 import { SamplesComponent } from 'app/containers/samples';
 import { KeyboardService } from 'app/services/keyboard';
 import { TaskComponent } from './containers/task-progresss';
+import { SampleEffects } from './effects/samples';
 
 
 export const REDUCER_TOKEN = new InjectionToken<ActionReducerMap<AppState>>('Registered Reducers');
@@ -105,7 +106,7 @@ export function getMetaReducers(appReducer: AppReducer) {
     AppRoutingModule,
     // BsDropdownModule.forRoot(),
     StoreModule.forRoot(REDUCER_TOKEN),
-    EffectsModule.forRoot([BaseDBEffects, TaskEffects, PlateEffects, LadderEffects, LocusEffects, LocusSetEffects])
+    EffectsModule.forRoot([BaseDBEffects, TaskEffects, PlateEffects, LadderEffects, LocusEffects, LocusSetEffects, SampleEffects])
   ],
   providers: [
     GlobalWebSocket,
