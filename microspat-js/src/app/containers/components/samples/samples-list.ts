@@ -53,7 +53,7 @@ import { MatTableDataSource, MatSort } from '@angular/material';
     }
 
     .sample-table {
-      height: 65vh;
+      height: 60vh;
       overflow: auto;
     }
 

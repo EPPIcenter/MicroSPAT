@@ -1,4 +1,10 @@
 import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
+import { Store } from '@ngrx/store';
+
+import * as fromRoot from 'app/reducers';
+
+import * as navigation from 'app/actions/navigation';
+
 
 @Component({
   selector: 'mspat-sidenav',
@@ -21,7 +27,7 @@ import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
     <li class="nav-item">
       <a class="nav-link" routerLinkActive='active' routerLink="/artifact-estimators">Artifact Estimators</a>
     </li>
-    <li class="nav-item">
+    <li class="nav-item" (click)="binEstimatorsActivated()">
       <a class="nav-link" routerLinkActive='active' routerLink="/bin-estimators">Bin Estimators</a>
     </li>
     <li class="nav-item">
@@ -40,4 +46,11 @@ import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
   `
 })
 export class SideNavComponent {
+
+  constructor(private store: Store<fromRoot.AppState>) {};
+
+
+  binEstimatorsActivated() {
+    this.store.dispatch(new navigation.ActivateBinEstimatorPathAction());
+  }
 }

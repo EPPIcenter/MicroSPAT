@@ -1,13 +1,13 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { NgModule, InjectionToken } from '@angular/core';
 import { HttpClientModule } from '@angular/common/http';
-import { StoreModule, ActionReducerMap, ActionReducerFactory, MetaReducer, META_REDUCERS } from '@ngrx/store';
+import { StoreModule, ActionReducerMap, META_REDUCERS } from '@ngrx/store';
 import { NgxDatatableModule } from '@swimlane/ngx-datatable';
 import { CommonModule } from '@angular/common';
 
-import { AppComponent } from './containers/app';
+import { AppComponent } from 'app/containers/app';
 
-import { GlobalWebSocket } from './services/global';
+import { GlobalWebSocket } from 'app/services/global';
 
 import { ArtifactEquationService } from 'app/services/artifact-estimator/artifact-equation';
 import { ArtifactEstimatorService } from 'app/services/artifact-estimator/artifact-estimator';
@@ -49,26 +49,15 @@ import { LadderEffects } from 'app/effects/ladders';
 import { LocusEffects } from 'app/effects/loci';
 import { LocusSetEffects } from 'app/effects/locus-sets';
 import { TaskEffects } from 'app/effects/tasks';
+import { SampleEffects } from 'app/effects/samples';
 
 import { AppReducer, AppState } from 'app/reducers';
 import { EffectsModule } from '@ngrx/effects';
-
-import { ComponentModule } from 'app/components';
+import { ContainerModule } from 'app/containers';
 import { AppRoutingModule } from 'app/routes';
 
-import { PlatesComponent } from 'app/containers/plates';
-import { ArtifactEstimatorsComponent } from 'app/containers/artifact-estimators';
-import { BinEstimatorsComponent } from 'app/containers/bin-estimators';
-import { ControlsComponent } from 'app/containers/controls';
-import { GenotypingProjectsComponent } from 'app/containers/genotyping-projects';
-import { LaddersComponent } from 'app/containers/ladders';
-import { LociComponent } from 'app/containers/loci';
-import { LocusSetsComponent } from 'app/containers/locus-sets';
-import { QuantificationBiasEstimatorsComponent } from 'app/containers/quant-bias-estimators';
-import { SamplesComponent } from 'app/containers/samples';
 import { KeyboardService } from 'app/services/keyboard';
-import { TaskComponent } from './containers/task-progresss';
-import { SampleEffects } from './effects/samples';
+
 
 
 export const REDUCER_TOKEN = new InjectionToken<ActionReducerMap<AppState>>('Registered Reducers');
@@ -82,29 +71,13 @@ export function getMetaReducers(appReducer: AppReducer) {
 }
 
 @NgModule({
-  declarations: [
-    AppComponent,
-    ArtifactEstimatorsComponent,
-    BinEstimatorsComponent,
-    ControlsComponent,
-    GenotypingProjectsComponent,
-    LaddersComponent,
-    LociComponent,
-    LocusSetsComponent,
-    PlatesComponent,
-    TaskComponent,
-    QuantificationBiasEstimatorsComponent,
-    SamplesComponent,
-  ],
   imports: [
     NgxDatatableModule,
     CommonModule,
     BrowserModule,
-    // ReactiveFormsModule,
     HttpClientModule,
-    ComponentModule,
+    ContainerModule,
     AppRoutingModule,
-    // BsDropdownModule.forRoot(),
     StoreModule.forRoot(REDUCER_TOKEN),
     EffectsModule.forRoot([BaseDBEffects, TaskEffects, PlateEffects, LadderEffects, LocusEffects, LocusSetEffects, SampleEffects])
   ],
@@ -148,7 +121,6 @@ export function getMetaReducers(appReducer: AppReducer) {
       useFactory: getMetaReducers
     },
     KeyboardService
-    // PlateActionSet
   ],
   bootstrap: [AppComponent]
 })

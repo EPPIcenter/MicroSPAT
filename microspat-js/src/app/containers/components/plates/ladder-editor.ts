@@ -2,7 +2,7 @@ import { Component, ChangeDetectionStrategy, Input, Output, ElementRef, OnChange
 import * as d3 from 'd3';
 import { OnDestroy } from '@angular/core';
 import { Well } from 'app/models/ce/well';
-import { Task } from '../../models/task';
+import { Task } from 'app/models/task';
 
 @Component({
   selector: 'mspat-well-ladder-editor',

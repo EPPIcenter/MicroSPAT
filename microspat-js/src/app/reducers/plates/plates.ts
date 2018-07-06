@@ -15,7 +15,7 @@ import { Well } from 'app/models/ce/well';
 import { Square } from 'app/models/square';
 import { Channel } from 'app/models/ce/channel';
 
-import { Trace, Legend } from 'app/components/plots/canvas';
+import { Trace, Legend } from 'app/containers/components/plots/canvas';
 import { Locus } from 'app/models/locus/locus';
 import { Task, IN_PROGRESS } from 'app/models/task';
 

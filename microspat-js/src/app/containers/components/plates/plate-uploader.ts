@@ -1,6 +1,6 @@
 import { Component, Input, EventEmitter, Output, ChangeDetectionStrategy } from '@angular/core';
 import { Ladder } from 'app/models/ce/ladder';
-import { Task } from '../../models/task';
+import { Task } from 'app/models/task';
 
 @Component({
   selector: 'mspat-plate-uploader',

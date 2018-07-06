@@ -4,7 +4,6 @@ import { Observable } from 'rxjs';
 import { tap, take, map, switchMap, mergeMap, filter } from 'rxjs/operators';
 
 import { PlateService } from 'app/services/ce/plate';
-import { WellService } from 'app/services/ce/well';
 
 import * as fromRoot from 'app/reducers';
 import * as fromPlates from 'app/reducers/plates/plates';
@@ -18,7 +17,7 @@ import { Plate } from 'app/models/ce/plate';
 import { Well } from 'app/models/ce/well';
 import { Ladder } from 'app/models/ce/ladder';
 import { Square } from 'app/models/square';
-import { Trace, Legend } from 'app/components/plots/canvas';
+import { Trace, Legend } from 'app/containers/components/plots/canvas';
 import { Locus } from 'app/models/locus/locus';
 import { Task } from 'app/models/task';
 import { MatCheckboxChange, MatSelectChange } from '@angular/material';

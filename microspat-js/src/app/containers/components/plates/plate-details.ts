@@ -2,7 +2,7 @@ import { Component, Input, EventEmitter, Output, ChangeDetectionStrategy } from 
 import { Plate } from 'app/models/ce/plate';
 import { Square } from 'app/models/square';
 import { OnChanges } from '@angular/core/src/metadata/lifecycle_hooks';
-import { Trace, Legend } from 'app/components/plots/canvas';
+import { Trace, Legend } from 'app/containers/components/plots/canvas';
 import { selectActivePlateDiagnosticLegend } from 'app/reducers/plates/plates';
 import { Well } from 'app/models/ce/well';
 import { Locus } from 'app/models/locus/locus';

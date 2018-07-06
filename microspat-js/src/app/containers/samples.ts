@@ -4,20 +4,20 @@ import { Observable } from 'rxjs';
 
 import * as fromRoot from 'app/reducers';
 import * as fromDB from 'app/reducers/db';
-import * as fromSample from 'app/reducers/samples/samples';
 import * as fromTasks from 'app/reducers/tasks';
+import * as fromSample from 'app/reducers/samples/samples';
+
 
 
 import * as samples from 'app/actions/samples';
-import { SampleService } from '../services/sample/sample';
+import { SampleService } from 'app/services/sample/sample';
 
 import { Sample } from 'app/models/sample/sample';
 import { Task } from 'app/models/task';
 import { EntityMap } from 'app/models/base';
-import { Channel } from 'app/models/ce/channel';
 import { Plate } from 'app/models/ce/plate';
 import { Locus } from 'app/models/locus/locus';
-import { Trace } from 'app/components/plots/canvas';
+import { Trace } from 'app/containers/components/plots/canvas';
 
 
 @Component({

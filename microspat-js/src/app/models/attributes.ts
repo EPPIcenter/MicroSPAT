@@ -34,5 +34,5 @@ export interface Flaggable {
 }
 
 export interface LocusSetAssociated {
-  locus_set: string;
+  locus_set: number;
 }

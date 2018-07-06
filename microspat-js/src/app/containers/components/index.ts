@@ -33,6 +33,8 @@ import { SampleUploaderComponent } from './samples/sample-uploader';
 
 import { TaskDisplayComponent } from './task-progress';
 import { SampleDetailsComponent } from './samples/sample-details';
+import { BinEstimatorListComponent } from './bin-estimators/bin-estimator-list';
+import { BinEstimatorDetailsComponent } from './bin-estimators/bin-estimator-details';
 
 
 export const COMPONENTS = [
@@ -52,6 +54,8 @@ export const COMPONENTS = [
   SampleListComponent,
   SampleUploaderComponent,
   SampleDetailsComponent,
+  BinEstimatorListComponent,
+  BinEstimatorDetailsComponent,
   TraceDisplayComponent,
   FileInputComponent,
   TaskDisplayComponent

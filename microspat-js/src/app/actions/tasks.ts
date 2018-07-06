@@ -1,8 +1,7 @@
 import { Action } from '@ngrx/store';
-import { Task, StartTask, SuccessfulTask, FailedTask, InProgressTask, ServerTask } from 'app/models/task';
+import { StartTask, SuccessfulTask, FailedTask, InProgressTask, ServerTask } from 'app/models/task';
 import { MatDialogRef } from '@angular/material';
-import { TaskDisplayComponent } from '../components/task-progress';
-import { TaskComponent } from '../containers/task-progresss';
+import { TaskComponent } from 'app/containers/task-progresss';
 
 export const REGISTER_TASK = '[Task] Register Task';
 export const SET_TASK = '[Task] Set Task';

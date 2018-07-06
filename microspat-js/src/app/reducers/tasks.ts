@@ -2,8 +2,6 @@ import { Task, InProgressTask, START, IN_PROGRESS } from 'app/models/task';
 import * as TaskActions from 'app/actions/tasks';
 import { createFeatureSelector, Action } from '@ngrx/store';
 import { createSelector } from 'reselect';
-import { MatDialogRef } from '@angular/material';
-import { TaskDisplayComponent } from '../components/task-progress';
 
 export interface State {
   tasks: {

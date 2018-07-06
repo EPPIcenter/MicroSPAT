@@ -9,6 +9,7 @@ import * as fromLadders from './ladders/ladders';
 import * as fromLoci from './loci/loci';
 import * as fromLocusSets from './locus-sets/locus-sets';
 import * as fromSamples from './samples/samples';
+import * as fromBinEstimators from './bin-estimators/bin-estimators';
 import * as fromKeyboard from './keyboard';
 import * as fromTasks from './tasks';
 
@@ -19,6 +20,7 @@ export interface AppState {
   loci: fromLoci.State;
   locusSets: fromLocusSets.State;
   samples: fromSamples.State;
+  binEstimators: fromBinEstimators.State;
   keyboard: fromKeyboard.State;
   tasks: fromTasks.State
 }
@@ -47,6 +49,7 @@ export class AppReducer {
       loci: fromLoci.reducer,
       locusSets: fromLocusSets.reducer,
       samples: fromSamples.reducer,
+      binEstimators: fromBinEstimators.reducer,
       keyboard: fromKeyboard.reducer,
       tasks: fromTasks.reducer
     };

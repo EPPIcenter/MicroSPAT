@@ -1,5 +1,5 @@
 import { Component, ChangeDetectionStrategy, OnChanges, SimpleChanges, Input, ElementRef } from '@angular/core';
-import { Trace, MspatSVGCanvas, MspatCanvasConfig, Legend } from 'app/components/plots/canvas';
+import { Trace, MspatSVGCanvas, MspatCanvasConfig, Legend } from 'app/containers/components/plots/canvas';
 import * as d3 from 'd3';
 
 @Component({

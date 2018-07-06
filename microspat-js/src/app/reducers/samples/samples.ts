@@ -1,15 +1,14 @@
 import { createSelector, createFeatureSelector } from '@ngrx/store';
-
-import { Sample } from 'app/models/sample/sample';
+import * as d3 from 'd3';
 
 import * as fromDB from 'app/reducers/db';
-import * as SampleActions from 'app/actions/samples';
 import * as DBActions from 'app/actions/db';
-import { LoadingChannelAction } from '../../actions/plates';
-import { Trace } from 'app/components/plots/canvas';
+import * as SampleActions from 'app/actions/samples';
+
+import { Sample } from 'app/models/sample/sample';
+import { Trace } from 'app/containers/components/plots/canvas';
 import { Locus } from 'app/models/locus/locus';
 import { Well } from 'app/models/ce/well';
-import * as d3 from 'd3';
 import { EntityMap } from 'app/models/base';
 import { Plate } from 'app/models/ce/plate';
 import { Channel } from 'app/models/ce/channel';
@@ -221,7 +220,7 @@ export const selectActiveRange = createSelector(selectActiveDomain, selectActive
   const [min_base_size, max_base_size] = domain;
   const data = trace.data;
 
-  return data.reduce((prev: [number, number], next) => {
+  const range = data.reduce((prev: [number, number], next) => {
     const [curr_min, curr_max] = prev;
     const [base_size, intensity] = next;
     if (base_size >= min_base_size && base_size <= max_base_size) {
@@ -232,6 +231,12 @@ export const selectActiveRange = createSelector(selectActiveDomain, selectActive
       }
     }
     return prev;
-  }, [0, 100])
+  }, [-100, 100])
+
+  range[0] = Math.min(1.1 * range[0], .9 * range[0]);
+  range[1] = 1.1 * range[1];
+
+  return range;
+
 })
 

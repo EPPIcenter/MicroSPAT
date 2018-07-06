@@ -1,11 +1,10 @@
 import { Component, ChangeDetectionStrategy, Input, EventEmitter, Output } from '@angular/core';
 import { Sample } from 'app/models/sample/sample';
-import { Channel } from 'app/models/ce/channel';
 import { Locus } from 'app/models/locus/locus';
 import { Trace } from '../plots/canvas';
 import { Plate } from 'app/models/ce/plate';
-import { EntityMap } from '../../models/base';
-import { ChannelsByLocus } from '../../reducers/samples/samples';
+import { EntityMap } from 'app/models/base';
+import { ChannelsByLocus } from 'app/reducers/samples/samples';
 
 
 @Component({
@@ -142,13 +141,5 @@ export class SampleDetailsComponent {
   @Output() selectChannel: EventEmitter<number> = new EventEmitter();
 
   public displayedColumns = ['plateLabel', 'wellLabel', 'lastUpdated', 'sizingQuality'];
-
-  ngOnChanges(c) {
-    console.log("Sample Details", c);
-  }
-
-  // selectChannel(r) {
-  //   console.log(r);
-  // }
 
 }

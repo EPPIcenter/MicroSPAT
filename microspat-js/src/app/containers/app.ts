@@ -1,18 +1,15 @@
 import { Component } from '@angular/core';
-import { Store } from '@ngrx/store';
 import { ChangeDetectionStrategy } from '@angular/core';
-import { Observable } from 'rxjs';
-import { Plate } from 'app/models/ce/plate';
-import * as fromRoot from 'app/reducers';
+
 import { PlateService } from 'app/services/ce/plate';
 import { WellService } from 'app/services/ce/well';
 import { ChannelService } from 'app/services/ce/channel';
 import { LocusService } from 'app/services/locus/locus';
 import { KeyboardService } from 'app/services/keyboard';
-import * as plates from 'app/actions/plates';
 import { LadderService } from 'app/services/ce/ladder';
-import { LocusSetService } from '../services/locus/locus-set';
-import { SampleService } from '../services/sample/sample';
+import { LocusSetService } from 'app/services/locus/locus-set';
+import { SampleService } from 'app/services/sample/sample';
+import { BinEstimatorProjectService } from 'app/services/bin-estimator/project';
 
 @Component({
   selector: 'mspat-app',
@@ -20,7 +17,7 @@ import { SampleService } from '../services/sample/sample';
   template: `
     <div class="container-fluid mspat-container">
       <div class="row">
-        <div class="col-1 bg-light sidebar">
+        <div class="col-1 bg-light sidebar mat-elevation-z6">
           <mspat-sidenav></mspat-sidenav>
         </div>
         <div role="main" class="col-11 ml-sm-auto pt-3">
@@ -33,6 +30,7 @@ import { SampleService } from '../services/sample/sample';
 export class AppComponent {
   constructor(
     private keyboardService: KeyboardService,
+    private binEstimatorProjectService: BinEstimatorProjectService,
     private plateService: PlateService,
     private wellService: WellService,
     private channelService: ChannelService,
@@ -42,6 +40,7 @@ export class AppComponent {
     private sampleService: SampleService
 
 ) {
+    this.binEstimatorProjectService.list();
     this.plateService.list();
     this.ladderService.list();
     this.locusService.list();

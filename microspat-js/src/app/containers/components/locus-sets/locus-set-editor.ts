@@ -1,31 +1,47 @@
-import { Component, ChangeDetectionStrategy, OnChanges,
-         Input, EventEmitter, Output, ViewChild,
-         SimpleChanges, OnInit } from '@angular/core';
+import { Component, ChangeDetectionStrategy,
+         OnChanges, Input, EventEmitter,
+         Output, ViewChild, SimpleChanges, OnInit } from '@angular/core';
 import {MatSort, MatTableDataSource} from '@angular/material';
 import { SelectionModel } from '@angular/cdk/collections';
 
-import { LocusSet } from 'app/models/locus/locus-set';
-import { Locus } from 'app/models/locus/locus';
 import { Task } from 'app/models/task';
+import { Locus } from 'app/models/locus/locus';
+
 
 @Component({
-  selector: 'mspat-locus-set-details',
+  selector: 'mspat-locus-set-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <mat-card>
       <mat-card-header>
-        <h3>Locus Set Details</h3>
+        <h3>Create New Locus Set</h3>
       </mat-card-header>
       <mat-card-content>
         <mat-divider [inset]='true'></mat-divider>
         <div class="form-fields">
           <mat-form-field [floatLabel]="'always'">
             <mat-label>Locus Set Label</mat-label>
-            <input type="text" matInput [disabled]='true' [value]="locusSet.label">
+            <input type="text" matInput [(ngModel)]="locusSetLabel">
           </mat-form-field>
         </div>
-        <div class="locus-table mat-elevation-z8">
+        <div class="locus-table mat-elevation-z1">
           <table mat-table [dataSource]="dataSource" matSort>
+            <ng-container matColumnDef="select">
+              <th mat-header-cell *matHeaderCellDef>
+                <mat-checkbox (change) = "$event ? masterToggle() : null"
+                              [checked] = "selection.hasValue() && isAllSelected()"
+                              [disabled] = "activeTasks.length > 0"
+                              [indeterminate] = "selection.hasValue() && !isAllSelected()">
+                </mat-checkbox>
+              </th>
+              <td mat-cell *matCellDef = "let row">
+                <mat-checkbox (click) = "$event.stopPropagation()"
+                              (change) = "$event ? selection.toggle(row) : null"
+                              [disabled] = "activeTasks.length > 0"
+                              [checked] = "selection.isSelected(row)">
+                </mat-checkbox>
+              </td>
+            </ng-container>
 
             <ng-container matColumnDef="label">
               <th mat-header-cell *matHeaderCellDef mat-sort-header> Label </th>
@@ -57,10 +73,9 @@ import { Task } from 'app/models/task';
           </table>
         </div>
         <mat-card-actions>
-          <button mat-raised-button color="primary"[disabled]="activeTasks.length > 0" (click)="cancel.emit()">CANCEL</button>
-          <button mat-raised-button color="warn" [disabled]="activeTasks.length > 0" (click)="deletePressed()">DELETE</button>
+          <button mat-raised-button color="primary" [disabled]="activeTasks.length > 0" (click)="submitPressed()">SUBMIT</button>
         </mat-card-actions>
-        <mat-card-footer>
+        <mat-card-footer *ngIf="activeLocusSetTask || failedLocusSetTask">
           <mspat-task-progress-display *ngIf="activeLocusSetTask" [task]="activeLocusSetTask"></mspat-task-progress-display>
           <mspat-task-progress-display *ngIf="failedLocusSetTask" [task]="failedLocusSetTask"></mspat-task-progress-display>
         </mat-card-footer>
@@ -99,41 +114,56 @@ import { Task } from 'app/models/task';
 
   `]
 })
-export class LocusSetDetailsComponent implements OnChanges, OnInit {
-  @Input() locusDict: {[id: string]: Locus};
-  @Input() locusSet: LocusSet;
+export class LocusSetEditorComponent implements OnChanges, OnInit {
+
+  private locusSetLabel: string;
+  private selection: SelectionModel<Locus>;
+
+  @ViewChild(MatSort) sort: MatSort;
+  @Input() loci: Locus[];
   @Input() activeTasks: Task[] = [];
   @Input() activeLocusSetTasks: Task[] = [];
   @Input() failedLocusSetTasks: Task[] = [];
-  @Output() cancel = new EventEmitter();
-  @Output() delete = new EventEmitter();
+  @Output() submit: EventEmitter<{label: string; loci: number[]}> = new EventEmitter();
 
-  @ViewChild(MatSort) sort: MatSort;
-  private selection: SelectionModel<Locus>;
   private dataSource: MatTableDataSource<Locus>;
-
-  public displayedColumns = ['label', 'min_base_length', 'max_base_length',
-                             'nucleotide_repeat_length', 'color'];
+  public displayedColumns = ['select', 'label', 'min_base_length', 'max_base_length', 'nucleotide_repeat_length', 'color'];
 
   constructor() {
     const initialSelection = [];
     const allowMultiSelect = true;
     this.selection = new SelectionModel<Locus>(allowMultiSelect, initialSelection);
-    this.dataSource = new MatTableDataSource();
+    this.dataSource = new MatTableDataSource(this.loci);
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if (changes.loci || changes.locusSet) {
-      this.dataSource.data = this.locusSet.loci.map(id => this.locusDict[id]);
+    if (changes.loci) {
+      this.dataSource.data = this.loci;
+      console.log(this.dataSource);
     }
-  }
-
-  deletePressed() {
-    this.delete.emit(this.locusSet.id);
   }
 
   ngOnInit() {
     this.dataSource.sort = this.sort;
+  }
+
+  isAllSelected() {
+    const numSelected = this.selection.selected.length;
+    const numRows = this.dataSource.data.length;
+    return numSelected === numRows;
+  }
+
+  masterToggle() {
+    this.isAllSelected() ?
+    this.selection.clear() :
+    this.dataSource.data.forEach(row => this.selection.select(row));
+  }
+
+  submitPressed() {
+    this.submit.emit({
+      label: this.locusSetLabel,
+      loci: this.selection.selected.map(l => +l.id)
+    })
   }
 
   get activeLocusSetTask() {
@@ -143,4 +173,5 @@ export class LocusSetDetailsComponent implements OnChanges, OnInit {
   get failedLocusSetTask() {
     return this.failedLocusSetTasks.length > 0 ? this.failedLocusSetTasks[0] : false;
   }
+
 }

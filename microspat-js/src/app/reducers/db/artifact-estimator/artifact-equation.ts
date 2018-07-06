@@ -1,6 +1,11 @@
 import { ArtifactEquation } from 'app/models/artifact-estimator/artifact-equation';
 import { generateReducer } from 'app/reducers/db/dbReducer';
 
+// Redo the following implementation
+// export interface State extends StateInterface<ArtifactEquation> {}
+// export const MODEL = 'artifact_equation';
+// export const initialState: State = generateState();
+// export const reducer = generateReducer(MODEL, initialState);
 
 export const MODEL = 'artifact_equation';
 

@@ -1,24 +1,23 @@
 import * as db from 'app/actions/db';
-import { createSelector } from 'reselect';
-import { EntityMap } from '../../models/base';
+import { EntityMap } from 'app/models/base';
 
-export interface State {
+export interface State<T> {
   ids: string[];
-  entities: EntityMap<any>;
+  entities: EntityMap<T>;
   pendingRequests: {[id: number]: string};
 }
 
-export const getEntities = (state: State) => state.entities;
-export const getIds = (state: State) => state.ids;
-export const getPendingRequests = (state: State) => state.pendingRequests;
-export const getList = (state: State) => {
+export const getEntities = (state: State<any>) => state.entities;
+export const getIds = (state: State<any>) => state.ids;
+export const getPendingRequests = (state: State<any>) => state.pendingRequests;
+export const getList = (state: State<any>) => {
   const items = [];
   Object.keys(state.entities).forEach(k => items.push(state.entities[k]));
   return items;
 };
 
 export function generateReducer(model: string, initialState: any, listDetailed: boolean = false) {
-  return function reducer(state = initialState, action: db.Actions): State {
+  return function reducer(state = initialState, action: db.Actions): State<any> {
     if ('payload' in action && action.payload !== null && action.payload.model === model) {
       switch (action.type) {
 
@@ -106,4 +105,12 @@ export function generateReducer(model: string, initialState: any, listDetailed: 
       return state;
     }
   };
+}
+
+export function generateState(): State<any> {
+  return {
+    ids: [],
+    pendingRequests: {},
+    entities: {}
+  }
 }

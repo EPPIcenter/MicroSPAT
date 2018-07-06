@@ -1,5 +1,5 @@
 import { BaseModel } from '../base';
-import { LocusSetAssociated, TimeStamped } from '../attributes';
+import { LocusSetAssociated } from '../attributes';
 
 export interface Project extends BaseModel, LocusSetAssociated {
   title: string;
@@ -9,5 +9,4 @@ export interface Project extends BaseModel, LocusSetAssociated {
   channel_annotations: string[];
   discrimminator: string;
   locus_parameters: string[];
-  _detailed: boolean;
 }
