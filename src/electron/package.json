@@ -1,0 +1,20 @@
+{
+  "name": "microspat",
+  "version": "1.0.0",
+  "description": "Microsatellite Paramaterized Analysis Tools",
+  "main": "main.js",
+  "repository": "https://github.com/greenhouse-lab/microSPAT",
+  "keywords": [
+    "capillary",
+    "electrophoresis",
+    "microsatellite",
+    "RFLP",
+    "malaria",
+    "CE"
+  ],
+  "author": {
+    "name": "Maxwell Murphy",
+    "email": "murphy2122@berkeley.edu"
+  },
+  "license": "MIT"
+}

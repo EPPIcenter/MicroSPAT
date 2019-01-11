@@ -1,0 +1,19 @@
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-1 sidebar">
+            <ul class="nav nav-sidebar">
+                <li><a [routerLink]="['Plate']">Plates</a></li>
+                <li><a [routerLink]="['Sample']">Samples</a></li>
+                <li><a [routerLink]="['GenotypingProject']">Genotyping Projects</a></li>
+                <li><a [routerLink]="['ArtifactEstimatingProject']">Artifact Estimators</a></li>
+                <li><a [routerLink]="['BinEstimatorProject']">Bin Estimators</a></li>
+                <li><a [routerLink]="['Locus']">Loci</a></li>
+                <li><a [routerLink]="['LocusSet']">Locus Sets</a></li>
+                <li><a [routerLink]="['Ladder']">Ladders</a></li>
+            </ul>
+        </div>
+        <div class="col-sm-11 col-sm-offset-1 main">
+            <router-outlet></router-outlet>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,30 @@
+{
+  "name": "microspat",
+  "version": "1.0.0",
+  "scripts": {
+    "dist-mac": "electron-builder -m",
+    "dist-win": "electron-builder -w",
+    "dist": "electron-builder -m -w"
+  },
+  "devDependencies": {
+    "electron": "^2.0.8",
+    "electron-builder": "^20.38.4"
+  },
+  "build": {
+    "productName": "MicroSPAT",
+    "directories": {
+      "app": "app",
+      "output": "dist"
+    },
+    "asarUnpack": [
+      "**/*"
+    ],
+    "compression": "maximum",
+    "mac": {
+      "target": "dmg"
+    },
+    "win": {
+      "target": "nsis"
+    }
+  }
+}

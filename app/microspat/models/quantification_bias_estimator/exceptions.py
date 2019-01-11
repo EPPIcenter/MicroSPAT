@@ -1,2 +1,0 @@
-class BadProportions(Exception):
-    pass

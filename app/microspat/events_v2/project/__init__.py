@@ -1,2 +1,0 @@
-import app.microspat.events_v2.project.channel_annotations
-import app.microspat.events_v2.project.sample_annotations
