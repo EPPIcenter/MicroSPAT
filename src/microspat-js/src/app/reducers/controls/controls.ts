@@ -174,7 +174,6 @@ export const selectActiveAlleleSets = createSelector(
     ctrl: Control, binEstimatorProj: BinEstimatorProject, binEstimatorProjects: EntityMap<BinEstimatorProject>,
     locusBinSets: EntityMap<LocusBinSet>, bins: EntityMap<Bin>, loci: EntityMap<Locus>
   ): AlleleSet[] => {
-    console.log(ctrl, binEstimatorProj);
     if (ctrl) {
       const be = binEstimatorProjects[<string> ctrl.bin_estimator];
       const alleleSets = be.locus_bin_sets.map(lbs_id => {

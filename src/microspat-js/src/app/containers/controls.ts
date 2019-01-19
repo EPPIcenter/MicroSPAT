@@ -83,8 +83,6 @@ export class ControlsComponent {
   }
 
   selectBinEstimator(id: number) {
-    console.log("select bin estimator")
-    console.log(id)
     this.store.dispatch(new controls.ActivateBinEstimatorProjectAction(id))
   }
 

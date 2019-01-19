@@ -117,8 +117,6 @@ export class LocusEditorComponent implements OnChanges {
   ngOnChanges(change: SimpleChanges) {
     if (this.locus) {
       this.setLocus(this.locus);
-    } else if (!this.locus) {
-      this.createForm();
     }
   }
 
@@ -158,6 +156,7 @@ export class LocusEditorComponent implements OnChanges {
     if (this.locusForm.valid) {
       const l = this.prepareSaveLocus();
       this.submit.emit(l);
+      this.createForm();
     }
   }
 

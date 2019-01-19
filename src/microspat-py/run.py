@@ -17,18 +17,17 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-# import flask as _
-# import numpy as __
 
 import multiprocessing
+import argparse
 from app import socketio, create_app, db
 
 
-def run_sockets(address='0.0.0.0:17328'):
-    app = create_app('production')
+def run_sockets(mode='production', address='127.0.0.1:17328'):
+    app = create_app(mode)
     auto_vacuum()
     host, port = address.split(':')
-    port = int(port) or 17328
+    port = int(port)
     print("Starting Application")
     socketio.run(app, host=host, port=port)
 
@@ -40,5 +39,9 @@ def auto_vacuum():
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--mode", type=str, default="production")
+    parser.add_argument("--address", type=str, default="127.0.0.1:17328")
     multiprocessing.freeze_support()
-    run_sockets()
+    args = parser.parse_args()
+    run_sockets(args.mode, args.address)

@@ -18,7 +18,6 @@ export class SampleService extends WebSocketBaseService<Sample> {
 
   uploadSamples(f: File) {
     this.uploadFile('upload_samples', f).subscribe(res => {
-      console.log('Uploading Samples');
     })
   }
 

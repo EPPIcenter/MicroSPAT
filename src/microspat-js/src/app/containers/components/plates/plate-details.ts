@@ -1,13 +1,13 @@
 import { Component, Input, EventEmitter, Output, ChangeDetectionStrategy } from '@angular/core';
-import { Plate } from '../../../models/ce/plate';
-import { Square } from '../../../models/square';
+import { Plate } from 'app/models/ce/plate';
+import { Square } from 'app/models/square';
 import { OnChanges } from '@angular/core/src/metadata/lifecycle_hooks';
 import { Trace, Legend } from '../plots/canvas';
-import { selectActivePlateDiagnosticLegend } from '../../../reducers/plates/plates';
-import { Well } from '../../../models/ce/well';
-import { Locus } from '../../../models/locus/locus';
-import { Ladder } from '../../../models/ce/ladder';
-import { Task } from '../../../models/task';
+import { selectActivePlateDiagnosticLegend } from 'app/reducers/plates/plates';
+import { Well } from 'app/models/ce/well';
+import { Locus } from 'app/models/locus/locus';
+import { Ladder } from 'app/models/ce/ladder';
+import { Task } from 'app/models/task';
 
 @Component({
   selector: 'mspat-plate-details',
@@ -145,7 +145,7 @@ import { Task } from '../../../models/task';
                 <mat-form-field class="locus-window-selector">
                   <mat-select placeholder="Select Locus"
                    [value]='selectedLocus'
-                   (selectionChange)='selectLocus.emit(+$event)'>
+                   (selectionChange)='selectLocus.emit($event)'>
                     <mat-option [value]='null'> None </mat-option>
                     <mat-optgroup [label]="'Active Loci'">
                       <mat-option *ngFor="let locus of activeLoci" [value]="locus.id">{{locus.label}} ({{locus.color}})</mat-option>

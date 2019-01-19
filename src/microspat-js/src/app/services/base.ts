@@ -54,6 +54,8 @@ export abstract class WebSocketBaseService<T> {
   constructor(
     namespace: string, store: Store<any>, protected http: HttpClient,
     debounceUpdateDelay = 500, debounceCreateDelay = 500, debounceDeleteDelay = 500) {
+      console.log("Instantiating WebSocket Service");
+      console.log(window);
       this.store = store;
       this.setNameSpace(namespace);
       this.initSocket(debounceUpdateDelay, debounceCreateDelay, debounceDeleteDelay);
@@ -170,7 +172,6 @@ export abstract class WebSocketBaseService<T> {
         default:
           console.error('Failed to process task', task);
       }
-      // console.log('Task Received: ', task);
     });
   }
 

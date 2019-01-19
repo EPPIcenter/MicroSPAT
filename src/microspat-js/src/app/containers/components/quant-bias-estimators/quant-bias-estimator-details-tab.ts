@@ -124,8 +124,6 @@ export class QuantificationBiasEstimatorProjectDetailsTabComponent {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    console.log("QBE Control Changes")
-    console.log(changes);
   }
 
   constructor() {}

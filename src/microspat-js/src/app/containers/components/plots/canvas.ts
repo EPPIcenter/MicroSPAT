@@ -306,7 +306,6 @@ export class MspatSVGCanvas {
         .style('stroke', (d: Circle) => d.outline)
         .attr('opacity', (d: Circle) => d.opacity)
         .on('mouseenter', function(d: Circle) {
-          console.log(d);
           if (d.peakAnnotation) {
             tip(d)
           }

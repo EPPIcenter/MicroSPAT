@@ -346,11 +346,19 @@ export const selectLadders = fromDB.selectLadderList;
 export const selectRenderableLadderInfo = createSelector(selectActivePlate, selectActiveWellId, fromDB.selectWellEntities, fromDB.selectLadderEntities,
   (activePlate: Plate, activeWellId, allWells: {[id: number]: Well}, allLadders: {[id: number]: Ladder}): Square[] => {
     if (activePlate == null) {
-      return null;
+      return [];
     };
     const squares = activePlate.wells.map(id => {
       const currWell: Well = allWells[id];
+      if (!currWell) {
+        return null;
+      }
+
       const currLadder: Ladder = allLadders[currWell.ladder];
+      if (!currLadder) {
+        return null;
+      }
+
       return {
         wellLabel: currWell.well_label,
         color: currWell.sizing_quality < currLadder.sq_limit ? '#5cb85c' : '#d9534f',
@@ -358,13 +366,13 @@ export const selectRenderableLadderInfo = createSelector(selectActivePlate, sele
         disabled: false,
         border: activeWellId === currWell.id ? 'blue' : null
       };
-    });
+    }).filter(s => s);
     return squares;
   });
 
 export const selectRenderableChannelInfo = createSelector(
   selectActivePlate, selectActiveChannelIds, fromDB.selectWellEntities, fromDB.selectChannelEntities, fromDB.selectLadderEntities,
-  (activePlate: Plate, activChannelIds, allWells: {[id: number]: Well}, allChannels: {[id: number]: Channel}, allLadders: {[id: number]: Ladder} ) => {
+  (activePlate: Plate, activeChannelIds, allWells: {[id: number]: Well}, allChannels: {[id: number]: Channel}, allLadders: {[id: number]: Ladder} ) => {
     if (activePlate == null) {
       return null;
     };
@@ -375,21 +383,24 @@ export const selectRenderableChannelInfo = createSelector(
     const renderableChannelInfo = {};
     activePlate.wells.forEach(wellId => {
       const well: Well = allWells[wellId];
-      const currLadder: Ladder = allLadders[well.ladder];
-      if (well == null) {
+      if (!well) {
         return null;
       }
+
+      const currLadder: Ladder = allLadders[well.ladder];
+
       well.channels.forEach(channelId => {
         const channel = allChannels[channelId];
-        if (channel == null) {
+        if (!channel) {
           return null;
         }
+
         const square = {
           wellLabel: well.well_label,
           color: color_scale(channel.max_data_point),
           id: channelId,
           disabled: well.sizing_quality > currLadder.sq_limit,
-          border: activChannelIds.indexOf(+channelId) !== -1 ? 'blue' : null
+          border: activeChannelIds.indexOf(+channelId) !== -1 ? 'blue' : null
         };
         if (!renderableChannelInfo[channel.color]) {
           renderableChannelInfo[channel.color] = [square];

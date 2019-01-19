@@ -1,6 +1,6 @@
 {
   "name": "microspat",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Microsatellite Paramaterized Analysis Tools",
   "main": "main.js",
   "repository": "https://github.com/greenhouse-lab/microSPAT",

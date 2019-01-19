@@ -109,8 +109,6 @@ export class QuantificationBiasEstimatorCreatorComponent {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    console.log("QBE Changes")
-    console.log(changes)
   }
 
   prepareSaveQuantificationBiasEstimator() {

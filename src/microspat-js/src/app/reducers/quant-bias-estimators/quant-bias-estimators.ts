@@ -181,15 +181,12 @@ export const selectActiveSamples = createSelector(
   fromDB.selectProjectSampleAnnotationsEntities,
   fromDB.selectSampleEntities,
   (qbeProject, projectSampleAnnotations: EntityMap<ProjectSampleAnnotations>, samples: EntityMap<Sample>) => {
-    console.log("Select Active samples");
     if (!qbeProject) {
       return [];
     }
     const activeSamples = qbeProject.sample_annotations
       .map(id => {
         const psa = projectSampleAnnotations[id];
-        console.log("Get Active Sample");
-        console.log(id, projectSampleAnnotations, psa);
         if (!psa) {
           return null;
         }
@@ -198,7 +195,6 @@ export const selectActiveSamples = createSelector(
       .filter(e => e != null);
 
     const tmp = qbeProject.sample_annotations.map(id => projectSampleAnnotations[id]);
-    console.log(activeSamples, qbeProject, tmp);
     return activeSamples;
   }
 )

@@ -245,6 +245,7 @@ export class LadderEditorComponent implements OnChanges {
     if (this.ladderForm.valid) {
       const l = this.prepareSaveLadder();
       this.submit.emit(l);
+      this.createForm();
     }
   }
 

@@ -16,21 +16,39 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-# Define the application directory
 import os
 import logging
 
-basedir = os.path.abspath(os.path.dirname(__file__))
+
+# Define the application directory
+version = '2.0.0'
+major_version = version.split('.')[0]
+
+app_dir = 'com.greenhouse.microspat'
+major_version_dir = 'v' + major_version
+basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+prod_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
 
 # Enable protection agains *Cross-site Request Forgery (CSRF)*
 CSRF_ENABLED = True
 
+if os.sys.platform == 'darwin':
+    APPDATA = os.path.join(os.environ.get('HOME'), 'Library', 'Application Support', app_dir, major_version_dir)
+elif os.sys.platform == 'win32':
+    APPDATA = os.path.join(os.environ.get('LOCALAPPDATA'), app_dir, major_version_dir)
+
+if not os.path.exists(APPDATA):
+    os.makedirs(APPDATA)
+
 
 class Config:
+    VERSION = version
+    MAJOR_VERSION = major_version
+
     DEBUG = False
     SECRET_KEY = os.environ.get('SECRET_KEY') or "secret"
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
-    SQLALCHEMY_RECORD_QUERIES = True
+    SQLALCHEMY_RECORD_QUERIES = False
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = False  # Echo SQL to the console
 
@@ -49,28 +67,25 @@ class Config:
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_RECORD_QUERIES = True
+    SQLALCHEMY_TRACK_MODIFICATIONS = True
 
-    if os.name == 'nt':
-        SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URL') or \
-                                  'sqlite:///' + os.path.join(basedir, 'win-data-dev.sqlite')
+    ASSETS_PATH = os.path.join(basedir, 'static')
+    DB_PATH = os.path.join(basedir, 'dev_microspat_db.sqlite')
 
-    else:
-        SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URL') or \
-                              'sqlite:///' + os.path.join(basedir, 'data-dev.sqlite')
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///' + DB_PATH
 
-
-    # SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'data-dev.sqlite')
-    # CELERY_RESULT_BACKEND = 'db+sqlite:///' + os.path.join(basedir, 'result-backend-dev.sqlite')
-
-
+    LOGGING_LOCATION = os.path.join(basedir, 'app.log')
     LOGGING_LEVEL = logging.DEBUG
 
 
 class ProductionConfig(Config):
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-                              'sqlite:///' + os.path.join(basedir, 'data-dev.sqlite')
+    ASSETS_PATH = os.path.join(prod_dir, 'static')
+    DB_PATH = os.path.join(APPDATA, 'microspat_db.sqlite')
 
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///' + DB_PATH
+
+    LOGGING_LOCATION = os.path.join(APPDATA, 'app.log')
     LOGGING_LEVEL = logging.ERROR
 
     @classmethod

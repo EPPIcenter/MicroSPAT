@@ -66,7 +66,6 @@ export class GenotypingProjectService extends WebSocketBaseService<GenotypingPro
       project_id: projectID
     })
     .subscribe(res => {
-      // console.log(res);
     })
   }
 
@@ -80,14 +79,12 @@ export class GenotypingProjectService extends WebSocketBaseService<GenotypingPro
   public getPeakData(projectID: number) {
     this.http.get(`${this.API_PATH}/${this.namespace}/${projectID}/get_peak_data/`, {responseType: 'blob'})
       .subscribe(res => {
-        // console.log(res);
       })
   }
 
   public getAlleles(projectID: number) {
     this.http.get(`${this.API_PATH}/${this.namespace}/${projectID}/get_alleles/`, {responseType: 'blob'})
       .subscribe(res => {
-        // console.log(res);
       });
   }
 

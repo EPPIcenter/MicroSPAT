@@ -147,10 +147,7 @@ export class QuantifiactionBiasEstimatorProjectControlsTabComponent implements O
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    console.log("QBE Control Changed")
-    console.log(changes);
     if (changes.activeSamples) {
-      console.log("Setting Samples")
       this.sampleDataSource.data = this.activeSamples;
     }
 

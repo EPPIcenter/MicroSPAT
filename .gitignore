@@ -199,3 +199,5 @@ fixtures/\.DS_Store
 microspat-js/node_modules
 
 node_modules/
+
+src/microspat-py/win32-pybuild/

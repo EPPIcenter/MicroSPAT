@@ -17,12 +17,23 @@ let mainWindow;
 
 const pids = [];
 
+// Need to move these to a config file
+const HOST = '127.0.0.1';
+const PORT = '17328';
+const ADDRESS = `${HOST}:${PORT}`
+const HTTP_ADDRESS = `http://${ADDRESS}`;
+
 function createWindow () {
   // Create the browser window.
 
   if (!mainWindow) {
-    mainWindow = new BrowserWindow({width: 800, height: 600, title: "SampleDB" })
+    mainWindow = new BrowserWindow({
+      width: 1280, 
+      height: 1024, 
+      title: "MicroSPAT",
+    });
   }
+
   
   mainWindow.loadURL(url.format({
     pathname: 'index.html',
@@ -31,7 +42,7 @@ function createWindow () {
   }));
 
   // Open the DevTools.
-  // mainWindow.webContents.openDevTools()
+  mainWindow.webContents.openDevTools()
 
   // Emitted when the window is closed.
   mainWindow.on('closed', function () {
@@ -41,7 +52,6 @@ function createWindow () {
     mainWindow = null
   })
 
-  // createWindow = () => {};
 }
 
 // This method will be called when Electron has finished
@@ -63,23 +73,24 @@ app.on('ready', () => {
     serverPath = serverPath.join("/");
   }
   
-  sampledb = spawn(path.join(serverPath, 'app.asar.unpacked', 'db-server', ps.platform, 'run', 'run'), options={
+  microspat = spawn(path.join(serverPath, 'app.asar.unpacked', 'mspat-server', ps.platform, 'run', 'run'), args=[`--address=${ADDRESS}`], options={
       env: env
   });
-  console.log(sampledb.pid);
-  pids.push(sampledb.pid);
 
-  // Make electron sever local files called from the app.
+  // console.log(microspat.pid);
+  pids.push(microspat.pid);
+
+  // Make electron serve local files called from the app.
   protocol.interceptFileProtocol('file', (request, callback) => {
     const item_url = request.url.substr(7);
-    callback({ path: path.normalize(`${__dirname}/db-app/${item_url}`)})
+    callback({ path: path.normalize(`${__dirname}/mspat-app/${item_url}`)})
   }, (err) => {
     if (err) console.error('Failed to register protocol');
   });
 
   
   let p = setInterval(() => {
-      http.get('http://localhost:17327/status', (response) => {
+      http.get(`${HTTP_ADDRESS}/status`, (response) => {
         response.on('data', (chunk) => {
           clearInterval(p);
           createWindow();
@@ -88,14 +99,12 @@ app.on('ready', () => {
         console.log("Failed");
       });
     }, 1000)
-  // createWindow();
 });
 
 // Quit when all windows are closed.
 app.on('window-all-closed', function () {
   // On OS X it is common for applications and their menu bar
   // to stay active until the user quits explicitly with Cmd + Q
-  // sampledb.kill();
   if (process.platform !== 'darwin') {
     app.quit()
   }

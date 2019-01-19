@@ -110,7 +110,6 @@ export class BinEstimatorListComponent implements OnChanges {
   }
 
   selectBinEstimatorAction(e) {
-    console.log(`Select Bin Estimator: ${e}, ${this.activeTasks.length === 0}`);
     if (this.activeTasks.length === 0) {
       this.selectBinEstimator.emit(e);
     }

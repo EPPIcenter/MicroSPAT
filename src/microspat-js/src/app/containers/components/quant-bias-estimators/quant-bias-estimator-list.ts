@@ -102,7 +102,6 @@ export class QuantificationBiasEstimatorListComponent implements OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    console.log(changes);
     if (changes.quantificationBiasEstimatorProjects) {
       this.dataSource.data = this.quantificationBiasEstimatorProjects;
     }

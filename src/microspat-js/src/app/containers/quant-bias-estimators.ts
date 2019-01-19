@@ -132,14 +132,10 @@ export class QuantificationBiasEstimatorsComponent {
   }
 
   deleteQuantificationBiasEstimatorProject(e: number) {
-    console.log("Deleting")
-    console.log(e);
     this.store.dispatch(new quantificationBiasEstimators.DeleteQuantificationBiasEstimatorProjectAction(e));
   }
 
   addControls(e: {file: File, project_id: number}) {
-    console.log("Add Controls File")
-    console.log(e);
     this.store.dispatch(new quantificationBiasEstimators.AddControlsAction(e));
   }
 
