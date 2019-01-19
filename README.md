@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/58004955.svg)](https://zenodo.org/badge/latestdoi/58004955)
+
 # MicroSPAT
 Microsatellite Parameterized Analysis Tools
 
