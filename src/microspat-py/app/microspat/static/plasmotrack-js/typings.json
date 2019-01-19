@@ -1,0 +1,13 @@
+{
+  "ambientDependencies": {
+    "es6-shim": "registry:dt/es6-shim#0.31.2+20160317120654",
+    "jasmine": "registry:dt/jasmine#2.2.0+20160412134438",
+    "node": "registry:dt/node#4.0.0+20160509154515"
+  },
+  "dependencies": {
+    "d3": "registry:npm/d3#3.0.0+20160211003958"
+  },
+  "globalDependencies": {
+    "toastr": "registry:dt/toastr#2.1.1+20160510010435"
+  }
+}
