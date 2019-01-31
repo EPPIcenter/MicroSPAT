@@ -9,20 +9,15 @@ export interface State {
   tasks: {
     [taskID: string]: Task
   }
-  // displayedTasks: {
-    // [taskID: string]: MatDialogRef<TaskDisplayComponent>
-  // }
+
 }
 
 const initialState: State = {
   tasks: {},
-  // displayedTasks: {}
 };
 
 export function reducer(state = initialState, action: TaskActions.Actions) {
   switch (action.type) {
-    // case TaskActions.REGISTER_TASK:
-    //   return registerTask(state, action);
     case TaskActions.SET_TASK:
       return setTask(state, action);
     case TaskActions.TASK_STARTED:
@@ -35,8 +30,7 @@ export function reducer(state = initialState, action: TaskActions.Actions) {
       return taskCompleted(state, action);
     case TaskActions.CLEAR_TASK:
       return clearTask(state, action);
-    // case TaskActions.ADD_DISPLAY_TASK:
-    //   return addDisplayTask(state, action);
+
     default:
       return state;
   }
@@ -96,23 +90,10 @@ function taskCompleted(state: State, action: TaskActions.TaskSuccessAction) {
 function clearTask(state: State, action: TaskActions.ClearTaskAction) {
   const taskId = action.payload;
   const {[taskId]: taskToRemove, ...remainingTasks} = state.tasks;
-  // const {[taskId]: displayedtaskToRemove, ...remainingDisplayedTasks} = state.displayedTasks;
   return Object.assign({}, state, {
     tasks: remainingTasks,
-    // displayedTasks: remainingDisplayedTasks
   });
 }
-
-// function addDisplayTask(state: State, action: TaskActions.AddDisplayTaskAction) {
-//   const taskID = action.payload.taskID;
-//   const displayRef = action.payload.displayRef
-//   const displayedTasks = Object.assign({}, state.displayedTasks, {
-//     [taskID]: displayRef
-//   });
-//   return Object.assign({}, state, {
-//     displayedTasks: displayedTasks
-//   })
-// }
 
 export const selectTasksState = createFeatureSelector<State>('tasks');
 

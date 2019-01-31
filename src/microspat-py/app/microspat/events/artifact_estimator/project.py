@@ -1,4 +1,6 @@
 import sqlite3
+from datetime import datetime
+
 import sqlalchemy.exc
 
 from app.microspat.schemas import (
@@ -12,6 +14,8 @@ from app.microspat.schemas import (
     DeferredSampleLocusAnnotationSchema,
     LocusArtifactEstimatorSchema,
 )
+
+from app.microspat import dict_schemas
 
 from app.microspat.models import (
     ArtifactEquation,
@@ -30,10 +34,11 @@ from app.microspat.models import (
 
 from app.microspat.events.base import (
     base_get_updated,
+    base_list,
     extract_ids,
     make_namespace,
     table_to_string_mapping,
-    TaskNotifier
+    TaskNotifier,
 )
 
 from app import socketio, db
@@ -52,6 +57,7 @@ SAMPLE_LOCUS_ANNOTATIONS_NAMESPACE = table_to_string_mapping[SampleLocusAnnotati
 PROJECT_CHANNEL_ANNOTATIONS_NAMESPACE = table_to_string_mapping[ProjectChannelAnnotations]
 
 project_schema = ArtifactEstimatorProjectSchema()
+project_dict_schema = dict_schemas.ArtifactEstimatorProjectSchema()
 channel_schema = DeferredChannelSchema(exclude="data")
 locus_params_schema = ArtifactEstimatorLocusParamsSchema()
 locus_artifact_estimator_schema = LocusArtifactEstimatorSchema()
@@ -61,39 +67,44 @@ project_sample_annotations_schema = DeferredProjectSampleAnnotationsSchema()
 sample_locus_annotations_schema = DeferredSampleLocusAnnotationSchema()
 project_channel_annotations_schema = DeferredProjectChannelAnnotationsSchema()
 
-socketio.on_event('get_updated',
-                  base_get_updated(ArtifactEstimatorProject, project_schema, project_schema, JSON_NAMESPACE),
+
+socketio.on_event('list', base_list(ArtifactEstimatorProject, project_dict_schema, JSON_NAMESPACE,
+                                    query=ArtifactEstimatorProject.get_serialized_list),
                   namespace=SOCK_NAMESPACE)
+# socketio.on_event('get_updated',
+#                   base_get_updated(ArtifactEstimatorProject, project_schema, project_schema, JSON_NAMESPACE),
+#                   namespace=SOCK_NAMESPACE)
 
 
-@socketio.on('list', namespace=SOCK_NAMESPACE)
-def list_artifact_estimator_projects():
-    projects = ArtifactEstimatorProject.query.all()
-    artifact_equations = ArtifactEquation.query.all()
-    locus_artifact_estimators = LocusArtifactEstimator.query.all()
-    locus_parameters = ArtifactEstimatorLocusParams.query.all()
+# @socketio.on('list', namespace=SOCK_NAMESPACE)
+# def list_artifact_estimator_projects():
+#     projects = ArtifactEstimatorProject.query.all()
+#     artifact_equations = ArtifactEquation.query.all()
+#     locus_artifact_estimators = LocusArtifactEstimator.query.all()
+#     locus_parameters = ArtifactEstimatorLocusParams.query.all()
+#
+#     artifact_equations_dump = artifact_equation_schema.dumps(artifact_equations, many=True)
+#     socketio.emit('get', {ARTIFACT_EQUATION_NAMESPACE: artifact_equations_dump.data},
+#                   namespace=make_namespace(ARTIFACT_EQUATION_NAMESPACE))
+#     socketio.sleep()
+#
+#     locus_artifact_estimators_dump = locus_artifact_estimator_schema.dumps(locus_artifact_estimators, many=True)
+#     socketio.emit('get', {LOCUS_ARTIFACT_ESTIMATOR_NAMESPACE: locus_artifact_estimators_dump.data},
+#                   namespace=make_namespace(LOCUS_ARTIFACT_ESTIMATOR_NAMESPACE))
+#     socketio.sleep()
+#
+#     locus_params_dump = locus_params_schema.dumps(locus_parameters, many=True)
+#     socketio.emit('get', {LOCUS_PARAMS_NAMESPACE: locus_params_dump.data},
+#                   namespace=make_namespace(LOCUS_PARAMS_NAMESPACE))
+#     socketio.sleep()
+#
+#     project_dump = project_schema.dumps(projects, many=True)
+#     socketio.emit('list', {PROJECT_NAMESPACE: project_dump.data},
+#                   namespace=make_namespace(PROJECT_NAMESPACE))
+#     socketio.sleep()
 
-    artifact_equations_dump = artifact_equation_schema.dumps(artifact_equations, many=True)
-    socketio.emit('get', {ARTIFACT_EQUATION_NAMESPACE: artifact_equations_dump.data},
-                  namespace=make_namespace(ARTIFACT_EQUATION_NAMESPACE))
-    socketio.sleep()
 
-    locus_artifact_estimators_dump = locus_artifact_estimator_schema.dumps(locus_artifact_estimators, many=True)
-    socketio.emit('get', {LOCUS_ARTIFACT_ESTIMATOR_NAMESPACE: locus_artifact_estimators_dump.data},
-                  namespace=make_namespace(LOCUS_ARTIFACT_ESTIMATOR_NAMESPACE))
-    socketio.sleep()
-
-    locus_params_dump = locus_params_schema.dumps(locus_parameters, many=True)
-    socketio.emit('get', {LOCUS_PARAMS_NAMESPACE: locus_params_dump.data},
-                  namespace=make_namespace(LOCUS_PARAMS_NAMESPACE))
-    socketio.sleep()
-
-    project_dump = project_schema.dumps(projects, many=True)
-    socketio.emit('list', {PROJECT_NAMESPACE: project_dump.data},
-                  namespace=make_namespace(PROJECT_NAMESPACE))
-    socketio.sleep()
-
-
+@socketio.on('get_updated', namespace=SOCK_NAMESPACE)
 @socketio.on('get', namespace=SOCK_NAMESPACE)
 def get_artifact_estimator_project(json):
     ids = extract_ids(json)
@@ -298,6 +309,9 @@ def add_samples(json):
     })
 
     project.add_samples(sample_ids)
+
+    project.last_updated = datetime.utcnow()
+
     task_notifier.emit_task_success(message="Successfully Added Samples.")
 
 
@@ -332,6 +346,9 @@ def remove_samples(json):
     })
 
     project.remove_samples(sample_ids)
+
+    project.last_updated = datetime.utcnow()
+
     task_notifier.emit_task_success(message="Successfully Removed Samples.")
 
 
@@ -380,7 +397,9 @@ def analyze_loci(json):
         project.analyze_locus(lp.locus_id)
         socketio.sleep()
 
-    task_notifier.emit_task_success("Succesfully Analyzed All Loci")
+    project.last_updated = datetime.utcnow()
+
+    task_notifier.emit_task_success("Successfully Analyzed All Loci")
 
 
 @socketio.on('add_breakpoint', namespace=SOCK_NAMESPACE)

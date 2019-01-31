@@ -62,14 +62,14 @@ def build_win_server():
 
 
     # Currently must build manually on windows, looking into setting up vagrant based build pipeline.
-    # pyinstaller -y --clean --distpath build\win32 --workpath win32-pybuild --log-level DEBUG --hidden-import engineio.async_drivers.eventlet --hidden-import sklearn.neighbors.typedefs --hidden-import sklearn.neighbors.quad_tree --hidden-import sklearn.tree --hidden-import sklearn.tree._utils --hidden-import numpy.core._dtype_ctypes --additional-hooks-dir=additional_hooks run.py
+    # pyinstaller -y --clean --distpath build\win32 --workpath win32-pybuild --log-level WARN --hidden-import scipy.sparse.csr --hidden-import engineio.async_drivers.eventlet --hidden-import sklearn.neighbors.typedefs --hidden-import sklearn.neighbors.quad_tree --hidden-import sklearn.tree --hidden-import sklearn.tree._utils --hidden-import numpy.core._dtype_ctypes --additional-hooks-dir=additional_hooks run.py
 
     # if os.path.exists(os.path.join(SERVER_BUILD_PATH, 'win32')):
     #     shutil.rmtree(os.path.join(SERVER_BUILD_PATH, 'win32'))
 
     # os.system("pip install -q -r {}".format(os.path.join(SERVER_SRC_PATH, 'requirements.txt')))
     # os.system(
-    #     f"pyinstaller -y --clean --distpath {os.path.join(SERVER_BUILD_PATH, 'win32')} --workpath {SERVER_WORKING_BUILD_PATH_WIN32} --log-level DEBUG --hidden-import engineio.async_drivers.gevent --hidden-import sklearn.neighbors.typedefs --hidden-import sklearn.neighbors.quad_tree --hidden-import sklearn.tree --hidden-import sklearn.tree._utils --additional-hooks-dir=additional_hooks {os.path.join(SERVER_SRC_PATH, 'run.py')}"
+    #     f"pyinstaller -y --clean --distpath {os.path.join(SERVER_BUILD_PATH, 'win32')} --workpath {SERVER_WORKING_BUILD_PATH_WIN32} --log-level WARN --hidden-import engineio.async_drivers.gevent --hidden-import sklearn.neighbors.typedefs --hidden-import sklearn.neighbors.quad_tree --hidden-import sklearn.tree --hidden-import sklearn.tree._utils --additional-hooks-dir=additional_hooks {os.path.join(SERVER_SRC_PATH, 'run.py')}"
     # )
 
 def build_darwin_server():
@@ -77,7 +77,7 @@ def build_darwin_server():
         print("Building Mac Server...")
         os.system(f"pip install -q -r {os.path.join(SERVER_SRC_PATH, 'requirements.txt')}")
         os.system(
-            f"pyinstaller -y --clean --distpath {os.path.join(SERVER_BUILD_PATH, 'darwin')} --workpath {SERVER_WORKING_BUILD_PATH_DARWIN} --log-level DEBUG --hidden-import engineio.async_drivers.eventlet --hidden-import sklearn.neighbors.typedefs --hidden-import sklearn.neighbors.quad_tree --hidden-import sklearn.tree --hidden-import sklearn.tree._utils --hidden-import numpy.core._dtype_ctypes --additional-hooks-dir={os.path.join(SERVER_SRC_PATH, 'additional_hooks')} {os.path.join(SERVER_SRC_PATH, 'run.py')}"
+            f"pyinstaller -y --clean --distpath {os.path.join(SERVER_BUILD_PATH, 'darwin')} --workpath {SERVER_WORKING_BUILD_PATH_DARWIN} --log-level WARN --hidden-import engineio.async_drivers.eventlet --hidden-import sklearn.neighbors.typedefs --hidden-import sklearn.neighbors.quad_tree --hidden-import sklearn.tree --hidden-import sklearn.tree._utils --hidden-import numpy.core._dtype_ctypes --additional-hooks-dir={os.path.join(SERVER_SRC_PATH, 'additional_hooks')} {os.path.join(SERVER_SRC_PATH, 'run.py')}"
         )
     else:
         raise Exception("Cannot compile darwin on non-darwin system.")

@@ -63,10 +63,10 @@ def set_last_updated(_, __, target):
 
 
 def notify_updated(mapper, conn, target):
-    _notify_object_updated(target)
+    notify_object_updated(target)
 
 
-def _notify_object_updated(target, ignore_classes=None):
+def notify_object_updated(target, ignore_classes=None):
     if not ignore_classes:
         ignore_classes = set()
     target_class = target.__class__
@@ -140,9 +140,9 @@ def notify_parent_updated(_, __, target):
         if related_objs:
             try:
                 for obj in related_objs:
-                    _notify_object_updated(obj)
+                    notify_object_updated(obj)
             except TypeError:
-                _notify_object_updated(related_objs)
+                notify_object_updated(related_objs)
 
 
 monitor_create_classes = (
@@ -156,7 +156,7 @@ monitor_create_classes = (
     # Channel,
     Control,
     ControlSampleAssociation,
-    Genotype,
+    # Genotype,
     GenotypingLocusParams,
     GenotypingProject,
     Ladder,
@@ -165,12 +165,12 @@ monitor_create_classes = (
     LocusBinSet,
     LocusSet,
     Plate,
-    ProjectChannelAnnotations,
-    ProjectSampleAnnotations,
+    # ProjectChannelAnnotations,
+    # ProjectSampleAnnotations,
     QuantificationBiasEstimatorLocusParams,
     QuantificationBiasEstimatorProject,
     Sample,
-    SampleLocusAnnotation,
+    # SampleLocusAnnotation,
     # Well
 )
 
@@ -185,7 +185,7 @@ monitor_update_classes = (
     Channel,
     Control,
     ControlSampleAssociation,
-    Genotype,
+    # Genotype,
     GenotypingLocusParams,
     GenotypingProject,
     Ladder,
@@ -194,12 +194,12 @@ monitor_update_classes = (
     LocusBinSet,
     LocusSet,
     Plate,
-    ProjectChannelAnnotations,
-    ProjectSampleAnnotations,
+    # ProjectChannelAnnotations,
+    # ProjectSampleAnnotations,
     QuantificationBiasEstimatorLocusParams,
     QuantificationBiasEstimatorProject,
     Sample,
-    SampleLocusAnnotation,
+    # SampleLocusAnnotation,
     Well
 )
 

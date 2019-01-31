@@ -70,8 +70,8 @@ export abstract class WebSocketBaseService<T> {
 
   protected initSocket(debounceUpdateDelay: number, debounceCreateDelay: number, debounceDeleteDelay: number): void {
     this.socket = io(this.getConnectionString(), {
-      // upgrade: false,
-      // transports: ['websocket'],
+      upgrade: false,
+      transports: ['websocket'],
       timeout: 2e12
     });
 
@@ -142,15 +142,18 @@ export abstract class WebSocketBaseService<T> {
     return `${this.SOCKET_PATH}/${this.namespace}`;
   }
 
-  protected registerTask(taskNamespace: string, store: Store<any>) {
+  protected registerTask(taskNamespace: string, store: Store<any>, cbHandler = (cb) => cb()) {
     store.dispatch(new RegisterTaskAction({namespace: this.namespace, task: taskNamespace}));
     this.taskStream[taskNamespace] = new Observable(observer => {
-      this.socket.on(taskNamespace, (data) => {
+      this.socket.on(taskNamespace, (data, cb) => {
         const task = Object.assign(data, {
           namespace: this.namespace,
           task: taskNamespace
-        })
+        });
         observer.next(task);
+        if (cb) {
+          cbHandler(cb);
+        }
       });
     });
 

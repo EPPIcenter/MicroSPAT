@@ -1,4 +1,3 @@
-import { GenotypingProjectEffects } from './effects/genotyping-projects';
 import { BrowserModule } from '@angular/platform-browser';
 import { NgModule, InjectionToken } from '@angular/core';
 import { HttpClientModule } from '@angular/common/http';
@@ -55,6 +54,7 @@ import { SampleEffects } from './effects/samples';
 import { BinEstimatorEffects } from './effects/bin-estimators';
 import { ArtifactEstimatorEffects } from './effects/artifact-estimators';
 import { QuantificationBiasEstimatorEffects } from './effects/quant-bias-estimators';
+import { GenotypingProjectEffects } from './effects/genotyping-projects';
 
 import { AppReducer, AppState } from './reducers';
 

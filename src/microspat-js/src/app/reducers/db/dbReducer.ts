@@ -78,7 +78,7 @@ function dbCreateReceivedDefault(state: State<any>, action: db.CreateReceivedAct
 
 function dbGetReceivedDefault(state: State<any>, action: db.GetReceivedAction) {
   const getReqEntities = action.payload.entities;
-  const newGetReqEntries = getReqEntities.filter(entity => !state.entities[entity.id] || !state.entities[entity.id].detailed || state.entities[entity.id].stale);
+  const newGetReqEntries = getReqEntities.filter(entity => !state.entities[entity.id] || !state.entities[entity.id].detailed || state.entities[entity.id].stale || state.entities[entity.id].last_updated < entity.last_updated);
 
   const newGetReqEntitiesIds = newGetReqEntries.filter(entity => !state.entities[entity.id]).map(entity => entity.id);
   const newGetReqEntities = newGetReqEntries.reduce((e: { [id: string]: any }, entity: any) => {

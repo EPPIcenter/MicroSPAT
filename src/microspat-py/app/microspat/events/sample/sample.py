@@ -24,7 +24,7 @@ sample_schema = SampleSchema()
 well_schema = WellSchema()
 channel_schema = ChannelSchema()
 
-socketio.on_event('list', base_list(Sample, sample_schema, SAMPLE_NAMESPACE),
+socketio.on_event('list', base_list(Sample, sample_schema, SAMPLE_NAMESPACE, query=Sample.get_serialized_list),
                   namespace=make_namespace(SAMPLE_NAMESPACE))
 socketio.on_event('get_updated', base_get_updated(Sample, sample_schema, sample_schema, SAMPLE_NAMESPACE),
                   namespace=make_namespace(SAMPLE_NAMESPACE))

@@ -1,7 +1,7 @@
 import { Component, ChangeDetectionStrategy, Input, Output, EventEmitter } from '@angular/core';
-import { ArtifactEstimatorProject } from '../../../models/artifact-estimator/project';
-import { LocusSet } from '../../../models/locus/locus-set';
-import { Task } from '../../../models/task';
+import { ArtifactEstimatorProject } from 'app/models/artifact-estimator/project';
+import { LocusSet } from 'app/models/locus/locus-set';
+import { Task } from 'app/models/task';
 
 @Component({
   selector: 'mspat-artifact-estimator-details-tab',
@@ -46,7 +46,7 @@ import { Task } from '../../../models/task';
           <div class="col-sm-12">
             <mat-form-field [floatLabel]="'always'">
               <mat-label>Locus Set</mat-label>
-              <input matInput [value]="locusSet.label" disabled="true">
+              <input matInput [value]="locusSet?.label" disabled="true">
             </mat-form-field>
           </div>
 

@@ -21,16 +21,20 @@ export class BaseDBEffects {
         select(fromDB.modelToEntity[updatedEntities.model]),
         take(1))
       .subscribe(entities => {
-          const toGet = updatedEntities.details.filter(detail => {
+        const toGet = updatedEntities.details
+          .filter(detail => {
             return entities[detail.id] && detail.last_updated > entities[detail.id].last_updated;
+          })
+          .map(detail => {
+            return entities[detail.id]
           });
-          const detailed = toGet.filter(k => k.detailed).map(k => k.id);
-          const undetailed = toGet.filter(k => !k.detailed).map(k => k.id);
-          if (toGet.length > 0) {
-            this.store.dispatch(new db.SetStaleAction({model: updatedEntities.model, ids: toGet}));
-            this.store.dispatch(new db.UpdateRequestedAction({model: updatedEntities.model, ids: detailed, detailed: true}));
-            this.store.dispatch(new db.UpdateRequestedAction({model: updatedEntities.model, ids: undetailed, detailed: false}));
-          }
+        const detailed = toGet.filter(k => k.detailed).map(k => k.id);
+        const undetailed = toGet.filter(k => !k.detailed).map(k => k.id);
+        if (toGet.length > 0) {
+          this.store.dispatch(new db.SetStaleAction({model: updatedEntities.model, ids: toGet}));
+          this.store.dispatch(new db.UpdateRequestedAction({model: updatedEntities.model, ids: detailed, detailed: true}));
+          this.store.dispatch(new db.UpdateRequestedAction({model: updatedEntities.model, ids: undetailed, detailed: false}));
+        }
       });
     })
   );

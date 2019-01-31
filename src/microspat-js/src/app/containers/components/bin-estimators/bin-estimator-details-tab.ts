@@ -46,7 +46,7 @@ import { Task } from '../../../models/task';
           <div class="col-sm-12">
             <mat-form-field [floatLabel]="'always'">
               <mat-label>Locus Set</mat-label>
-              <input matInput [value]="locusSet.label" disabled="true">
+              <input matInput [value]="locusSet?.label" disabled="true">
             </mat-form-field>
           </div>
 

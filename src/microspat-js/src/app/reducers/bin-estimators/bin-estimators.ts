@@ -282,7 +282,7 @@ export const selectActiveLocusID = createSelector(selectActiveLocusBinSet, (lbs)
 export const selectActiveLocus = createSelector(selectActiveLocusID, fromDB.selectLocusEntities, (locusID, loci) => loci[locusID]);
 
 export const selectActiveChannelAnnotations = createSelector(selectActiveBinEstimator, fromDB.selectProjectChannelAnnotationsEntities, (be, channelAnnotations) => {
-  if (!be) { return []; }
+  if (!be || !be.channel_annotations) { return []; }
   return be.channel_annotations.map(id => channelAnnotations[id]).filter(ca => ca != null);
 }) ;
 

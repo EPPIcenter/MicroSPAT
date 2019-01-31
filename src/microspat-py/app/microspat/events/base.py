@@ -52,40 +52,40 @@ class TaskNotifier(object):
     def generate_task_id():
         return str(uuid.uuid4())
 
-    def emit_task_failure(self, message=None):
+    def emit_task_failure(self, message=None, callback=None):
         socketio.emit(self.task, {
             'task_args': self.task_args,
             'status': 'failure',
             'id': self.task_id,
             'payload': message
-        }, namespace=self.namespace)
+        }, namespace=self.namespace, callback=callback)
         socketio.sleep()
 
-    def emit_task_success(self, message=None):
+    def emit_task_success(self, message=None, callback=None):
         socketio.emit(self.task, {
             'task_args': self.task_args,
             'status': 'success',
             'id': self.task_id,
             'payload': message
-        }, namespace=self.namespace)
+        }, namespace=self.namespace, callback=callback)
         socketio.sleep()
 
-    def emit_task_start(self, data=None):
+    def emit_task_start(self, data=None, callback=None):
         socketio.emit(self.task, {
             'task_args': self.task_args,
             'status': 'start',
             'id': self.task_id,
             'payload': data
-        }, namespace=self.namespace)
+        }, namespace=self.namespace, callback=callback)
         socketio.sleep()
 
-    def emit_task_progress(self, progress):
+    def emit_task_progress(self, progress, callback=None):
         socketio.emit(self.task, {
             'task_args': self.task_args,
             'status': 'in_progress',
             'id': self.task_id,
             'payload': progress
-        }, namespace=self.namespace)
+        }, namespace=self.namespace, callback=callback)
         socketio.sleep()
 
 

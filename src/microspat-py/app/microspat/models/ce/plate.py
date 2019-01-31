@@ -1,4 +1,5 @@
 import csv
+from collections import defaultdict
 from datetime import datetime
 
 from sqlalchemy.ext.mutable import MutableList
@@ -60,10 +61,12 @@ class Plate(ExtractedPlate, TimeStamped, Flaggable, db.Model):
         plates = cls.query.values(cls.id, cls.label, cls.creator, cls.date_processed, cls.date_run,
                                   cls.well_arrangement, cls.ce_machine, cls.plate_hash, cls.last_updated, cls.flags,
                                   cls.current, cls.voltage, cls.power, cls.temperature, cls.comments)
+        wells = Well.query.values(Well.id, Well.plate_id)
+        well_dict = defaultdict(list)
+        for well in wells:
+            well_dict[well[1]].append(well[0])
         res = []
         for p in plates:
-            wells = Well.query.filter(Well.plate_id == p[0]).values(Well.id)
-            wells = [_[0] for _ in wells]
             r = {'id': p[0],
                  'label': p[1],
                  'creator': p[2],
@@ -79,7 +82,7 @@ class Plate(ExtractedPlate, TimeStamped, Flaggable, db.Model):
                  'power': p[12],
                  'temperature': p[13],
                  'comments': p[14],
-                 'wells': wells}
+                 'wells': well_dict[p[0]]}
             res.append(r)
         return res
 

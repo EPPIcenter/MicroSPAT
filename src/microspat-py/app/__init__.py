@@ -32,7 +32,7 @@ def create_app(config_name):
     app.config.from_object(config[config_name])
     config[config_name].init_app(app)
 
-    socketio.init_app(app, ping_timeout=6000)
+    socketio.init_app(app, ping_timeout=600000, ping_interval=300000)  # Increased timeout because this is a desktop app
     app.logger.debug("SocketIO Initialized")
 
     db.app = app

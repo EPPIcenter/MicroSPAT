@@ -1,6 +1,6 @@
 from sqlalchemy.orm import make_transient, reconstructor
 
-from app import db
+from app import db, socketio
 from app.microspat.bin_finder import BinFinder as BinFinder
 from app.microspat.models.attributes import TimeStamped
 from app.microspat.models.locus.locus import Locus
@@ -39,10 +39,12 @@ class LocusBinSet(BinFinder.BinFinder, TimeStamped, db.Model):
         locus_bin_set = cls()
         locus_bin_set.locus = locus
         db.session.add(locus_bin_set)
+        socketio.sleep()
 
         bin_set = BinFinder.BinFinder.calculate_bins(peaks=peaks,
                                                      nucleotide_repeat_length=locus.nucleotide_repeat_length,
                                                      min_peak_frequency=min_peak_frequency, bin_buffer=bin_buffer)
+        socketio.sleep()
         for b in bin_set.bins:
             assert isinstance(b, BinFinder.Bin)
             b = Bin(label=b.label, base_size=b.base_size, bin_buffer=b.bin_buffer, peak_count=b.peak_count)

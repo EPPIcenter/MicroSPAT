@@ -1,6 +1,9 @@
+from collections import defaultdict
+
 from sqlalchemy.orm import reconstructor
 
-from app import db
+from app import db, socketio
+from app.microspat.models.bin_estimator.locus_params import BinEstimatorLocusParams
 
 from app.microspat.models.bin_estimator.locus_bin_set import LocusBinSet
 from app.microspat.models.bin_estimator.bin import Bin
@@ -32,6 +35,42 @@ class BinEstimatorProject(SampleBasedProject):
     def init_on_load(self):
         super(BinEstimatorProject, self).init_on_load()
         self._locus_bin_set = {}
+
+    @classmethod
+    def get_serialized_list(cls):
+        projects = BinEstimatorProject.query.values(cls.id, cls.title, cls.date, cls.creator, cls.description,
+                                                    cls.locus_set_id, cls.last_updated)
+
+        locus_parameters = BinEstimatorLocusParams.query.values(BinEstimatorLocusParams.id,
+                                                                BinEstimatorLocusParams.project_id)
+
+        locus_parameters_dict = defaultdict(list)
+        print("Get Serialized List")
+        for lp in locus_parameters:
+            print(lp, type(lp))
+            locus_parameters_dict[lp[1]].append(lp[0])
+
+        locus_bin_sets = LocusBinSet.query.values(LocusBinSet.id, LocusBinSet.project_id)
+
+        locus_bin_sets_dict = defaultdict(list)
+        for lb in locus_bin_sets:
+            locus_bin_sets_dict[lb.project_id].append(lb.id)
+
+        res = []
+        for p in projects:
+            r = {
+                'id': p[0],
+                'title': p[1],
+                'date': p[2],
+                'creator': p[3],
+                'description': p[4],
+                'locus_set': p[5],
+                'last_updated': p[6],
+                'locus_parameters': locus_parameters_dict[p[0]],
+                'locus_bin_sets': locus_bin_sets_dict[p[0]]
+            }
+            res.append(r)
+        return res
 
     @classmethod
     def copy_project(cls, project):
@@ -133,9 +172,11 @@ class BinEstimatorProject(SampleBasedProject):
 
         locus_parameters = self.get_locus_parameters(locus_id)
 
+        socketio.sleep()
         annotations = ProjectChannelAnnotations.query.join(Channel).filter(
             ProjectChannelAnnotations.project_id == self.id).filter(Channel.locus_id == locus_id).all()
 
+        socketio.sleep()
         peaks = []
 
         for a in annotations:

@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from sqlalchemy.orm import reconstructor
 
 from app import db
@@ -26,6 +28,42 @@ class ArtifactEstimatorProject(SampleBasedProject):
     def init_on_load(self):
         super(ArtifactEstimatorProject, self).init_on_load()
         self._artifact_annotators = {}
+
+    @classmethod
+    def get_serialized_list(cls):
+        projects = ArtifactEstimatorProject.query.values(cls.id, cls.title, cls.date, cls.creator, cls.description,
+                                                         cls.locus_set_id, cls.last_updated)
+        locus_parameters = ArtifactEstimatorLocusParams.query.values(ArtifactEstimatorLocusParams.id,
+                                                                     ArtifactEstimatorLocusParams.project_id)
+
+        locus_parameters_dict = defaultdict(list)
+        print("Get Serialized List")
+        for lp in locus_parameters:
+            print(lp, type(lp))
+            locus_parameters_dict[lp.project_id].append(lp.id)
+
+        locus_artifact_estimators = LocusArtifactEstimator.query.values(LocusArtifactEstimator.id,
+                                                                        LocusArtifactEstimator.project_id)
+
+        locus_artifact_estimators_dict = defaultdict(list)
+        for lae in locus_artifact_estimators:
+            locus_artifact_estimators_dict[lae.project_id].append(lae.id)
+
+        res = []
+        for p in projects:
+            r = {
+                'id': p[0],
+                'title': p[1],
+                'date': p[2],
+                'creator': p[3],
+                'description': p[4],
+                'locus_set': p[5],
+                'last_updated': p[6],
+                'locus_parameters': locus_parameters_dict[p[0]],
+                'locus_artifact_estimators': locus_artifact_estimators_dict[p[0]]
+            }
+            res.append(r)
+        return res
 
     @classmethod
     def copy_project(cls, project):

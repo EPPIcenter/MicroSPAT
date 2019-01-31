@@ -1,7 +1,9 @@
 import sqlite3
+from datetime import datetime
 
 import sqlalchemy.exc
 
+from app.microspat import dict_schemas
 from app.microspat.schemas import (
     BinEstimatorLocusParamsSchema,
     BinEstimatorProjectSchema,
@@ -26,6 +28,7 @@ from app.microspat.models import (
     QuantificationBiasEstimatorProject,
     SampleLocusAnnotation,
 )
+
 from app.microspat.events.base import (
     base_get_updated,
     base_list,
@@ -50,6 +53,7 @@ SAMPLE_LOCUS_ANNOTATIONS_NAMESPACE = table_to_string_mapping[SampleLocusAnnotati
 PROJECT_CHANNEL_ANNOTATIONS_NAMESPACE = table_to_string_mapping[ProjectChannelAnnotations]
 
 project_schema = BinEstimatorProjectSchema()
+project_dict_schema = dict_schemas.BinEstimatorProjectSchema()
 channel_schema = DeferredChannelSchema(exclude="data")
 locus_params_schema = BinEstimatorLocusParamsSchema()
 locus_bin_set_schema = LocusBinSetSchema()
@@ -58,38 +62,40 @@ project_sample_annotations_schema = DeferredProjectSampleAnnotationsSchema()
 sample_locus_annotations_schema = DeferredSampleLocusAnnotationSchema()
 project_channel_annotations_schema = DeferredProjectChannelAnnotationsSchema()
 
-socketio.on_event('list', base_list(BinEstimatorProject, project_schema, JSON_NAMESPACE),
+socketio.on_event('list', base_list(BinEstimatorProject, project_dict_schema, JSON_NAMESPACE,
+                                    query=BinEstimatorProject.get_serialized_list),
                   namespace=SOCK_NAMESPACE)
-socketio.on_event('get_updated', base_get_updated(BinEstimatorProject, project_schema, project_schema, JSON_NAMESPACE),
-                  namespace=SOCK_NAMESPACE)
+# socketio.on_event('get_updated', base_get_updated(BinEstimatorProject, project_schema, project_schema, JSON_NAMESPACE),
+#                   namespace=SOCK_NAMESPACE)
 
 
-@socketio.on('list', namespace=SOCK_NAMESPACE)
-def list_bin_estimator_projects():
-    projects = BinEstimatorProject.query.all()
-    bins = Bin.query.all()
-    locus_bin_sets = LocusBinSet.query.all()
-    locus_parameters = BinEstimatorLocusParams.query.all()
-    bins_dump = bin_schema.dumps(bins, many=True)
-    socketio.emit('get', {BIN_NAMESPACE: bins_dump.data}, namespace=make_namespace(BIN_NAMESPACE))
-    socketio.sleep()
+# @socketio.on('list', namespace=SOCK_NAMESPACE)
+# def list_bin_estimator_projects():
+#     projects = BinEstimatorProject.query.all()
+#     bins = Bin.query.all()
+#     locus_bin_sets = LocusBinSet.query.all()
+#     locus_parameters = BinEstimatorLocusParams.query.all()
+#     bins_dump = bin_schema.dumps(bins, many=True)
+#     socketio.emit('get', {BIN_NAMESPACE: bins_dump.data}, namespace=make_namespace(BIN_NAMESPACE))
+#     socketio.sleep()
+#
+#     locus_bin_sets_dump = locus_bin_set_schema.dumps(locus_bin_sets, many=True)
+#     socketio.emit('get', {LOCUS_BIN_SET_NAMESPACE: locus_bin_sets_dump.data},
+#                   namespace=make_namespace(LOCUS_BIN_SET_NAMESPACE))
+#     socketio.sleep()
+#
+#     locus_params_dump = locus_params_schema.dumps(locus_parameters, many=True)
+#     socketio.emit('get', {LOCUS_PARAMS_NAMESPACE: locus_params_dump.data},
+#                   namespace=make_namespace(LOCUS_PARAMS_NAMESPACE))
+#     socketio.sleep()
+#
+#     project_dump = project_schema.dumps(projects, many=True)
+#     socketio.emit('list', {PROJECT_NAMESPACE: project_dump.data},
+#                   namespace=make_namespace(PROJECT_NAMESPACE))
+#     socketio.sleep()
 
-    locus_bin_sets_dump = locus_bin_set_schema.dumps(locus_bin_sets, many=True)
-    socketio.emit('get', {LOCUS_BIN_SET_NAMESPACE: locus_bin_sets_dump.data},
-                  namespace=make_namespace(LOCUS_BIN_SET_NAMESPACE))
-    socketio.sleep()
 
-    locus_params_dump = locus_params_schema.dumps(locus_parameters, many=True)
-    socketio.emit('get', {LOCUS_PARAMS_NAMESPACE: locus_params_dump.data},
-                  namespace=make_namespace(LOCUS_PARAMS_NAMESPACE))
-    socketio.sleep()
-
-    project_dump = project_schema.dumps(projects, many=True)
-    socketio.emit('list', {PROJECT_NAMESPACE: project_dump.data},
-                  namespace=make_namespace(PROJECT_NAMESPACE))
-    socketio.sleep()
-
-
+@socketio.on('get_updated', namespace=SOCK_NAMESPACE)
 @socketio.on('get', namespace=SOCK_NAMESPACE)
 def get_bin_estimator_project(json):
     ids = extract_ids(json)
@@ -103,17 +109,33 @@ def get_bin_estimator_project(json):
     project_channel_annotations = []
     for project_id in set(ids):
         p = BinEstimatorProject.query.get(project_id)
+        socketio.sleep()
+
         if p:
             projects.append(p)
             channels += p.get_serialized_channels()
+            socketio.sleep()
+
             locus_parameters += BinEstimatorLocusParams.query \
                 .filter(BinEstimatorLocusParams.project_id == project_id) \
                 .all()
+            socketio.sleep()
+
             locus_bin_sets += LocusBinSet.query.filter(LocusBinSet.project_id == project_id).all()
+            socketio.sleep()
+
             bins += Bin.query.join(LocusBinSet).filter(LocusBinSet.project_id == project_id).all()
+            socketio.sleep()
+
             project_sample_annotations += ProjectSampleAnnotations.get_serialized_list(project_id)
+            socketio.sleep()
+
             sample_locus_annotations += SampleLocusAnnotation.get_serialized_list(project_id)
+            socketio.sleep()
+
             project_channel_annotations += ProjectChannelAnnotations.get_serialized_list(project_id)
+            socketio.sleep()
+
         else:
             socketio.emit('get_failed', {PROJECT_NAMESPACE: [project_id]}, namespace=make_namespace(PROJECT_NAMESPACE))
 
@@ -192,11 +214,17 @@ def create_project(json):
         bin_estimator = BinEstimatorProject(title=title, creator=creator, description=description,
                                             locus_set_id=locus_set_id)
         db.session.add(bin_estimator)
+        socketio.sleep()
+
         db.session.commit()
+        socketio.sleep()
+
     except (sqlite3.IntegrityError, sqlalchemy.exc.IntegrityError):
         task_notifier.emit_task_failure(message="Title Must Be Unique.")
         db.session.rollback()
         return
+    socketio.sleep()
+
     task_notifier.emit_task_success(message="{title} Successfully Created.")
 
 
@@ -267,6 +295,7 @@ def add_samples(json):
         return
 
     project = BinEstimatorProject.query.get(project_id)
+    socketio.sleep()
 
     if not project:
         task_notifier.emit_task_failure(message="Project no longer exists. Reload Application.")
@@ -279,6 +308,11 @@ def add_samples(json):
     })
 
     project.add_samples(sample_ids)
+
+    project.last_updated = datetime.utcnow()
+
+    # db.session.commit()
+
     task_notifier.emit_task_success(message="Successfully Added Samples.")
 
 
@@ -313,7 +347,14 @@ def remove_samples(json):
     })
 
     project.remove_samples(sample_ids)
+
+    project.last_updated = datetime.utcnow()
+
     task_notifier.emit_task_success(message="Successfully Removed Samples.")
+
+
+def ack():
+    print("Analyze Locus Update Acknowledged")
 
 
 @socketio.on('analyze_loci', namespace=SOCK_NAMESPACE)
@@ -357,8 +398,11 @@ def analyze_loci(json):
             'total': total_lps,
             'current_state': idx + 1,
             'message': f'Analyzing {lp.locus.label}...'
-        })
+        }, callback=ack)
+        socketio.sleep()
         project.analyze_locus(lp.locus_id)
         socketio.sleep()
 
-    task_notifier.emit_task_success("Succesfully Analyzed All Loci")
+    project.last_updated = datetime.utcnow()
+
+    task_notifier.emit_task_success("Successfully Analyzed All Loci", callback=lambda: print("Success Acknowledged"))

@@ -245,10 +245,13 @@ class Project(LocusSetAssociatedMixin, TimeStamped, db.Model):
         assert isinstance(locus_parameters, ProjectLocusParams)
         locus_parameters.locked = True
         # db.session.flush()
+        socketio.sleep()
         channel_annotations = self.get_locus_channel_annotations(locus_id, append_well=True)
+        socketio.sleep()
         if locus_parameters.scanning_parameters_stale:
             channel_annotations = self.recalculate_channels(channel_annotations=channel_annotations,
                                                             rescan_peaks=True)
+            socketio.sleep()
         else:
             if locus_parameters.filter_parameters_stale:
                 channel_annotations = self.recalculate_channels(

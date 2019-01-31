@@ -114,17 +114,20 @@ class SampleBasedProject(Project):
         return sample_annotation
 
     def add_samples(self, sample_ids):
-        present_sample_ids = set([_[0] for _ in self.sample_annotations.values(ProjectSampleAnnotations.id)])
+        present_sample_ids = set([_[0] for _ in ProjectSampleAnnotations.query
+                                 .filter(ProjectSampleAnnotations.project_id == self.id)
+                                 .values(ProjectSampleAnnotations.sample_id)])
         full_sample_ids = list(set(sample_ids) - present_sample_ids)
 
         sample_ids_map = defaultdict(list)
         channel_and_sample_ids = Channel.query.join(Sample).join(Locus).join(locus_set_association_table).join(
             LocusSet).join(
             Project).filter(Project.id == self.id).values(Channel.id, Channel.sample_id)
+        socketio.sleep()
+
         for channel_id, sample_id in channel_and_sample_ids:
             sample_ids_map[sample_id].append(channel_id)
 
-        n = 0
         for sample_ids in subset(full_sample_ids, 100):
             channel_ids = []
             for sample_id in sample_ids:
@@ -138,10 +141,10 @@ class SampleBasedProject(Project):
                     sample_annotation.locus_annotations.append(locus_annotation)
             self.bulk_create_channel_annotations(channel_ids)
             db.session.flush()
-            n += 1
 
         for locus in self.locus_set.loci:
             self.samples_changed(locus.id)
+            socketio.sleep()
 
         return self
 
@@ -150,21 +153,25 @@ class SampleBasedProject(Project):
             ProjectSampleAnnotations.project_id == self.id,
             ProjectSampleAnnotations.sample_id == sample_id
         ).all()
+        socketio.sleep()
 
         slas = SampleLocusAnnotation.query.filter(
             SampleLocusAnnotation.project_id == self.id
         ).join(ProjectSampleAnnotations).filter(
             ProjectSampleAnnotations.sample_id == sample_id
         ).all()
+        socketio.sleep()
 
         pcas = ProjectChannelAnnotations.query.filter(
             ProjectChannelAnnotations.project_id == self.id
         ).join(Channel).filter(
             Channel.sample_id == sample_id
         ).all()
+        socketio.sleep()
 
         for _ in psas + slas + pcas:
             db.session.delete(_)
+            socketio.sleep()
 
         for locus in self.locus_set.loci:
             self.samples_changed(locus.id)
@@ -185,20 +192,24 @@ class SampleBasedProject(Project):
             ProjectSampleAnnotations.project_id == self.id,
             ProjectSampleAnnotations.sample_id.in_(sample_ids)
         ).all()
+        socketio.sleep()
 
         slas = SampleLocusAnnotation.query.filter(
             SampleLocusAnnotation.project_id == self.id
         ).join(ProjectSampleAnnotations).filter(
             ProjectSampleAnnotations.sample_id.in_(sample_ids)
         ).all()
+        socketio.sleep()
 
         pcas = ProjectChannelAnnotations.query.filter(
             ProjectChannelAnnotations.project_id == self.id
         ).join(Channel).filter(
             Channel.sample_id.in_(sample_ids)
         ).all()
+        socketio.sleep()
 
         for _ in psas + slas + pcas:
+            socketio.sleep()
             db.session.delete(_)
 
     def annotate_channel(self, channel_annotation):

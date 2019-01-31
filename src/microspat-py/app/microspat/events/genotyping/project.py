@@ -1,11 +1,14 @@
 import csv
 from collections import defaultdict
+from datetime import datetime
+
 from flask import request, jsonify, copy_current_request_context, send_file
 import io
 import sqlalchemy.exc
 import sqlite3
 import tempfile
 
+from app.microspat import dict_schemas
 from app.microspat.api import microspat_api
 
 from app.microspat.schemas import (
@@ -15,7 +18,9 @@ from app.microspat.schemas import (
     DeferredProjectChannelAnnotationsSchema,
     GenotypingProjectSchema,
     GenotypingLocusParamsSchema,
-)
+    BinEstimatorProjectSchema,
+    LocusBinSetSchema,
+    BinSchema)
 
 from app.microspat.models import (
     ArtifactEstimatorProject,
@@ -58,18 +63,30 @@ PROJECT_SAMPLE_ANNOTATIONS_NAMESPACE = table_to_string_mapping[ProjectSampleAnno
 GENOTYPE_NAMESPACE = table_to_string_mapping[Genotype]
 PROJECT_CHANNEL_ANNOTATIONS_NAMESPACE = table_to_string_mapping[ProjectChannelAnnotations]
 
+BIN_ESTIMATOR_PROJECT_NAMESPACE = table_to_string_mapping[BinEstimatorProject]
+LOCUS_BIN_SET_NAMESPACE = table_to_string_mapping[LocusBinSet]
+BIN_NAMESPACE = table_to_string_mapping[Bin]
+
 project_schema = GenotypingProjectSchema()
+project_dict_schema = dict_schemas.GenotypingProjectSchema()
 channel_schema = DeferredChannelSchema(exclude="data")
 locus_params_schema = GenotypingLocusParamsSchema()
 project_sample_annotations_schema = DeferredProjectSampleAnnotationsSchema()
 project_channel_annotations_schema = DeferredProjectChannelAnnotationsSchema()
 genotype_schema = DeferredGenotypeSchema()
 
+bin_estimator_project_schema = BinEstimatorProjectSchema()
+locus_bin_set_schema = LocusBinSetSchema()
+bin_schema = BinSchema()
 
-socketio.on_event('list', base_list(GenotypingProject, project_schema, JSON_NAMESPACE), namespace=SOCK_NAMESPACE)
-socketio.on_event('get_updated', base_get_updated(GenotypingProject, project_schema, project_schema, JSON_NAMESPACE), namespace=SOCK_NAMESPACE)
+
+socketio.on_event('list', base_list(GenotypingProject, project_dict_schema, JSON_NAMESPACE,
+                                    query=GenotypingProject.get_serialized_list),
+                  namespace=SOCK_NAMESPACE)
+# socketio.on_event('get_updated', base_get_updated(GenotypingProject, project_schema, project_schema, JSON_NAMESPACE), namespace=SOCK_NAMESPACE)
 
 
+@socketio.on('get_updated', namespace=SOCK_NAMESPACE)
 @socketio.on('get', namespace=SOCK_NAMESPACE)
 def get_genotyping_project(json):
     ids = extract_ids(json)
@@ -80,15 +97,35 @@ def get_genotyping_project(json):
     project_sample_annotations = []
     project_channel_annotations = []
 
+    bin_estimator_projects = []
+    locus_bin_sets = []
+    bins = []
+
     for project_id in ids:
         p = GenotypingProject.query.get(project_id)
+        socketio.sleep()
+
         if p:
             projects.append(p)
             channels += p.get_serialized_channels()
+            socketio.sleep()
+
             locus_parameters += p.locus_parameters.all()
+            socketio.sleep()
+
             project_sample_annotations += ProjectSampleAnnotations.get_serialized_list(project_id)
+            socketio.sleep()
+
             genotypes += Genotype.get_serialized_list(project_id)
+            socketio.sleep()
+
             project_channel_annotations += ProjectChannelAnnotations.get_serialized_list(project_id)
+            socketio.sleep()
+
+            curr_locus_bin_sets = LocusBinSet.query.filter(LocusBinSet.project_id == p.bin_estimator_id).all()
+            locus_bin_sets += curr_locus_bin_sets
+            for lb in curr_locus_bin_sets:
+                bins += lb.bins
         else:
             socketio.emit('get_failed', {PROJECT_NAMESPACE: [project_id]}, namespace=make_namespace(PROJECT_NAMESPACE))
 
@@ -113,6 +150,20 @@ def get_genotyping_project(json):
     locus_params_dump = locus_params_schema.dumps(locus_parameters, many=True)
     socketio.emit('get', {LOCUS_PARAMS_NAMESPACE: locus_params_dump.data},
                   namespace=make_namespace(LOCUS_PARAMS_NAMESPACE))
+    socketio.sleep()
+
+    bins_dump = bin_schema.dumps(bins, many=True)
+    socketio.emit('get', {BIN_NAMESPACE: bins_dump.data}, namespace=make_namespace(BIN_NAMESPACE))
+    socketio.sleep()
+
+    locus_bin_sets_dump = locus_bin_set_schema.dumps(locus_bin_sets, many=True)
+    socketio.emit('get', {LOCUS_BIN_SET_NAMESPACE: locus_bin_sets_dump.data},
+                  namespace=make_namespace(LOCUS_BIN_SET_NAMESPACE))
+    socketio.sleep()
+
+    bin_estimator_project_dump = bin_estimator_project_schema.dumps(bin_estimator_projects, many=True)
+    socketio.emit('get', {BIN_ESTIMATOR_PROJECT_NAMESPACE: bin_estimator_project_dump.data},
+                  namespace=make_namespace(BIN_ESTIMATOR_PROJECT_NAMESPACE))
     socketio.sleep()
 
     project_dump = project_schema.dumps(projects, many=True)
@@ -256,6 +307,9 @@ def add_samples(json):
     })
 
     project.add_samples(sample_ids)
+
+    project.last_updated = datetime.utcnow()
+
     task_notifier.emit_task_success(message="Successfully Added Samples.")
 
 
@@ -294,6 +348,8 @@ def add_samples_by_csv():
             project.add_samples(sample_ids)
         except KeyError:
             task_notifier.emit_task_failure(message=f"File Malformed. Header must be 'Sample ID'")
+
+        project.last_updated = datetime.utcnow()
 
         task_notifier.emit_task_success(message="Successfully Added Samples.")
 
@@ -335,6 +391,9 @@ def remove_samples(json):
     })
 
     project.remove_samples(sample_ids)
+
+    project.last_updated = datetime.utcnow()
+
     task_notifier.emit_task_success(message="Successfully Removed Samples.")
 
 
@@ -381,6 +440,8 @@ def analyze_loci(json):
         })
         project.analyze_locus(lp.locus_id)
         socketio.sleep()
+
+    project.last_updated = datetime.utcnow()
 
     task_notifier.emit_task_success("Succesfully Analyzed All Loci")
 

@@ -5,6 +5,7 @@ from flask import request, jsonify, copy_current_request_context
 import sqlalchemy.exc
 from sqlalchemy.orm.exc import NoResultFound
 
+from app.microspat import dict_schemas
 from app.microspat.api import microspat_api
 from app.microspat.models.quantification_bias_estimator.exceptions import BadProportions
 
@@ -58,6 +59,7 @@ SAMPLE_LOCUS_ANNOTATIONS_NAMESPACE = table_to_string_mapping[SampleLocusAnnotati
 PROJECT_CHANNEL_ANNOTATIONS_NAMESPACE = table_to_string_mapping[ProjectChannelAnnotations]
 
 project_schema = QuantificationBiasEstimatorProjectSchema()
+project_dict_schema = dict_schemas.QuantificationBiasEstimatorProjectSchema()
 channel_schema = DeferredChannelSchema(exclude="data")
 locus_params_schema = QuantificationBiasEstimatorLocusParamsSchema()
 control_sample_association_schema = DeferredControlSampleAssociationSchema()
@@ -65,7 +67,8 @@ project_sample_annotations_schema = DeferredProjectSampleAnnotationsSchema()
 sample_locus_annotations_schema = DeferredSampleLocusAnnotationSchema()
 project_channel_annotations_schema = DeferredProjectChannelAnnotationsSchema()
 
-socketio.on_event('list', base_list(QuantificationBiasEstimatorProject, project_schema, JSON_NAMESPACE),
+socketio.on_event('list', base_list(QuantificationBiasEstimatorProject, project_dict_schema, JSON_NAMESPACE,
+                                    query=QuantificationBiasEstimatorProject.get_serialized_list),
                   namespace=SOCK_NAMESPACE)
 socketio.on_event('get_updated', base_get_updated(QuantificationBiasEstimatorProject, project_schema, project_schema,
                                                   JSON_NAMESPACE), namespace=SOCK_NAMESPACE)

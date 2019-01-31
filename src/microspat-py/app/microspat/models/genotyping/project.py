@@ -40,6 +40,39 @@ class GenotypingProject(SampleBasedProject, ArtifactEstimating, QuantificationBi
 
     __mapper_args__ = {'polymorphic_identity': 'genotyping_project'}
 
+    @classmethod
+    def get_serialized_list(cls):
+        projects = GenotypingProject.query.values(cls.id, cls.title, cls.date, cls.creator, cls.description,
+                                                  cls.artifact_estimator_id, cls.locus_set_id, cls.bin_estimator_id,
+                                                  cls.quantification_bias_estimator_id, cls.last_updated)
+        locus_parameters = GenotypingLocusParams.query.values(GenotypingLocusParams.id,
+                                                              GenotypingLocusParams.project_id)
+        locus_parameters_dict = defaultdict(list)
+        for lp in locus_parameters:
+            locus_parameters_dict[lp[1]].append(lp[0])
+        # channel_annotations = ProjectChannelAnnotations.query.values(ProjectChannelAnnotations.id,
+        #                                                              ProjectChannelAnnotations.project_id)
+        # sample_annotations = ProjectSampleAnnotations
+
+        res = []
+        for p in projects:
+            print(p)
+            r = {
+                'id': p[0],
+                'title': p[1],
+                'date': p[2],
+                'creator': p[3],
+                'description': p[4],
+                'artifact_estimator': p[5],
+                'locus_set': p[6],
+                'bin_estimator': p[7],
+                'quantification_bias_estimator': p[8],
+                'last_updated': p[9],
+                'locus_parameters': locus_parameters_dict[p[0]]
+            }
+            res.append(r)
+        return res
+
     def __init__(self, locus_set_id, bin_estimator_id, **kwargs):
         super(GenotypingProject, self).__init__(locus_set_id, **kwargs)
         self.bin_estimator_id = bin_estimator_id
@@ -122,7 +155,9 @@ class GenotypingProject(SampleBasedProject, ArtifactEstimating, QuantificationBi
         return sample_annotation
 
     def add_samples(self, sample_ids):
-        present_sample_ids = set([_[0] for _ in self.sample_annotations.values(ProjectSampleAnnotations.id)])
+        present_sample_ids = set([_[0] for _ in ProjectSampleAnnotations.query
+                                 .filter(ProjectSampleAnnotations.project_id == self.id)
+                                 .values(ProjectSampleAnnotations.sample_id)])
         full_sample_ids = list(set(sample_ids) - present_sample_ids)
 
         # Cache all channel IDs available

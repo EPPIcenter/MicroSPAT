@@ -37,6 +37,37 @@ class QuantificationBiasEstimatorProject(SampleBasedProject, ArtifactEstimating,
 
     __mapper_args__ = {'polymorphic_identity': 'quantification_bias_estimator_project'}
 
+    @classmethod
+    def get_serialized_list(cls):
+        projects = QuantificationBiasEstimatorProject.query.values(cls.id, cls.title, cls.date, cls.creator,
+                                                                   cls.description, cls.artifact_estimator_id,
+                                                                   cls.locus_set_id, cls.bin_estimator_id,
+                                                                   cls.last_updated)
+        locus_parameters = QuantificationBiasEstimatorLocusParams.query.values(
+            QuantificationBiasEstimatorLocusParams.id,
+            QuantificationBiasEstimatorLocusParams.project_id
+        )
+        locus_parameters_dict = defaultdict(list)
+        for lp in locus_parameters:
+            locus_parameters_dict[lp[1]].append(lp[0])
+
+        res = []
+        for p in projects:
+            r = {
+                'id': p[0],
+                'title': p[1],
+                'date': p[2],
+                'creator': p[3],
+                'description': p[4],
+                'artifact_estimator': p[5],
+                'locus_set': p[6],
+                'bin_estimator': p[7],
+                'last_updated': p[8],
+                'locus_parameters': locus_parameters_dict[p[0]]
+            }
+            res.append(r)
+        return res
+
     def artifact_estimator_changed(self, locus_id):
         lp = self.get_locus_parameters(locus_id)
         lp.set_filter_parameters_stale()
@@ -185,7 +216,9 @@ class QuantificationBiasEstimatorProject(SampleBasedProject, ArtifactEstimating,
         return sample_annotation
 
     def add_samples(self, sample_ids):
-        present_sample_ids = set([_[0] for _ in self.sample_annotations.values(ProjectSampleAnnotations.id)])
+        present_sample_ids = set([_[0] for _ in ProjectSampleAnnotations.query
+                                 .filter(ProjectSampleAnnotations.project_id == self.id)
+                                 .values(ProjectSampleAnnotations.sample_id)])
         full_sample_ids = list(set(sample_ids) - present_sample_ids)
 
         # Cache all channel IDs available

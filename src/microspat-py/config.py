@@ -80,6 +80,8 @@ class DevelopmentConfig(Config):
 
 
 class ProductionConfig(Config):
+    # SQLALCHEMY_ECHO = True  # Echo SQL to the console
+
     ASSETS_PATH = os.path.join(prod_dir, 'static')
     DB_PATH = os.path.join(APPDATA, 'microspat_db.sqlite')
 

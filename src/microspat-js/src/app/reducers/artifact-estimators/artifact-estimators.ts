@@ -262,7 +262,7 @@ export const selectActiveLocusArtifactEstimators = createSelector(
         } else {
           return null;
         }
-      }).filter(e => e != null);
+      }).filter(e => e);
     } else {
       return []
     }
