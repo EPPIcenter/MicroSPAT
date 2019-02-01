@@ -21,7 +21,7 @@ import logging
 
 
 # Define the application directory
-version = '2.0.0'
+version = '2.0.1'
 major_version = version.split('.')[0]
 
 app_dir = 'com.greenhouse.microspat'
