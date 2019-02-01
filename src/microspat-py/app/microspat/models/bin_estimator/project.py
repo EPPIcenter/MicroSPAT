@@ -45,9 +45,7 @@ class BinEstimatorProject(SampleBasedProject):
                                                                 BinEstimatorLocusParams.project_id)
 
         locus_parameters_dict = defaultdict(list)
-        print("Get Serialized List")
         for lp in locus_parameters:
-            print(lp, type(lp))
             locus_parameters_dict[lp[1]].append(lp[0])
 
         locus_bin_sets = LocusBinSet.query.values(LocusBinSet.id, LocusBinSet.project_id)

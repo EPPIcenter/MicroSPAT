@@ -124,7 +124,7 @@ def notify_deleted(_, __, target):
 def notify_created(_, __, target):
     target_class = target.__class__
     string_mapping = table_to_string_mapping[target_class]
-    print("Inserting class {} with id {}".format(string_mapping, str(target.id)))
+    # print("Inserting class {} with id {}".format(string_mapping, str(target.id)))
     socketio.emit('created', {
         'model': string_mapping,
         'id': str(target.id)

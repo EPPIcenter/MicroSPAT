@@ -39,9 +39,9 @@ def auto_vacuum():
 
 
 if __name__ == '__main__':
+    multiprocessing.freeze_support()
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", type=str, default="production")
     parser.add_argument("--address", type=str, default="127.0.0.1:17328")
-    multiprocessing.freeze_support()
     args = parser.parse_args()
     run_sockets(args.mode, args.address)

@@ -56,7 +56,6 @@ class GenotypingProject(SampleBasedProject, ArtifactEstimating, QuantificationBi
 
         res = []
         for p in projects:
-            print(p)
             r = {
                 'id': p[0],
                 'title': p[1],

@@ -10,7 +10,7 @@ import { TaskStartedAction, TaskSuccessAction, TaskFailureAction, TaskProgressAc
 import { HttpClient } from '@angular/common/http';
 
 export abstract class WebSocketBaseService<T> {
-  private SOCKET_PATH = 'http://localhost:17328'
+  private SOCKET_PATH = 'http://127.0.0.1:17328'
   protected API_PATH = `${this.SOCKET_PATH}/microspat_api`;
   protected socket;
   protected namespace: string;
@@ -54,8 +54,6 @@ export abstract class WebSocketBaseService<T> {
   constructor(
     namespace: string, store: Store<any>, protected http: HttpClient,
     debounceUpdateDelay = 500, debounceCreateDelay = 500, debounceDeleteDelay = 500) {
-      console.log("Instantiating WebSocket Service");
-      console.log(window);
       this.store = store;
       this.setNameSpace(namespace);
       this.initSocket(debounceUpdateDelay, debounceCreateDelay, debounceDeleteDelay);

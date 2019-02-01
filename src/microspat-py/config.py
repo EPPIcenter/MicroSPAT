@@ -84,6 +84,7 @@ class ProductionConfig(Config):
 
     ASSETS_PATH = os.path.join(prod_dir, 'static')
     DB_PATH = os.path.join(APPDATA, 'microspat_db.sqlite')
+    LOGGING_LOCATION = os.path.join(APPDATA, 'microspat.log')
 
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///' + DB_PATH
 
