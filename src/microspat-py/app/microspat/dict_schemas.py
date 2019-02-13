@@ -1,9 +1,12 @@
 from marshmallow import fields, Schema
+import ujson as json
 
 # from .schemas import JSONEncodedField, Flaggable
 
 
 class BaseSchema(Schema):
+    class Meta:
+        reducer_module = json
     id = fields.Integer()
 
 

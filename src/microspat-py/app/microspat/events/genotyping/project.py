@@ -40,7 +40,7 @@ from app.microspat.models import (
     Well,
 )
 
-from app.utils import CaseInsensitiveDictReader
+from app.utils import CaseInsensitiveDictReader, subset
 
 from app.microspat.events.base import (
     base_list,
@@ -88,40 +88,103 @@ socketio.on_event('list', base_list(GenotypingProject, project_schema, JSON_NAME
 @socketio.on('get', namespace=SOCK_NAMESPACE)
 def get_genotyping_project(json):
     ids = extract_ids(json)
-    projects = []
-    channels = []
-    locus_parameters = []
-    genotypes = []
-    project_sample_annotations = []
-    project_channel_annotations = []
-
-    locus_bin_sets = []
-    bins = []
+    # projects = []
+    # channels = []
+    # locus_parameters = []
+    # genotypes = []
+    # project_sample_annotations = []
+    # project_channel_annotations = []
+    #
+    # locus_bin_sets = []
+    # bins = []
 
     for project_id in ids:
         p = GenotypingProject.get_serialized(project_id)
         socketio.sleep()
 
         if p:
-            projects.append(p)
-            channels += Channel.get_serialized_list(project_id)
+            projects = [p]
+
+            channels = Channel.get_serialized_list(project_id)
+            socketio.sleep()
+            for channel_subset in subset(channels, 4000, pop=True):
+                channel_dump = channel_schema.dumps(channel_subset, many=True)
+                socketio.emit('list', {CHANNEL_NAMESPACE: channel_dump.data},
+                              namespace=make_namespace(CHANNEL_NAMESPACE))
+                socketio.sleep()
+
+            db.session.expunge_all()
+            channels = None
+
+            project_sample_annotations = ProjectSampleAnnotations.get_serialized_list(project_id)
+            socketio.sleep()
+            for project_sample_annotation_subset in subset(project_sample_annotations, 4000, pop=True):
+                project_sample_annotations_dump = project_sample_annotations_schema.dumps(
+                    project_sample_annotation_subset, many=True)
+                socketio.emit('get', {PROJECT_SAMPLE_ANNOTATIONS_NAMESPACE: project_sample_annotations_dump.data},
+                              namespace=make_namespace(PROJECT_SAMPLE_ANNOTATIONS_NAMESPACE))
+                socketio.sleep()
+
+            db.session.expunge_all()
+            project_sample_annotations = None
+
+            genotypes = Genotype.get_serialized_list(project_id)
+            socketio.sleep()
+            for genotype_subset in subset(genotypes, 4000, pop=True):
+                genotypes_dump = genotype_schema.dumps(genotype_subset, many=True)
+                socketio.emit('get', {GENOTYPE_NAMESPACE: genotypes_dump.data},
+                              namespace=make_namespace(GENOTYPE_NAMESPACE))
+                socketio.sleep()
+
+            db.session.expunge_all()
+            genotypes = None
+
+            project_channel_annotations = ProjectChannelAnnotations.get_serialized_list(project_id)
+            socketio.sleep()
+            for project_channel_annotation_subset in subset(project_channel_annotations, 4000, pop=True):
+                project_channel_annotations_dump = project_channel_annotations_schema.dumps(
+                    project_channel_annotation_subset, many=True)
+                socketio.emit('get', {PROJECT_CHANNEL_ANNOTATIONS_NAMESPACE: project_channel_annotations_dump.data},
+                              namespace=make_namespace(PROJECT_CHANNEL_ANNOTATIONS_NAMESPACE))
+                socketio.sleep()
+
+            db.session.expunge_all()
+            project_channel_annotations = None
+
+            locus_parameters = GenotypingLocusParams.get_serialized_list(project_id)
+            socketio.sleep()
+            locus_params_dump = locus_params_schema.dumps(locus_parameters, many=True)
+            socketio.emit('get', {LOCUS_PARAMS_NAMESPACE: locus_params_dump.data},
+                          namespace=make_namespace(LOCUS_PARAMS_NAMESPACE))
             socketio.sleep()
 
-            locus_parameters += GenotypingLocusParams.get_serialized_list(project_id)
+            db.session.expunge_all()
+            locus_parameters = None
+
+            bins = Bin.get_serialized_list(p['bin_estimator'])
+            bins_dump = bin_schema.dumps(bins, many=True)
+            socketio.emit('get', {BIN_NAMESPACE: bins_dump.data}, namespace=make_namespace(BIN_NAMESPACE))
             socketio.sleep()
 
-            project_sample_annotations += ProjectSampleAnnotations.get_serialized_list(project_id)
+            db.session.expunge_all()
+            bins = None
+
+            locus_bin_sets = LocusBinSet.get_serialized_list(p['bin_estimator'])
+            locus_bin_sets_dump = locus_bin_set_schema.dumps(locus_bin_sets, many=True)
+            socketio.emit('get', {LOCUS_BIN_SET_NAMESPACE: locus_bin_sets_dump.data},
+                          namespace=make_namespace(LOCUS_BIN_SET_NAMESPACE))
             socketio.sleep()
 
-            genotypes += Genotype.get_serialized_list(project_id)
+            db.session.expunge_all()
+            locus_bin_sets = None
+
+            project_dump = project_schema.dumps(projects, many=True)
+            socketio.emit('get', {PROJECT_NAMESPACE: project_dump.data}, namespace=make_namespace(PROJECT_NAMESPACE))
+
             socketio.sleep()
 
-            project_channel_annotations += ProjectChannelAnnotations.get_serialized_list(project_id)
-            socketio.sleep()
-
-            locus_bin_sets += LocusBinSet.get_serialized_list(p['bin_estimator'])
-
-            bins += Bin.get_serialized_list(p['bin_estimator'])
+            db.session.expunge_all()
+            projects = None
 
             # curr_locus_bin_sets = LocusBinSet.query.filter(LocusBinSet.project_id == p.bin_estimator_id).all()
             # locus_bin_sets += curr_locus_bin_sets
@@ -129,43 +192,6 @@ def get_genotyping_project(json):
             #     bins += lb.bins
         else:
             socketio.emit('get_failed', {PROJECT_NAMESPACE: [project_id]}, namespace=make_namespace(PROJECT_NAMESPACE))
-
-    channel_dump = channel_schema.dumps(channels, many=True)
-    socketio.emit('list', {CHANNEL_NAMESPACE: channel_dump.data}, namespace=make_namespace(CHANNEL_NAMESPACE))
-    socketio.sleep()
-
-    project_sample_annotations_dump = project_sample_annotations_schema.dumps(project_sample_annotations, many=True)
-    socketio.emit('get', {PROJECT_SAMPLE_ANNOTATIONS_NAMESPACE: project_sample_annotations_dump.data},
-                  namespace=make_namespace(PROJECT_SAMPLE_ANNOTATIONS_NAMESPACE))
-    socketio.sleep()
-
-    genotypes_dump = genotype_schema.dumps(genotypes, many=True)
-    socketio.emit('get', {GENOTYPE_NAMESPACE: genotypes_dump.data}, namespace=make_namespace(GENOTYPE_NAMESPACE))
-    socketio.sleep()
-
-    project_channel_annotations_dump = project_channel_annotations_schema.dumps(project_channel_annotations, many=True)
-    socketio.emit('get', {PROJECT_CHANNEL_ANNOTATIONS_NAMESPACE: project_channel_annotations_dump.data},
-                  namespace=make_namespace(PROJECT_CHANNEL_ANNOTATIONS_NAMESPACE))
-    socketio.sleep()
-
-    locus_params_dump = locus_params_schema.dumps(locus_parameters, many=True)
-    socketio.emit('get', {LOCUS_PARAMS_NAMESPACE: locus_params_dump.data},
-                  namespace=make_namespace(LOCUS_PARAMS_NAMESPACE))
-    socketio.sleep()
-
-    bins_dump = bin_schema.dumps(bins, many=True)
-    socketio.emit('get', {BIN_NAMESPACE: bins_dump.data}, namespace=make_namespace(BIN_NAMESPACE))
-    socketio.sleep()
-
-    locus_bin_sets_dump = locus_bin_set_schema.dumps(locus_bin_sets, many=True)
-    socketio.emit('get', {LOCUS_BIN_SET_NAMESPACE: locus_bin_sets_dump.data},
-                  namespace=make_namespace(LOCUS_BIN_SET_NAMESPACE))
-    socketio.sleep()
-
-    project_dump = project_schema.dumps(projects, many=True)
-    socketio.emit('get', {PROJECT_NAMESPACE: project_dump.data}, namespace=make_namespace(PROJECT_NAMESPACE))
-
-    socketio.sleep()
 
 
 @socketio.on('create_project', namespace=SOCK_NAMESPACE)

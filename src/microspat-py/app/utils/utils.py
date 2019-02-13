@@ -52,10 +52,15 @@ class CaseInsensitiveDictReader(csv.DictReader, object):
         return d_insensitive
 
 
-def subset(l, subset_size):
+def subset(l, subset_size, pop=False):
     i = 0
     total_elements = len(l)
     subset_size = int(subset_size)
     while i < total_elements:
-        yield l[i: i + subset_size]
+        if pop:
+            ss = l[0: 0 + subset_size]
+            del l[0: 0 + subset_size]
+        else:
+            ss = l[i: i + subset_size]
+        yield ss
         i += subset_size
