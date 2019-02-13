@@ -43,7 +43,10 @@ def after_request(response):
 
 @microspat.route('/status')
 def check_status():
-    return jsonify(status="online", static=microspat.static_folder)
+    return jsonify(
+        status="online",
+        static=microspat.static_folder
+    )
 
 
 @microspat.route('/<path:path>')

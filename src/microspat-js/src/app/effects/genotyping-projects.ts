@@ -60,24 +60,24 @@ export class GenotypingProjectEffects {
       this.store.select(fromDB.selectGenotypingProjectEntities),
       (ids: number[], binProjs, artProjs, quantProjs, genoProjs) => ({ids, binProjs, artProjs, quantProjs, genoProjs})),
     switchMap( ( {ids, binProjs, artProjs, quantProjs, genoProjs} ) => {
-      const binEstimatorIDs = ids.map((id) => genoProjs[id].bin_estimator).filter((id) => id).filter((binID) => binProjs[binID] != null ? !binProjs[binID].detailed : true);
-      const artEstimatorIDs = ids.map((id) => genoProjs[id].artifact_estimator).filter((id) => id).filter((artID) => artProjs[artID] != null ? !artProjs[artID].detailed : true);
-      const quantEstimatorIDs = ids.map((id) => genoProjs[id].quantification_bias_estimator).filter((id) => id).filter((quantID) => quantProjs[quantID] != null ? !quantProjs[quantID].detailed : true);
+      // const binEstimatorIDs = ids.map((id) => genoProjs[id].bin_estimator).filter((id) => id).filter((binID) => binProjs[binID] != null ? !binProjs[binID].detailed : true);
+      // const artEstimatorIDs = ids.map((id) => genoProjs[id].artifact_estimator).filter((id) => id).filter((artID) => artProjs[artID] != null ? !artProjs[artID].detailed : true);
+      // const quantEstimatorIDs = ids.map((id) => genoProjs[id].quantification_bias_estimator).filter((id) => id).filter((quantID) => quantProjs[quantID] != null ? !quantProjs[quantID].detailed : true);
       const res = [];
-      if (binEstimatorIDs.length > 0) {
-        res.push(new db.GetRequestedAction({model: 'bin_estimator_project', ids: binEstimatorIDs}));
-      }
+      // if (binEstimatorIDs.length > 0) {
+      //   res.push(new db.GetRequestedAction({model: 'bin_estimator_project', ids: binEstimatorIDs}));
+      // }
 
-      if (artEstimatorIDs.length > 0) {
-        res.push(new db.GetRequestedAction({model: 'artifact_estimator_project', ids: artEstimatorIDs}));
-      }
+      // if (artEstimatorIDs.length > 0) {
+      //   res.push(new db.GetRequestedAction({model: 'artifact_estimator_project', ids: artEstimatorIDs}));
+      // }
 
-      if (quantEstimatorIDs.length > 0) {
-        res.push(new db.GetRequestedAction({model: 'quantification_bias_estimator_project', ids: quantEstimatorIDs}))
-      }
+      // if (quantEstimatorIDs.length > 0) {
+      //   res.push(new db.GetRequestedAction({model: 'quantification_bias_estimator_project', ids: quantEstimatorIDs}))
+      // }
 
       if (ids.length > 0) {
-      res.push(new db.GetRequestedAction({model: 'genotyping_project', ids}))
+        res.push(new db.GetRequestedAction({model: 'genotyping_project', ids}))
       }
 
       return res;

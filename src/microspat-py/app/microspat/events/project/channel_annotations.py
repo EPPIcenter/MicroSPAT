@@ -29,13 +29,27 @@ def get_project_channel_annotations(json):
     ids = extract_ids(json)
 
     for id_subset in subset(ids, 2000):
-        query = db.session.query(ProjectChannelAnnotations, Channel).join(ProjectChannelAnnotations.channel)
-        query = query.options(Load(Channel).defer('data'))
-        query = query.filter(ProjectChannelAnnotations.id.in_(id_subset))
+        annotations = []
+        channels = []
+        for id in id_subset:
+            annotations_and_channels = db.session.query(
+                ProjectChannelAnnotations, Channel
+            ).join(
+                ProjectChannelAnnotations.channel
+            ).options(
+                Load(Channel).defer('data')
+            ).filter(ProjectChannelAnnotations.id == id).all()
+            annotation, channel = list(zip(*annotations_and_channels))
+            annotations.append(annotation)
+            channel.append(channel)
 
-        annotations_and_channels = query.all()
+        # query = db.session.query(ProjectChannelAnnotations, Channel).join(ProjectChannelAnnotations.channel)
+        # query = query.options(Load(Channel).defer('data'))
+        # query = query.filter(ProjectChannelAnnotations.id.in_(id_subset))
 
-        annotations, channels = list(zip(*annotations_and_channels))
+        # annotations_and_channels = query.all()
+        #
+        # annotations, channels = list(zip(*annotations_and_channels))
 
         missing_ids = list(set(id_subset) - set([_.id for _ in annotations]))
 
@@ -57,13 +71,27 @@ def get_updated_project_channel_annotations(json):
     ids = extract_ids(json)
 
     for id_subset in subset(ids, 2000):
-        query = db.session.query(ProjectChannelAnnotations, Channel).join(ProjectChannelAnnotations.channel)
-        query = query.options(Load(Channel).defer('data'))
-        query = query.filter(ProjectChannelAnnotations.id.in_(id_subset))
-
-        annotations_and_channels = query.all()
-
-        annotations, channels = list(zip(*annotations_and_channels))
+        annotations = []
+        channels = []
+        for id in id_subset:
+            annotations_and_channels = db.session.query(
+                ProjectChannelAnnotations, Channel
+            ).join(
+                ProjectChannelAnnotations.channel
+            ).options(
+                Load(Channel).defer('data')
+            ).filter(ProjectChannelAnnotations.id == id).all()
+            annotation, channel = list(zip(*annotations_and_channels))
+            annotations.append(annotation)
+            channel.append(channel)
+        #
+        # query = db.session.query(ProjectChannelAnnotations, Channel).join(ProjectChannelAnnotations.channel)
+        # query = query.options(Load(Channel).defer('data'))
+        # query = query.filter(ProjectChannelAnnotations.id.in_(id_subset))
+        #
+        # annotations_and_channels = query.all()
+        #
+        # annotations, channels = list(zip(*annotations_and_channels))
 
         missing_ids = list(set(id_subset) - set([_.id for _ in annotations]))
 

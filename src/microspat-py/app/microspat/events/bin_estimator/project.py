@@ -113,7 +113,7 @@ def get_bin_estimator_project(json):
 
         if p:
             projects.append(p)
-            channels += p.get_serialized_channels()
+            channels += Channel.get_serialized_list(project_id)
             socketio.sleep()
 
             locus_parameters += BinEstimatorLocusParams.query \
@@ -371,10 +371,13 @@ def analyze_loci(json):
     if not locus_parameter_ids:
         task_notifier.emit_task_failure(message="No Locus Parameter Selected.")
         return
-
-    lps: list[BinEstimatorLocusParams] = BinEstimatorLocusParams.query.filter(
-        BinEstimatorLocusParams.id.in_(locus_parameter_ids)
-    ).all()
+    lps = []
+    for id in locus_parameter_ids:
+        lp = BinEstimatorLocusParams.query.get(id)
+        lps.append(lp)
+    # lps = BinEstimatorLocusParams.query.filter(
+    #     BinEstimatorLocusParams.id.in_(locus_parameter_ids)
+    # ).all()
 
     if not lps:
         task_notifier.emit_task_failure(message="Locus Parameters No Longer Exist. Reload Application.")

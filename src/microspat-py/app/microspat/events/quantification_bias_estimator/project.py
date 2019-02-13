@@ -87,7 +87,7 @@ def get_quantification_bias_estimator_project(json):
         p = QuantificationBiasEstimatorProject.query.get(project_id)
         if p:
             projects.append(p)
-            channels += p.get_serialized_channels()
+            channels += Channel.get_serialized_list(project_id)
             locus_parameters += p.locus_parameters.all()
             control_sample_associations += ControlSampleAssociation.get_serialized_list(project_id)
             project_sample_annotations += ProjectSampleAnnotations.get_serialized_list(project_id)
@@ -362,8 +362,13 @@ def analyze_loci(json):
         task_notifier.emit_task_failure(message="No Locus Parameter Selected.")
         return
 
-    lps: list[QuantificationBiasEstimatorLocusParams] = QuantificationBiasEstimatorLocusParams\
-        .query.filter(QuantificationBiasEstimatorLocusParams.id.in_(locus_parameter_ids)).all()
+    lps = []
+    for id in locus_parameter_ids:
+        lp = QuantificationBiasEstimatorLocusParams.query.get(id)
+        lps.append(lp)
+    #
+    # lps = QuantificationBiasEstimatorLocusParams\
+    #     .query.filter(QuantificationBiasEstimatorLocusParams.id.in_(locus_parameter_ids)).all()
 
     if not lps:
         task_notifier.emit_task_failure(message="Locus Parameters No Longer Exist. Reload Application.")

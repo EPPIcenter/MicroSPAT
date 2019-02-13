@@ -41,6 +41,43 @@ class GenotypingProject(SampleBasedProject, ArtifactEstimating, QuantificationBi
     __mapper_args__ = {'polymorphic_identity': 'genotyping_project'}
 
     @classmethod
+    def get_serialized(cls, project_id):
+        project = GenotypingProject.query.filter(
+            cls.id == project_id
+        ).values(
+            cls.id, cls.title, cls.date, cls.creator, cls.description,
+            cls.artifact_estimator_id, cls.locus_set_id, cls.bin_estimator_id,
+            cls.quantification_bias_estimator_id, cls.last_updated
+        )
+
+        p = next(project)
+
+        locus_parameters = GenotypingLocusParams.query.filter(
+            GenotypingLocusParams.project_id == project_id
+        ).values(GenotypingLocusParams.id)
+
+        sample_annotations = ProjectSampleAnnotations.query.filter(
+            ProjectSampleAnnotations.project_id == project_id
+        ).values(ProjectSampleAnnotations.id)
+
+        r = {
+            'id': p[0],
+            'title': p[1],
+            'date': p[2],
+            'creator': p[3],
+            'description': p[4],
+            'artifact_estimator': p[5],
+            'locus_set': p[6],
+            'bin_estimator': p[7],
+            'quantification_bias_estimator': p[8],
+            'last_updated': p[9],
+            'locus_parameters': [_[0] for _ in locus_parameters],
+            'sample_annotations': [_[0] for _ in sample_annotations]
+        }
+        return r
+
+
+    @classmethod
     def get_serialized_list(cls):
         projects = GenotypingProject.query.values(cls.id, cls.title, cls.date, cls.creator, cls.description,
                                                   cls.artifact_estimator_id, cls.locus_set_id, cls.bin_estimator_id,

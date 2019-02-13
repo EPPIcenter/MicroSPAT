@@ -19,11 +19,19 @@ schema = DeferredGenotypeSchema()
 def get_genotypes(json):
     ids = extract_ids(json)
     for id_subset in subset(ids, 500):
-        genotypes = Genotype.query.filter(Genotype.id.in_(id_subset)).values(
-            Genotype.id, Genotype.project_id, Genotype.sample_annotations_id, Genotype.locus_id,
-            Genotype.annotated_peaks, Genotype.reference_run_id, Genotype.flags, Genotype.comments,
-            Genotype.last_updated, Genotype.alleles
-        )
+        genotypes = []
+        for id in id_subset:
+            genotype = next(Genotype.query.filter(Genotype.id == id).values(
+                Genotype.id, Genotype.project_id, Genotype.sample_annotations_id, Genotype.locus_id,
+                Genotype.annotated_peaks, Genotype.reference_run_id, Genotype.flags, Genotype.comments,
+                Genotype.last_updated, Genotype.alleles
+            ))
+            genotypes.append(genotype)
+        # genotypes = Genotype.query.filter(Genotype.id.in_(id_subset)).values(
+        #     Genotype.id, Genotype.project_id, Genotype.sample_annotations_id, Genotype.locus_id,
+        #     Genotype.annotated_peaks, Genotype.reference_run_id, Genotype.flags, Genotype.comments,
+        #     Genotype.last_updated, Genotype.alleles
+        # )
         res = []
         for s in genotypes:
             g = {
@@ -54,11 +62,19 @@ def get_genotypes(json):
 def get_genotypes(json):
     ids = extract_ids(json)
     for id_subset in subset(ids, 500):
-        genotypes = Genotype.query.filter(Genotype.id.in_(id_subset)).values(
-            Genotype.id, Genotype.project_id, Genotype.sample_annotations_id, Genotype.locus_id,
-            Genotype.annotated_peaks, Genotype.reference_run_id, Genotype.flags, Genotype.comments,
-            Genotype.last_updated, Genotype.alleles
-        )
+        genotypes = []
+        for id in id_subset:
+            genotype = next(Genotype.query.filter(Genotype.id == id).values(
+                Genotype.id, Genotype.project_id, Genotype.sample_annotations_id, Genotype.locus_id,
+                Genotype.annotated_peaks, Genotype.reference_run_id, Genotype.flags, Genotype.comments,
+                Genotype.last_updated, Genotype.alleles
+            ))
+            genotypes.append(genotype)
+        # genotypes = Genotype.query.filter(Genotype.id.in_(id_subset)).values(
+        #     Genotype.id, Genotype.project_id, Genotype.sample_annotations_id, Genotype.locus_id,
+        #     Genotype.annotated_peaks, Genotype.reference_run_id, Genotype.flags, Genotype.comments,
+        #     Genotype.last_updated, Genotype.alleles
+        # )
         res = []
         for s in genotypes:
             g = {

@@ -48,13 +48,23 @@ class Channel(ChannelExtractor, TimeStamped, Colored, Flaggable, db.Model):
             return "<Channel {}>".format(self.color)
 
     @classmethod
-    def get_serialized_list(cls, query, ignore_data):
+    def get_serialized_list(cls, project_id, ignore_data=True):
+        from app.microspat.models.project.channel_annotations import ProjectChannelAnnotations
+
         if ignore_data:
-            channels = query.values(cls.id, cls.well_id, cls.wavelength, cls.max_data_point, cls.ignored, cls.sample_id,
-                                    cls.locus_id, cls.color, cls.flags)
+            channels = cls.query.join(
+                ProjectChannelAnnotations
+            ).filter(
+                ProjectChannelAnnotations.project_id == project_id
+            ).values(cls.id, cls.well_id, cls.wavelength, cls.max_data_point, cls.ignored, cls.sample_id, cls.locus_id,
+                     cls.color, cls.flags)
         else:
-            channels = query.values(cls.id, cls.well_id, cls.wavelength, cls.max_data_point, cls.ignored, cls.sample_id,
-                                    cls.locus_id, cls.color, cls.flags, cls.data)
+            channels = cls.query.join(
+                ProjectChannelAnnotations
+            ).filter(
+                ProjectChannelAnnotations.project_id == project_id
+            ).values(cls.id, cls.well_id, cls.wavelength, cls.max_data_point, cls.ignored, cls.sample_id, cls.locus_id,
+                     cls.color, cls.flags, cls.data)
 
         res = []
         for c in channels:

@@ -37,9 +37,7 @@ class ArtifactEstimatorProject(SampleBasedProject):
                                                                      ArtifactEstimatorLocusParams.project_id)
 
         locus_parameters_dict = defaultdict(list)
-        print("Get Serialized List")
         for lp in locus_parameters:
-            print(lp, type(lp))
             locus_parameters_dict[lp.project_id].append(lp.id)
 
         locus_artifact_estimators = LocusArtifactEstimator.query.values(LocusArtifactEstimator.id,

@@ -35,7 +35,10 @@ def save_locus_set(json):
         locus_set.label = json.pop('label')
 
         locus_ids = json.pop('loci')
-        loci = Locus.query.filter(Locus.id.in_(locus_ids)).all()
+        loci = []
+        for locus_id in locus_ids:
+            loci.append(Locus.query.get(locus_id))
+        # loci = Locus.query.filter(Locus.id.in_(locus_ids)).all()
         locus_set.loci = loci
         task_notifier.emit_task_progress(progress={
             'style': 'determinate',

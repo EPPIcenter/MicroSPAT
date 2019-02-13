@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from sqlalchemy.orm import make_transient, reconstructor
 
 from app import db, socketio
@@ -17,6 +19,30 @@ class LocusBinSet(BinFinder.BinFinder, TimeStamped, db.Model):
                            cascade='save-update, merge, delete, expunge, delete-orphan')
 
     __table_args__ = {'sqlite_autoincrement': True}
+
+    @classmethod
+    def get_serialized_list(cls, project_id):
+        lbs = cls.query.filter(cls.project_id == project_id).values(
+            cls.id, cls.locus_id, cls.project_id, cls.last_updated
+        )
+
+        bins = Bin.query.join(cls).filter(cls.project_id == project_id).values(Bin.id, Bin.locus_bin_set_id)
+
+        bin_map = defaultdict(list)
+        for b in bins:
+            bin_map[b[1]].append(b[0])
+
+        res = []
+        for l in lbs:
+            r = {
+                'id': l[0],
+                'locus': l[1],
+                'project': l[2],
+                'last_updated': l[3],
+                'bins': bin_map[l[0]]
+            }
+            res.append(r)
+        return res
 
     @classmethod
     def copy_locus_bin_set(cls, lbs):

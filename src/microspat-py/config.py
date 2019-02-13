@@ -50,7 +50,6 @@ class Config:
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     SQLALCHEMY_RECORD_QUERIES = False
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ECHO = False  # Echo SQL to the console
 
     # Logging
     LOGGING_LOCATION = "app.log"
@@ -66,12 +65,16 @@ class Config:
 
 
 class DevelopmentConfig(Config):
+    SQLALCHEMY_ECHO = True  # Echo SQL to the console
+
     DEBUG = True
     SQLALCHEMY_RECORD_QUERIES = True
     SQLALCHEMY_TRACK_MODIFICATIONS = True
 
     ASSETS_PATH = os.path.join(basedir, 'static')
     DB_PATH = os.path.join(basedir, 'dev_microspat_db.sqlite')
+
+    LOGGING_LOCATION = os.path.join(APPDATA, 'microspat_dev.log')
 
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///' + DB_PATH
 
@@ -80,10 +83,10 @@ class DevelopmentConfig(Config):
 
 
 class ProductionConfig(Config):
-    # SQLALCHEMY_ECHO = True  # Echo SQL to the console
 
     ASSETS_PATH = os.path.join(prod_dir, 'static')
     DB_PATH = os.path.join(APPDATA, 'microspat_db.sqlite')
+
     LOGGING_LOCATION = os.path.join(APPDATA, 'microspat.log')
 
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///' + DB_PATH

@@ -43,7 +43,6 @@ from app.microspat.models import (
 from app.utils import CaseInsensitiveDictReader
 
 from app.microspat.events.base import (
-    base_get_updated,
     base_list,
     extract_ids,
     make_namespace,
@@ -67,20 +66,19 @@ BIN_ESTIMATOR_PROJECT_NAMESPACE = table_to_string_mapping[BinEstimatorProject]
 LOCUS_BIN_SET_NAMESPACE = table_to_string_mapping[LocusBinSet]
 BIN_NAMESPACE = table_to_string_mapping[Bin]
 
-project_schema = GenotypingProjectSchema()
-project_dict_schema = dict_schemas.GenotypingProjectSchema()
+# project_schema = GenotypingProjectSchema()
+project_schema = dict_schemas.GenotypingProjectSchema()
 channel_schema = DeferredChannelSchema(exclude="data")
-locus_params_schema = GenotypingLocusParamsSchema()
+locus_params_schema = dict_schemas.GenotypingLocusParamsSchema()
 project_sample_annotations_schema = DeferredProjectSampleAnnotationsSchema()
 project_channel_annotations_schema = DeferredProjectChannelAnnotationsSchema()
 genotype_schema = DeferredGenotypeSchema()
 
-bin_estimator_project_schema = BinEstimatorProjectSchema()
-locus_bin_set_schema = LocusBinSetSchema()
-bin_schema = BinSchema()
+locus_bin_set_schema = dict_schemas.LocusBinSetSchema()
+bin_schema = dict_schemas.BinSchema()
 
 
-socketio.on_event('list', base_list(GenotypingProject, project_dict_schema, JSON_NAMESPACE,
+socketio.on_event('list', base_list(GenotypingProject, project_schema, JSON_NAMESPACE,
                                     query=GenotypingProject.get_serialized_list),
                   namespace=SOCK_NAMESPACE)
 # socketio.on_event('get_updated', base_get_updated(GenotypingProject, project_schema, project_schema, JSON_NAMESPACE), namespace=SOCK_NAMESPACE)
@@ -97,20 +95,19 @@ def get_genotyping_project(json):
     project_sample_annotations = []
     project_channel_annotations = []
 
-    bin_estimator_projects = []
     locus_bin_sets = []
     bins = []
 
     for project_id in ids:
-        p = GenotypingProject.query.get(project_id)
+        p = GenotypingProject.get_serialized(project_id)
         socketio.sleep()
 
         if p:
             projects.append(p)
-            channels += p.get_serialized_channels()
+            channels += Channel.get_serialized_list(project_id)
             socketio.sleep()
 
-            locus_parameters += p.locus_parameters.all()
+            locus_parameters += GenotypingLocusParams.get_serialized_list(project_id)
             socketio.sleep()
 
             project_sample_annotations += ProjectSampleAnnotations.get_serialized_list(project_id)
@@ -122,10 +119,14 @@ def get_genotyping_project(json):
             project_channel_annotations += ProjectChannelAnnotations.get_serialized_list(project_id)
             socketio.sleep()
 
-            curr_locus_bin_sets = LocusBinSet.query.filter(LocusBinSet.project_id == p.bin_estimator_id).all()
-            locus_bin_sets += curr_locus_bin_sets
-            for lb in curr_locus_bin_sets:
-                bins += lb.bins
+            locus_bin_sets += LocusBinSet.get_serialized_list(p['bin_estimator'])
+
+            bins += Bin.get_serialized_list(p['bin_estimator'])
+
+            # curr_locus_bin_sets = LocusBinSet.query.filter(LocusBinSet.project_id == p.bin_estimator_id).all()
+            # locus_bin_sets += curr_locus_bin_sets
+            # for lb in curr_locus_bin_sets:
+            #     bins += lb.bins
         else:
             socketio.emit('get_failed', {PROJECT_NAMESPACE: [project_id]}, namespace=make_namespace(PROJECT_NAMESPACE))
 
@@ -161,13 +162,9 @@ def get_genotyping_project(json):
                   namespace=make_namespace(LOCUS_BIN_SET_NAMESPACE))
     socketio.sleep()
 
-    bin_estimator_project_dump = bin_estimator_project_schema.dumps(bin_estimator_projects, many=True)
-    socketio.emit('get', {BIN_ESTIMATOR_PROJECT_NAMESPACE: bin_estimator_project_dump.data},
-                  namespace=make_namespace(BIN_ESTIMATOR_PROJECT_NAMESPACE))
-    socketio.sleep()
-
     project_dump = project_schema.dumps(projects, many=True)
     socketio.emit('get', {PROJECT_NAMESPACE: project_dump.data}, namespace=make_namespace(PROJECT_NAMESPACE))
+
     socketio.sleep()
 
 
@@ -412,9 +409,11 @@ def analyze_loci(json):
         task_notifier.emit_task_failure(message="No Locus Parameter Selected.")
         return
 
-    lps: list[GenotypingLocusParams] = GenotypingLocusParams.query.filter(
-        GenotypingLocusParams.id.in_(locus_parameter_ids)
-    ).all()
+    # lps = GenotypingLocusParams.query.filter(GenotypingLocusParams.id.in_(locus_parameter_ids)).all()
+    lps = []
+    for lp_id in locus_parameter_ids:
+        lp = GenotypingLocusParams.query.get(lp_id)
+        lps.append(lp)
 
     if not lps:
         task_notifier.emit_task_failure(message="Locus Parameters No Longer Exist. Reload Application.")

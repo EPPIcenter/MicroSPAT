@@ -188,25 +188,51 @@ class SampleBasedProject(Project):
         return self
 
     def _remove_samples(self, sample_ids):
-        psas = ProjectSampleAnnotations.query.filter(
-            ProjectSampleAnnotations.project_id == self.id,
-            ProjectSampleAnnotations.sample_id.in_(sample_ids)
-        ).all()
-        socketio.sleep()
+        psas = []
+        slas = []
+        pcas = []
 
-        slas = SampleLocusAnnotation.query.filter(
-            SampleLocusAnnotation.project_id == self.id
-        ).join(ProjectSampleAnnotations).filter(
-            ProjectSampleAnnotations.sample_id.in_(sample_ids)
-        ).all()
-        socketio.sleep()
+        for id in sample_ids:
+            psa = ProjectSampleAnnotations.query.filter(
+                ProjectSampleAnnotations.project_id == self.id,
+                ProjectSampleAnnotations.sample_id == id
+            ).all()
+            psas += psa
 
-        pcas = ProjectChannelAnnotations.query.filter(
-            ProjectChannelAnnotations.project_id == self.id
-        ).join(Channel).filter(
-            Channel.sample_id.in_(sample_ids)
-        ).all()
-        socketio.sleep()
+            sla = SampleLocusAnnotation.query.filter(
+                SampleLocusAnnotation.project_id == self.id,
+            ).join(ProjectSampleAnnotations).filter(
+                ProjectSampleAnnotations.sample_id == id
+            ).all()
+            slas += sla
+
+            pca = ProjectChannelAnnotations.query.filter(
+                ProjectChannelAnnotations.project_id == self.id
+            ).join(Channel).filter(
+                Channel.sample_id == id
+            ).all()
+            pcas += pca
+            socketio.sleep()
+
+        # psas = ProjectSampleAnnotations.query.filter(
+        #     ProjectSampleAnnotations.project_id == self.id,
+        #     ProjectSampleAnnotations.sample_id.in_(sample_ids)
+        # ).all()
+        # socketio.sleep()
+        #
+        # slas = SampleLocusAnnotation.query.filter(
+        #     SampleLocusAnnotation.project_id == self.id
+        # ).join(ProjectSampleAnnotations).filter(
+        #     ProjectSampleAnnotations.sample_id.in_(sample_ids)
+        # ).all()
+        # socketio.sleep()
+        #
+        # pcas = ProjectChannelAnnotations.query.filter(
+        #     ProjectChannelAnnotations.project_id == self.id
+        # ).join(Channel).filter(
+        #     Channel.sample_id.in_(sample_ids)
+        # ).all()
+        # socketio.sleep()
 
         for _ in psas + slas + pcas:
             socketio.sleep()

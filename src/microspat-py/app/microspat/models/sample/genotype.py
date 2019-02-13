@@ -18,28 +18,58 @@ def clear_channel_annotations(session, _, __):
     channel_annotation_ids = [_.id for _ in db.session.deleted if isinstance(_, ProjectChannelAnnotations)]
     if channel_annotation_ids:
 
-        affected_projects = Project.query.join(ProjectChannelAnnotations).filter(
-            ProjectChannelAnnotations.id.in_(channel_annotation_ids)).all()
+        affected_project_ids = set()
+        affected_locus_ids = set()
+        for id in channel_annotation_ids:
+            affected_project_id = Project.query.join(
+                ProjectChannelAnnotations
+            ).filter(
+                ProjectChannelAnnotations.id == id
+            ).value(Project.id)
+            affected_project_ids.add(affected_project_id)
 
-        affected_locus_ids = Channel.query.join(ProjectChannelAnnotations).filter(
-            ProjectChannelAnnotations.id.in_(channel_annotation_ids)).values('locus_id')
+            affected_locus_id = Channel.query.join(
+                ProjectChannelAnnotations
+            ).filter(
+                ProjectChannelAnnotations.id == id
+            ).value(Channel.locus_id)
+            affected_locus_ids.add(affected_locus_id)
 
-        affected_locus_ids = list(set([_[0] for _ in affected_locus_ids]))
+        affected_projects = []
+        for id in affected_project_ids:
+            p = Project.query.get(id)
+            affected_projects.append(p)
+
+        # affected_projects = Project.query.join(ProjectChannelAnnotations).filter(
+        #     ProjectChannelAnnotations.id.in_(channel_annotation_ids)).all()
+
+        # affected_locus_ids = Channel.query.join(ProjectChannelAnnotations).filter(
+        #     ProjectChannelAnnotations.id.in_(channel_annotation_ids)).values('locus_id')
+        #
+        # affected_locus_ids = list(set([_[0] for _ in affected_locus_ids]))
 
         for p in affected_projects:
             for locus_id in affected_locus_ids:
                 p.samples_changed(locus_id)
 
-        genotype_annotations = Genotype.query.filter(
-            Genotype.reference_run_id.in_(channel_annotation_ids)).all()
+        genotype_annotations = []
+        for id in channel_annotation_ids:
+            genotype_annotation = Genotype.query.filter(Genotype.reference_run_id == id).all()
+            genotype_annotations += genotype_annotation
+        # genotype_annotations = Genotype.query.filter(
+        #     Genotype.reference_run_id.in_(channel_annotation_ids)).all()
         for ga in genotype_annotations:
             assert isinstance(ga, Genotype)
             ga.clear_annotated_peaks()
             ga.clear_alleles()
             ga.clear_flags()
 
-        annotations = SampleLocusAnnotation.query.filter(
-            SampleLocusAnnotation.reference_run_id.in_(channel_annotation_ids)).all()
+        annotations = []
+        for id in channel_annotation_ids:
+            sla = SampleLocusAnnotation.query.filter(SampleLocusAnnotation.reference_run_id == id).all()
+            annotations += sla
+        # annotations = SampleLocusAnnotation.query.filter(
+        #     SampleLocusAnnotation.reference_run_id.in_(channel_annotation_ids)).all()
         for a in annotations:
             assert isinstance(a, SampleLocusAnnotation)
             a.clear_annotated_peaks()

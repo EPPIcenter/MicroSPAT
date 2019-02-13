@@ -16,6 +16,32 @@ class Bin(Flaggable, BinFinder.Bin, TimeStamped, db.Model):
     __table_args__ = {'sqlite_autoincrement': True}
 
     @classmethod
+    def get_serialized_list(cls, project_id):
+        from app.microspat.models import LocusBinSet
+
+        bins = cls.query.join(LocusBinSet).filter(LocusBinSet.project_id == project_id).values(
+            cls.id, cls.locus_bin_set_id, cls.label, cls.base_size, cls.bin_buffer, cls.peak_count, cls.last_updated,
+            cls.flags, cls.comments
+        )
+
+        res = []
+        for b in bins:
+            r = {
+                'id': b[0],
+                'locus_bin_set': b[1],
+                'label': b[2],
+                'base_size': b[3],
+                'bin_buffer': b[4],
+                'peak_count': b[5],
+                'last_updated': b[6],
+                'flags': b[7],
+                'comments': b[8]
+            }
+            res.append(r)
+        return res
+
+
+    @classmethod
     def copy_bin(cls, b):
         db.session.expunge(b)
         make_transient(b)

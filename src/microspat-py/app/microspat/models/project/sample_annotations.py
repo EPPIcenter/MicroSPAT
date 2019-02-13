@@ -30,7 +30,7 @@ class ProjectSampleAnnotations(TimeStamped, db.Model):
     @classmethod
     def get_serialized_list(cls, project_id):
         psas = cls.query.filter(cls.project_id == project_id).values(
-            cls.id, cls.sample_id, cls.project_id, cls.moi
+            cls.id, cls.sample_id, cls.project_id, cls.moi, cls.last_updated
         )
 
         slas = SampleLocusAnnotation.query.filter(SampleLocusAnnotation.project_id == project_id).values(
@@ -48,6 +48,7 @@ class ProjectSampleAnnotations(TimeStamped, db.Model):
                 'sample': p[1],
                 'project': p[2],
                 'moi': p[3],
+                'last_updated': p[4],
                 'locus_annotations': sla_dict[p[0]]
             }
             res.append(r)

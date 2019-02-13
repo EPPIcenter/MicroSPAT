@@ -106,20 +106,48 @@ class BinEstimatorProject(SampleBasedProject):
         return self
 
     def _remove_samples(self, sample_ids):
-        psas = ProjectSampleAnnotations.query.filter(
-            ProjectSampleAnnotations.project_id == self.id,
-            ProjectSampleAnnotations.sample_id.in_(sample_ids)
-        ).all()
+        psas = []
+        genotypes = []
+        pcas = []
 
-        genotypes = Genotype.query.filter(Genotype.project_id == self.id)\
-            .join(ProjectSampleAnnotations)\
-            .filter(ProjectSampleAnnotations.sample_id.in_(sample_ids)).all()
+        for id in sample_ids:
+            psa = ProjectSampleAnnotations.query.filter(
+                ProjectSampleAnnotations.project_id == self.id,
+                ProjectSampleAnnotations.sample_id == id
+            ).all()
+            psas += psa
 
-        pcas = ProjectChannelAnnotations.query.filter(
-            ProjectChannelAnnotations.project_id == self.id
-        ).join(Channel).filter(
-            Channel.sample_id.in_(sample_ids)
-        ).all()
+            genotype = Genotype.query.filter(
+                Genotype.project_id == self.id
+            ).join(
+                ProjectSampleAnnotations
+            ).filter(
+                ProjectSampleAnnotations.sample_id == id
+            ).all()
+            genotypes += genotype
+
+            pca = ProjectChannelAnnotations.query.filter(
+                ProjectChannelAnnotations.project_id == self.id
+            ).join(Channel).filter(
+                Channel.sample_id == id
+            ).all()
+            pcas += pca
+
+
+        # psas = ProjectSampleAnnotations.query.filter(
+        #     ProjectSampleAnnotations.project_id == self.id,
+        #     ProjectSampleAnnotations.sample_id.in_(sample_ids)
+        # ).all()
+        #
+        # genotypes = Genotype.query.filter(Genotype.project_id == self.id)\
+        #     .join(ProjectSampleAnnotations)\
+        #     .filter(ProjectSampleAnnotations.sample_id.in_(sample_ids)).all()
+
+        # pcas = ProjectChannelAnnotations.query.filter(
+        #     ProjectChannelAnnotations.project_id == self.id
+        # ).join(Channel).filter(
+        #     Channel.sample_id.in_(sample_ids)
+        # ).all()
 
         for _ in psas + genotypes + pcas:
             db.session.delete(_)

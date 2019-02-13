@@ -122,7 +122,7 @@ def get_artifact_estimator_project(json):
         p = ArtifactEstimatorProject.query.get(project_id)
         if p:
             projects.append(p)
-            channels += p.get_serialized_channels()
+            channels += Channel.get_serialized_list(project_id)
             locus_parameters += p.locus_parameters.all()
             locus_artifact_estimators += LocusArtifactEstimator.query.filter(
                 LocusArtifactEstimator.project_id == project_id
@@ -367,9 +367,14 @@ def analyze_loci(json):
         task_notifier.emit_task_failure(message="No Locus Parameter Selected.")
         return
 
-    lps: list[ArtifactEstimatorLocusParams] = ArtifactEstimatorLocusParams.query.filter(
-        ArtifactEstimatorLocusParams.id.in_(locus_parameter_ids)
-    ).all()
+    lps = []
+    for id in locus_parameter_ids:
+        lp = ArtifactEstimatorLocusParams.query.get(id)
+        lps.append(lp)
+
+    # lps = ArtifactEstimatorLocusParams.query.filter(
+    #     ArtifactEstimatorLocusParams.id.in_(locus_parameter_ids)
+    # ).all()
 
     if not lps:
         task_notifier.emit_task_failure(message="Locus Parameters No Longer Exist. Reload Application.")

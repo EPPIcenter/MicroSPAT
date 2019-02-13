@@ -1,10 +1,10 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Store } from '@ngrx/store';
 
 import { WebSocketBaseService } from '../base';
-import { Sample } from '../../models/sample/sample';
-import { Store } from '@ngrx/store';
-import * as fromRoot from '../../reducers';
+import { Sample } from 'app/models/sample/sample';
+import * as fromRoot from 'app/reducers';
 
 @Injectable()
 export class SampleService extends WebSocketBaseService<Sample> {

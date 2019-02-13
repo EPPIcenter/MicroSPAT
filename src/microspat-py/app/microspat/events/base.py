@@ -112,7 +112,10 @@ def base_get(model, schema, namespace, subset_size=384):
         ids = extract_ids(json)
         # print(f"Base Get Request Received {namespace}, {len(ids)}")
         for id_subset in subset(ids, subset_size):
-            instances = model.query.filter(model.id.in_(id_subset)).all()
+            instances = []
+            for id in ids:
+                instances.append(model.query.get(id))
+            # instances = model.query.filter(model.id.in_(id_subset)).all()
             instance_ids = set([_.id for _ in instances])
             not_found = list(set(id_subset) - instance_ids)
             dump = schema.dumps(instances, many=True, separators=(',', ':'))
@@ -138,7 +141,10 @@ def base_get_updated(model, detailed_schema, undetailed_schema, namespace, subse
         schema = detailed_schema if detailed else undetailed_schema
         # print(f"Base Get Update Request Received {namespace}, {len(ids)}, Detailed: {detailed}")
         for id_subset in subset(ids, subset_size):
-            instances = model.query.filter(model.id.in_(id_subset)).all()
+            instances = []
+            for id in ids:
+                instances.append(model.query.get(id))
+            # instances = model.query.filter(model.id.in_(id_subset)).all()
             instance_ids = set([_.id for _ in instances])
             not_found = list(set(id_subset) - instance_ids)
             dump = schema.dumps(instances, many=True, separators=(',', ':'))

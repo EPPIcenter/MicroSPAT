@@ -289,9 +289,6 @@ class Project(LocusSetAssociatedMixin, TimeStamped, db.Model):
             self._locus_param_cache = {_.locus_id: _ for _ in lps}
         return self._locus_param_cache.get(locus_id)
 
-    def get_serialized_channels(self, ignore_data=True):
-        q = Channel.query.join(ProjectChannelAnnotations).filter(ProjectChannelAnnotations.project_id == self.id)
-        return Channel.get_serialized_list(q, ignore_data)
 
     def serialize(self):
         return {
