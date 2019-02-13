@@ -75,7 +75,9 @@ function acquireProcessOrStartServer() {
     serverPath = serverPath.join("/");
   }
   
+  // Check if the lock file and PID already exist
   if (!fs.existsSync(path.join(tmpPath, 'mspatpid.lock'))) {
+    // Doesn't exist, start process
     microspat = spawn(path.join(serverPath, 'app.asar.unpacked', 'mspat-server', ps.platform, 'run', 'run'), args=[], options={
       env: env,
     })
@@ -85,10 +87,13 @@ function acquireProcessOrStartServer() {
     return microspat.pid;
   } else {
     pid = fs.readFileSync(path.join(tmpPath, 'mspatpid.lock'))
+    // PID file exists, lets see if we can recover the process
     try {
+      // PID recovered
       ps.kill(pid, 0);
       return pid;
     } catch(e) {
+      // PID not recovered, delete PID lock and start new instance
       microspat = spawn(path.join(serverPath, 'app.asar.unpacked', 'mspat-server', ps.platform, 'run', 'run'), args=[], options={
         env: env,
       })

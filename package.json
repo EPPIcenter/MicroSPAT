@@ -1,6 +1,6 @@
 {
   "name": "microspat",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "scripts": {
     "dist-mac": "electron-builder -m",
     "dist-win": "electron-builder -w",
