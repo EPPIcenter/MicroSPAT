@@ -8,8 +8,8 @@
     "pack": "electron-builder --dir"
   },
   "devDependencies": {
-    "electron": "^2.0.8",
-    "electron-builder": "^20.38.5"
+    "electron": "^7.1.2",
+    "electron-builder": "^22.2.0"
   },
   "build": {
     "productName": "MicroSPAT",

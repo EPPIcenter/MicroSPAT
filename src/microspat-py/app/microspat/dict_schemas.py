@@ -21,7 +21,6 @@ class ProjectSchema(BaseSchema, TimeStamped):
     description = fields.String()
     locus_set = fields.Integer()
     locus_parameters = fields.List(fields.Integer())
-    last_updated = fields.DateTime()
 
 
 class SampleBasedProjectSchema(ProjectSchema):
@@ -72,6 +71,18 @@ class GenotypingLocusParamsSchema(ProjectLocusParamsSchema):
     probability_threshold = fields.Float()
     bootstrap_probability_threshold = fields.Float()
     genotyping_parameters_stale = fields.Boolean()
+
+
+class BinEstimatorLocusParamsSchema(ProjectLocusParamsSchema):
+    min_peak_frequency = fields.Integer()
+    default_bin_buffer = fields.Float()
+    bin_estimator_parameters_stale = fields.Boolean()
+
+
+class ArtifactEstimatorLocusParamsSchema(ProjectLocusParamsSchema):
+    max_secondary_relative_peak_height = fields.Float()
+    min_artifact_peak_frequency = fields.Float()
+    artifact_estimator_parameters_stale = fields.Boolean()
 
 
 class GenotypingProjectSchema(SampleBasedProjectSchema):

@@ -83,7 +83,7 @@ class QuantificationBiasEstimating(object):
             for annotation in locus_annotations:
                 assert isinstance(annotation, SampleLocusAnnotation)
                 if annotation.annotated_peaks:
-                    self.quantification_bias_estimator.annotate_quantification_bias(
+                    annotation.annotated_peaks = self.quantification_bias_estimator.annotate_quantification_bias(
                         annotation.locus_id,
                         annotation.annotated_peaks
                     )

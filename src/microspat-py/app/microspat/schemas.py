@@ -129,14 +129,14 @@ class ProjectChannelAnnotationsSchema(BaseSchema, Flaggable):
     class Meta(BaseSchema.Meta):
         model = ProjectChannelAnnotations
     annotated_peaks = JSONEncodedField()
-    peak_indices = JSONEncodedField()
+    # peak_indices = JSONEncodedField()
 
 
 class DeferredProjectChannelAnnotationsSchema(BaseSchema, Flaggable):
     class Meta(BaseSchema.Meta):
         model = ProjectChannelAnnotations
     annotated_peaks = JSONEncodedField()
-    peak_indices = JSONEncodedField()
+    # peak_indices = JSONEncodedField()
     channel = fields.Integer()
     project = fields.Integer()
 

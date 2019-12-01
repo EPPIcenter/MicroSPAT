@@ -106,6 +106,8 @@ export class AppComponent {
     this.activeTasks$ = this.store.select(fromTasks.selectActiveTasks());
     this.genotypingProjectService.list();
     this.binEstimatorProjectService.list();
+    this.locusBinSetService.list();
+    this.binService.list();
     this.artifactEstimatorProjectService.list();
     this.quantificationBiasEstimatorProjectService.list();
     this.plateService.list();

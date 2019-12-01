@@ -20,6 +20,7 @@
 
 import multiprocessing
 import argparse
+import faulthandler
 from app import socketio, create_app, db
 
 
@@ -40,6 +41,7 @@ def auto_vacuum():
 
 if __name__ == '__main__':
     multiprocessing.freeze_support()
+    faulthandler.enable()
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", type=str, default="production")
     parser.add_argument("--address", type=str, default="127.0.0.1:17328")

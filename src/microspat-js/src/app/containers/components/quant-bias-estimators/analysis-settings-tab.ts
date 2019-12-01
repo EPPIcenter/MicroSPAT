@@ -127,9 +127,9 @@ export class QuantificationBiasEstimatorProjectAnalysisSettingsComponent impleme
 
   prepareParameterSettings() {
     return Object.assign({},
-      this.form.get('offscale_threshold:').value,
-      this.form.get('min_bias_quantifier_peak_height:').value,
-      this.form.get('min_bias_quantifier_peak_proportion:').value
+      this.form.get('quantification_bias_estimator_parameters').value,
+      this.form.get('scanning_parameters').value,
+      this.form.get('filter_parameters').value
     )
   }
 

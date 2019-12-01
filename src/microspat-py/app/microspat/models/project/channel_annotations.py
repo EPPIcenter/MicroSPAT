@@ -27,7 +27,7 @@ class ProjectChannelAnnotations(TimeStamped, Flaggable, db.Model):
     def get_serialized_list(cls, project_id):
         pcas = cls.query.filter(cls.project_id == project_id).values(
             cls.id, cls.channel_id, cls.project_id, cls.annotated_peaks,
-            cls.peak_indices, cls.flags, cls.comments, cls.last_updated
+            cls.flags, cls.comments, cls.last_updated
         )
 
         res = []
@@ -37,10 +37,9 @@ class ProjectChannelAnnotations(TimeStamped, Flaggable, db.Model):
                 'channel': p[1],
                 'project': p[2],
                 'annotated_peaks': p[3],
-                'peak_indices': p[4],
-                'flags': p[5],
-                'comments': p[6],
-                'last_updated': p[7]
+                'flags': p[4],
+                'comments': p[5],
+                'last_updated': p[6]
             }
             res.append(r)
         return res

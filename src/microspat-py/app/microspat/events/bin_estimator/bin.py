@@ -1,6 +1,7 @@
 from app.microspat.schemas import BinSchema
 from app.microspat.models import Bin, LocusBinSet
-from app.microspat.events.base import base_get, table_to_string_mapping, make_namespace, base_get_updated, TaskNotifier
+from app.microspat.events.base import base_get, table_to_string_mapping, make_namespace, base_get_updated, TaskNotifier, \
+    base_list
 from app import socketio, db
 
 JSON_NAMESPACE = table_to_string_mapping[Bin]
@@ -9,6 +10,7 @@ schema = BinSchema()
 
 socketio.on_event('get', base_get(Bin, schema, JSON_NAMESPACE), namespace=SOCK_NAMESPACE)
 socketio.on_event('get_updated', base_get_updated(Bin, schema, schema, JSON_NAMESPACE), namespace=SOCK_NAMESPACE)
+socketio.on_event('list', base_list(Bin, schema, JSON_NAMESPACE), namespace=SOCK_NAMESPACE)
 
 
 @socketio.on('save_bin', namespace=SOCK_NAMESPACE)

@@ -1,5 +1,6 @@
 {
   "name": "microspat",
+  "productName": "MicroSPAT",
   "version": "2.0.3",
   "description": "Microsatellite Parameterized Analysis Tools",
   "main": "main.js",

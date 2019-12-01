@@ -246,7 +246,7 @@ class Project(LocusSetAssociatedMixin, TimeStamped, db.Model):
         locus_parameters.locked = True
         # db.session.flush()
         socketio.sleep()
-        channel_annotations = self.get_locus_channel_annotations(locus_id, append_well=True)
+        channel_annotations = self.get_locus_channel_annotations(locus_id, append_well=False)
         socketio.sleep()
         if locus_parameters.scanning_parameters_stale:
             channel_annotations = self.recalculate_channels(channel_annotations=channel_annotations,
@@ -288,7 +288,6 @@ class Project(LocusSetAssociatedMixin, TimeStamped, db.Model):
             lps = ProjectLocusParams.query.filter(ProjectLocusParams.project_id == self.id)
             self._locus_param_cache = {_.locus_id: _ for _ in lps}
         return self._locus_param_cache.get(locus_id)
-
 
     def serialize(self):
         return {

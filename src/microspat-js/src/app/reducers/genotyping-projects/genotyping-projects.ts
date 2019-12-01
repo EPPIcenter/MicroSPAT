@@ -675,7 +675,7 @@ export const selectFilteredChannels = createSelector(
     const sample = sampleAnnotations.sample as Sample;
     const locus = genotype.locus as Locus;
     const projectChannelAnnotation = projectChannelAnnotationEntities[genotype.reference_run];
-    const channels = sample.channels.map(id => channelEntities[id]).filter(channel => channel.locus == locus.id);
+    const channels = sample.channels.map(id => channelEntities[id]).filter(channel => channel && channel.locus == locus.id);
     return channels;
   }
 )

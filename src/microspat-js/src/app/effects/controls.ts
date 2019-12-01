@@ -14,6 +14,7 @@ import { ControlService } from 'app/services/sample/control';
 
 import { EntityMap } from 'app/models/base';
 import { Control } from 'app/models/sample/control';
+import { BinEstimatorProject } from 'app/models/bin-estimator/project';
 
 @Injectable()
 export class ControlEffects {

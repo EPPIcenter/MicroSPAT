@@ -147,11 +147,11 @@ class QuantificationBiasEstimatorProject(SampleBasedProject, ArtifactEstimating,
         assert isinstance(lp, QuantificationBiasEstimatorLocusParams)
         if lp:
             locus_annotations = self.get_locus_sample_annotations(locus_id)
-            peak_sets = [filter(lambda _: _['true_proportion'] > lp.min_bias_quantifier_peak_proportion and
-                                          _['peak_height'] > lp.min_bias_quantifier_peak_height,
-                                locus_annotation.annotated_peaks) for locus_annotation in locus_annotations]
+            peak_sets = [list(filter(lambda _: _['true_proportion'] > lp.min_bias_quantifier_peak_proportion and
+                                               _['peak_height'] > lp.min_bias_quantifier_peak_height,
+                                     locus_annotation.annotated_peaks)) for locus_annotation in locus_annotations]
             peak_sets = [_ for _ in peak_sets if
-                         abs(sum([peak['true_proportion'] for peak in _]) - 1) < .0001 and len(_) > 1]
+                         abs(sum([peak['true_proportion'] for peak in _]) - 1) < .0001 and len(list(_)) > 1]
             if peak_sets:
                 lp.beta, lp.sd, lp.r_squared = calculate_beta(peak_sets,
                                                               min_peak_proportion=lp.min_bias_quantifier_peak_proportion)
@@ -315,7 +315,7 @@ class QuantificationBiasEstimatorProject(SampleBasedProject, ArtifactEstimating,
 
                         locus_annotation.alleles[bin_id] = True
 
-                self.annotate_quantification_bias(locus_annotation.locus_id, true_peaks)
+                true_peaks = self.annotate_quantification_bias(locus_annotation.locus_id, true_peaks)
 
                 locus_annotation.annotated_peaks = true_peaks
             else:
@@ -373,4 +373,3 @@ def load_samples_and_controls_from_csv(f, qbe_proj_id):
                                                           ProjectSampleAnnotations.sample_id)
     for sa_id, sample_id in sample_annotation_ids:
         qbe.assign_controls(sa_id, control_map[sample_id])
-

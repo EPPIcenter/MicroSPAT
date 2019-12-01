@@ -59,7 +59,7 @@ function createWindow () {
 
 
 function acquireProcessOrStartServer() {
-  let tmpPath = os.tmpdir()
+  let tmpPath = os.tmpdir();
   let serverPath;
   let logFile = fs.createWriteStream(path.join(os.tmpdir(), 'mspat.engineio.log'), {flags: 'a'});
   let env = Object.create(process.env);

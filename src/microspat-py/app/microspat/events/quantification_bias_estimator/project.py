@@ -277,8 +277,7 @@ def add_controls_by_csv():
                 return
 
             if not barcode:
-                task_notifier.emit_task_failure(message='CSV file malformed. Barcode field empty')
-                return
+                continue  # empty line in csv
 
             sample_id = Sample.query.filter(Sample.barcode == barcode).value(Sample.id)
 

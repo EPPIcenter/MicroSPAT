@@ -5,5 +5,5 @@ export interface ProjectChannelAnnotations extends BaseModel, Flaggable {
   channel: string;
   project: string;
   annotated_peaks: {}[];
-  peak_indices: number[];
+  // peak_indices: number[];
 }

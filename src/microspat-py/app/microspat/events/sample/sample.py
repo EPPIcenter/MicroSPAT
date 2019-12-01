@@ -116,7 +116,6 @@ def upload_samples():
                             "Control', 'Sample'] "
                 )
             except Exception as e:
-                # print(e)
                 task_notifier.emit_task_failure(
                     message="Something Bad Happened Creating Samples... Restart App"
                 )

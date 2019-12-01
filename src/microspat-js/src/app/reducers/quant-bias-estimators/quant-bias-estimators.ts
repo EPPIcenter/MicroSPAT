@@ -181,7 +181,7 @@ export const selectActiveSamples = createSelector(
   fromDB.selectProjectSampleAnnotationsEntities,
   fromDB.selectSampleEntities,
   (qbeProject, projectSampleAnnotations: EntityMap<ProjectSampleAnnotations>, samples: EntityMap<Sample>) => {
-    if (!qbeProject) {
+    if (!qbeProject || !qbeProject.sample_annotations) {
       return [];
     }
     const activeSamples = qbeProject.sample_annotations

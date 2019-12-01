@@ -67,13 +67,13 @@ LOCUS_BIN_SET_NAMESPACE = table_to_string_mapping[LocusBinSet]
 BIN_NAMESPACE = table_to_string_mapping[Bin]
 
 # project_schema = GenotypingProjectSchema()
-project_schema = dict_schemas.GenotypingProjectSchema()
 channel_schema = DeferredChannelSchema(exclude="data")
-locus_params_schema = dict_schemas.GenotypingLocusParamsSchema()
 project_sample_annotations_schema = DeferredProjectSampleAnnotationsSchema()
 project_channel_annotations_schema = DeferredProjectChannelAnnotationsSchema()
 genotype_schema = DeferredGenotypeSchema()
 
+project_schema = dict_schemas.GenotypingProjectSchema()
+locus_params_schema = dict_schemas.GenotypingLocusParamsSchema()
 locus_bin_set_schema = dict_schemas.LocusBinSetSchema()
 bin_schema = dict_schemas.BinSchema()
 

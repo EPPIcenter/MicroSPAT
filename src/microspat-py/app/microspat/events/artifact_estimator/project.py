@@ -42,6 +42,7 @@ from app.microspat.events.base import (
 )
 
 from app import socketio, db
+from app.utils import subset
 
 JSON_NAMESPACE = table_to_string_mapping[ArtifactEstimatorProject]
 SOCK_NAMESPACE = make_namespace(JSON_NAMESPACE)
@@ -59,7 +60,7 @@ PROJECT_CHANNEL_ANNOTATIONS_NAMESPACE = table_to_string_mapping[ProjectChannelAn
 project_schema = ArtifactEstimatorProjectSchema()
 project_dict_schema = dict_schemas.ArtifactEstimatorProjectSchema()
 channel_schema = DeferredChannelSchema(exclude="data")
-locus_params_schema = ArtifactEstimatorLocusParamsSchema()
+locus_params_schema = dict_schemas.ArtifactEstimatorLocusParamsSchema()
 locus_artifact_estimator_schema = LocusArtifactEstimatorSchema()
 artifact_estimator_schema = ArtifactEstimatorSchema()
 artifact_equation_schema = ArtifactEquationSchema()
@@ -108,82 +109,95 @@ socketio.on_event('list', base_list(ArtifactEstimatorProject, project_dict_schem
 @socketio.on('get', namespace=SOCK_NAMESPACE)
 def get_artifact_estimator_project(json):
     ids = extract_ids(json)
-    projects = []
-    channels = []
-    locus_parameters = []
-    locus_artifact_estimators = []
-    artifact_estimators = []
-    artifact_equations = []
-    project_sample_annotations = []
-    sample_locus_annotations = []
-    project_channel_annotations = []
 
     for project_id in ids:
         p = ArtifactEstimatorProject.query.get(project_id)
         if p:
-            projects.append(p)
-            channels += Channel.get_serialized_list(project_id)
-            locus_parameters += p.locus_parameters.all()
-            locus_artifact_estimators += LocusArtifactEstimator.query.filter(
+            projects = [p]
+
+            channels = Channel.get_serialized_list(project_id)
+            socketio.sleep()
+
+            for channel_subset in subset(channels, 4000, pop=True):
+                channel_dump = channel_schema.dumps(channel_subset, many=True)
+                socketio.emit('list', {CHANNEL_NAMESPACE: channel_dump.data},
+                              namespace=make_namespace(CHANNEL_NAMESPACE))
+                socketio.sleep()
+            channels = None
+
+            project_channel_annotations = ProjectChannelAnnotations.get_serialized_list(project_id)
+            socketio.sleep()
+            for project_channel_annotation_subset in subset(project_channel_annotations, 4000, pop=True):
+                project_channel_annotations_dump = project_channel_annotations_schema.dumps(
+                    project_channel_annotation_subset, many=True)
+                socketio.emit('get', {PROJECT_CHANNEL_ANNOTATIONS_NAMESPACE: project_channel_annotations_dump.data},
+                              namespace=make_namespace(PROJECT_CHANNEL_ANNOTATIONS_NAMESPACE))
+                socketio.sleep()
+            project_channel_annotations = None
+
+            sample_locus_annotations = SampleLocusAnnotation.get_serialized_list(project_id)
+            for sample_locus_annotation_subset in subset(sample_locus_annotations, 4000, pop=True):
+                sample_locus_annotations_dump = sample_locus_annotations_schema.dumps(sample_locus_annotation_subset,
+                                                                                      many=True)
+                socketio.emit('get', {SAMPLE_LOCUS_ANNOTATIONS_NAMESPACE: sample_locus_annotations_dump.data},
+                              namespace=make_namespace(SAMPLE_LOCUS_ANNOTATIONS_NAMESPACE))
+                socketio.sleep()
+            sample_locus_annotations = None
+
+            project_sample_annotations = ProjectSampleAnnotations.get_serialized_list(project_id)
+            socketio.sleep()
+            for project_sample_annotation_subset in subset(project_sample_annotations, 4000, pop=True):
+                project_sample_annotations_dump = project_sample_annotations_schema.dumps(
+                    project_sample_annotation_subset, many=True)
+                socketio.emit('get', {PROJECT_SAMPLE_ANNOTATIONS_NAMESPACE: project_sample_annotations_dump.data},
+                              namespace=make_namespace(PROJECT_SAMPLE_ANNOTATIONS_NAMESPACE))
+                socketio.sleep()
+            project_sample_annotations = None
+
+            locus_parameters = ArtifactEstimatorLocusParams.get_serialized_list(project_id)
+            socketio.sleep()
+            locus_params_dump = locus_params_schema.dumps(locus_parameters, many=True)
+            socketio.emit('get', {LOCUS_PARAMS_NAMESPACE: locus_params_dump.data},
+                          namespace=make_namespace(LOCUS_PARAMS_NAMESPACE))
+            socketio.sleep()
+            locus_parameters = None
+
+            locus_artifact_estimators = LocusArtifactEstimator.query.filter(
                 LocusArtifactEstimator.project_id == project_id
             ).all()
-            artifact_estimators += ArtifactEstimator.query.join(LocusArtifactEstimator).filter(
+            locus_artifact_estimators_dump = locus_artifact_estimator_schema.dumps(locus_artifact_estimators, many=True)
+            socketio.emit('get',
+                          {LOCUS_ARTIFACT_ESTIMATOR_NAMESPACE: locus_artifact_estimators_dump.data},
+                          namespace=make_namespace(LOCUS_ARTIFACT_ESTIMATOR_NAMESPACE))
+            socketio.sleep()
+            locus_artifact_estimators = None
+
+            artifact_estimators = ArtifactEstimator.query.join(LocusArtifactEstimator).filter(
                 LocusArtifactEstimator.project_id == project_id
             ).all()
-            artifact_equations += ArtifactEquation.query.join(ArtifactEstimator).join(LocusArtifactEstimator).filter(
+            artifact_estimators_dump = artifact_estimator_schema.dumps(artifact_estimators, many=True)
+            socketio.emit('get', {ARTIFACT_ESTIMATOR_NAMESPACE: artifact_estimators_dump.data},
+                          namespace=make_namespace(ARTIFACT_ESTIMATOR_NAMESPACE))
+            socketio.sleep()
+            artifact_estimators = None
+
+            artifact_equations = ArtifactEquation.query.join(ArtifactEstimator).join(LocusArtifactEstimator).filter(
                 LocusArtifactEstimator.project_id == project_id
             ).all()
-            project_sample_annotations += ProjectSampleAnnotations.get_serialized_list(project_id)
-            sample_locus_annotations += SampleLocusAnnotation.get_serialized_list(project_id)
-            project_channel_annotations += ProjectChannelAnnotations.get_serialized_list(project_id)
+            artifact_equations_dump = artifact_equation_schema.dumps(artifact_equations, many=True)
+            socketio.emit('get', {ARTIFACT_EQUATION_NAMESPACE: artifact_equations_dump.data},
+                          namespace=make_namespace(ARTIFACT_EQUATION_NAMESPACE))
+            socketio.sleep()
+            artifact_equations = None
+
+            project_dump = project_schema.dumps(projects, many=True)
+            socketio.emit('get', {PROJECT_NAMESPACE: project_dump.data}, namespace=make_namespace(PROJECT_NAMESPACE))
+            socketio.sleep()
+            projects = None
+            db.session.expunge_all()
+
         else:
             socketio.emit('get_failed', {PROJECT_NAMESPACE: [project_id]}, namespace=make_namespace(PROJECT_NAMESPACE))
-
-    channel_dump = channel_schema.dumps(channels, many=True)
-    socketio.emit('list', {CHANNEL_NAMESPACE: channel_dump.data}, namespace=make_namespace(CHANNEL_NAMESPACE))
-    socketio.sleep()
-
-    project_channel_annotations_dump = project_channel_annotations_schema.dumps(project_channel_annotations,
-                                                                                many=True)
-    socketio.emit('get', {PROJECT_CHANNEL_ANNOTATIONS_NAMESPACE: project_channel_annotations_dump.data},
-                  namespace=make_namespace(PROJECT_CHANNEL_ANNOTATIONS_NAMESPACE))
-    socketio.sleep()
-
-    sample_locus_annotations_dump = sample_locus_annotations_schema.dumps(sample_locus_annotations, many=True)
-    socketio.emit('get', {SAMPLE_LOCUS_ANNOTATIONS_NAMESPACE: sample_locus_annotations_dump.data},
-                  namespace=make_namespace(SAMPLE_LOCUS_ANNOTATIONS_NAMESPACE))
-    socketio.sleep()
-
-    project_sample_annotations_dump = project_sample_annotations_schema.dumps(project_sample_annotations, many=True)
-    socketio.emit('get', {PROJECT_SAMPLE_ANNOTATIONS_NAMESPACE: project_sample_annotations_dump.data},
-                  namespace=make_namespace(PROJECT_SAMPLE_ANNOTATIONS_NAMESPACE))
-    socketio.sleep()
-
-    artifact_equations_dump = artifact_equation_schema.dumps(artifact_equations, many=True)
-    socketio.emit('get', {ARTIFACT_EQUATION_NAMESPACE: artifact_equations_dump.data},
-                  namespace=make_namespace(ARTIFACT_EQUATION_NAMESPACE))
-    socketio.sleep()
-
-    artifact_estimators_dump = artifact_estimator_schema.dumps(artifact_estimators, many=True)
-    socketio.emit('get', {ARTIFACT_ESTIMATOR_NAMESPACE: artifact_estimators_dump.data},
-                  namespace=make_namespace(ARTIFACT_ESTIMATOR_NAMESPACE))
-    socketio.sleep()
-
-    locus_artifact_estimators_dump = locus_artifact_estimator_schema.dumps(locus_artifact_estimators, many=True)
-    socketio.emit('get',
-                  {LOCUS_ARTIFACT_ESTIMATOR_NAMESPACE: locus_artifact_estimators_dump.data},
-                  namespace=make_namespace(LOCUS_ARTIFACT_ESTIMATOR_NAMESPACE))
-    socketio.sleep()
-
-    locus_params_dump = locus_params_schema.dumps(locus_parameters, many=True)
-    socketio.emit('get',
-                  {LOCUS_PARAMS_NAMESPACE: locus_params_dump.data},
-                  namespace=make_namespace(LOCUS_PARAMS_NAMESPACE))
-    socketio.sleep()
-
-    project_dump = project_schema.dumps(projects, many=True)
-    socketio.emit('get', {PROJECT_NAMESPACE: project_dump.data}, namespace=make_namespace(PROJECT_NAMESPACE))
-    socketio.sleep()
 
 
 @socketio.on('create_project', namespace=SOCK_NAMESPACE)

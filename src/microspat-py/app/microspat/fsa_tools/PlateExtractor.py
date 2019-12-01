@@ -193,9 +193,9 @@ class ExtractedPlate(object):
                 quad = 3
 
         if new_num < 10:
-            new_num = '0' + str(new_num)
+            new_num = '0' + str(int(new_num))
         else:
-            new_num = str(new_num)
+            new_num = str(int(new_num))
 
         quad_well_label = new_letter + new_num
 
