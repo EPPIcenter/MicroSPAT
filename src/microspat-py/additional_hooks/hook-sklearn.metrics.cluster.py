@@ -6,5 +6,3 @@ hiddenimports = ['sklearn.utils.sparsetools._graph_validation',
                  'sklearn.utils.weight_vector']
 
 datas = collect_data_files('sklearn')
-
-print("SKLEARN METRICS HOOK RUN")

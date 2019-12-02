@@ -36,9 +36,9 @@ def get_channel(json):
         socketio.emit('get_failed', {CHANNEL_NAMESPACE: missing_ids}, namespace=make_namespace(CHANNEL_NAMESPACE))
 
     well_dump = well_schema.dumps(wells, many=True)
-    socketio.emit('get', {WELL_NAMESPACE: well_dump.data}, namespace=make_namespace(WELL_NAMESPACE))
+    socketio.emit('get', {WELL_NAMESPACE: well_dump}, namespace=make_namespace(WELL_NAMESPACE))
     socketio.sleep()
 
     channel_dump = channel_schema.dumps(channels, many=True)
-    socketio.emit('get', {CHANNEL_NAMESPACE: channel_dump.data}, namespace=make_namespace(CHANNEL_NAMESPACE))
+    socketio.emit('get', {CHANNEL_NAMESPACE: channel_dump}, namespace=make_namespace(CHANNEL_NAMESPACE))
     socketio.sleep()

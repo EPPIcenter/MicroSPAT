@@ -20,11 +20,16 @@ from flask import Flask
 from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy
 
+# pyinstaller imports
+from eventlet.hubs import epolls, kqueue, selects
+from dns import dnssec, e164, hash, namedict, tsigkeyring, update, version, zone
+
 from config import config
 
 
+
 db = SQLAlchemy()
-socketio = SocketIO()
+socketio = SocketIO(cors_allowed_origins="*")
 
 
 def create_app(config_name):

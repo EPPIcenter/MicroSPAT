@@ -21,7 +21,7 @@ PROJECT_CHANNEL_ANNOTATIONS_NAMESPACE = table_to_string_mapping[ProjectChannelAn
 CHANNEL_NAMESPACE = table_to_string_mapping[Channel]
 
 project_channel_annotations_schema = ProjectChannelAnnotationsSchema()
-channel_schema = ChannelListSchema(exclude="data")
+channel_schema = ChannelListSchema(exclude=["data"])
 
 
 @socketio.on('get', namespace=SOCK_NAMESPACE)
@@ -58,11 +58,11 @@ def get_project_channel_annotations(json):
                           namespace=make_namespace(PROJECT_CHANNEL_ANNOTATIONS_NAMESPACE))
 
         annotations_dump = project_channel_annotations_schema.dumps(annotations, many=True)
-        socketio.emit('get', {PROJECT_CHANNEL_ANNOTATIONS_NAMESPACE: annotations_dump.data},
+        socketio.emit('get', {PROJECT_CHANNEL_ANNOTATIONS_NAMESPACE: annotations_dump},
                       namespace=make_namespace(PROJECT_CHANNEL_ANNOTATIONS_NAMESPACE))
 
         channels_dump = channel_schema.dumps(channels, many=True)
-        socketio.emit('list', {CHANNEL_NAMESPACE: channels_dump.data}, namespace=make_namespace(CHANNEL_NAMESPACE))
+        socketio.emit('list', {CHANNEL_NAMESPACE: channels_dump}, namespace=make_namespace(CHANNEL_NAMESPACE))
         socketio.sleep()
 
 
@@ -100,9 +100,9 @@ def get_updated_project_channel_annotations(json):
                           namespace=make_namespace(PROJECT_CHANNEL_ANNOTATIONS_NAMESPACE))
 
         annotations_dump = project_channel_annotations_schema.dumps(annotations, many=True)
-        socketio.emit('get_updated', {PROJECT_CHANNEL_ANNOTATIONS_NAMESPACE: annotations_dump.data},
+        socketio.emit('get_updated', {PROJECT_CHANNEL_ANNOTATIONS_NAMESPACE: annotations_dump},
                       namespace=make_namespace(PROJECT_CHANNEL_ANNOTATIONS_NAMESPACE))
 
         channels_dump = channel_schema.dumps(channels, many=True)
-        socketio.emit('list', {CHANNEL_NAMESPACE: channels_dump.data}, namespace=make_namespace(CHANNEL_NAMESPACE))
+        socketio.emit('list', {CHANNEL_NAMESPACE: channels_dump}, namespace=make_namespace(CHANNEL_NAMESPACE))
         socketio.sleep()

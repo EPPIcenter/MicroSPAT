@@ -98,12 +98,12 @@ def respond_404(error):
 
 
 def emit_list(model_namespace, schema_dump):
-    socketio.emit('list', {model_namespace: schema_dump.data}, namespace=make_namespace(model_namespace))
+    socketio.emit('list', {model_namespace: schema_dump}, namespace=make_namespace(model_namespace))
     socketio.sleep()
 
 
 def emit_get(model_namespace, schema_dump):
-    socketio.emit('get', {model_namespace: schema_dump.data}, namespace=make_namespace(model_namespace))
+    socketio.emit('get', {model_namespace: schema_dump}, namespace=make_namespace(model_namespace))
     socketio.sleep()
 
 
@@ -121,7 +121,7 @@ def base_get(model, schema, namespace, subset_size=384):
             dump = schema.dumps(instances, many=True, separators=(',', ':'))
 
             res = {
-                namespace: dump.data
+                namespace: dump
             }
 
             not_found_res = {
@@ -150,7 +150,7 @@ def base_get_updated(model, detailed_schema, undetailed_schema, namespace, subse
             dump = schema.dumps(instances, many=True, separators=(',', ':'))
 
             res = {
-                namespace: dump.data
+                namespace: dump
             }
 
             not_found_res = {
@@ -171,7 +171,7 @@ def base_list(model, schema, namespace, query=None):
             instances = query()
         dump = schema.dumps(instances, many=True, separators=(',', ':'))
         res = {
-            namespace: dump.data
+            namespace: dump
         }
         socketio.emit('list', res, namespace=flask.request.namespace)
     return list_fn

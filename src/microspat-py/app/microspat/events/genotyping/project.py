@@ -67,7 +67,7 @@ LOCUS_BIN_SET_NAMESPACE = table_to_string_mapping[LocusBinSet]
 BIN_NAMESPACE = table_to_string_mapping[Bin]
 
 # project_schema = GenotypingProjectSchema()
-channel_schema = DeferredChannelSchema(exclude="data")
+channel_schema = DeferredChannelSchema(exclude=["data"])
 project_sample_annotations_schema = DeferredProjectSampleAnnotationsSchema()
 project_channel_annotations_schema = DeferredProjectChannelAnnotationsSchema()
 genotype_schema = DeferredGenotypeSchema()
@@ -109,7 +109,7 @@ def get_genotyping_project(json):
             socketio.sleep()
             for channel_subset in subset(channels, 4000, pop=True):
                 channel_dump = channel_schema.dumps(channel_subset, many=True)
-                socketio.emit('list', {CHANNEL_NAMESPACE: channel_dump.data},
+                socketio.emit('list', {CHANNEL_NAMESPACE: channel_dump},
                               namespace=make_namespace(CHANNEL_NAMESPACE))
                 socketio.sleep()
 
@@ -121,7 +121,7 @@ def get_genotyping_project(json):
             for project_sample_annotation_subset in subset(project_sample_annotations, 4000, pop=True):
                 project_sample_annotations_dump = project_sample_annotations_schema.dumps(
                     project_sample_annotation_subset, many=True)
-                socketio.emit('get', {PROJECT_SAMPLE_ANNOTATIONS_NAMESPACE: project_sample_annotations_dump.data},
+                socketio.emit('get', {PROJECT_SAMPLE_ANNOTATIONS_NAMESPACE: project_sample_annotations_dump},
                               namespace=make_namespace(PROJECT_SAMPLE_ANNOTATIONS_NAMESPACE))
                 socketio.sleep()
 
@@ -132,7 +132,7 @@ def get_genotyping_project(json):
             socketio.sleep()
             for genotype_subset in subset(genotypes, 4000, pop=True):
                 genotypes_dump = genotype_schema.dumps(genotype_subset, many=True)
-                socketio.emit('get', {GENOTYPE_NAMESPACE: genotypes_dump.data},
+                socketio.emit('get', {GENOTYPE_NAMESPACE: genotypes_dump},
                               namespace=make_namespace(GENOTYPE_NAMESPACE))
                 socketio.sleep()
 
@@ -144,7 +144,7 @@ def get_genotyping_project(json):
             for project_channel_annotation_subset in subset(project_channel_annotations, 4000, pop=True):
                 project_channel_annotations_dump = project_channel_annotations_schema.dumps(
                     project_channel_annotation_subset, many=True)
-                socketio.emit('get', {PROJECT_CHANNEL_ANNOTATIONS_NAMESPACE: project_channel_annotations_dump.data},
+                socketio.emit('get', {PROJECT_CHANNEL_ANNOTATIONS_NAMESPACE: project_channel_annotations_dump},
                               namespace=make_namespace(PROJECT_CHANNEL_ANNOTATIONS_NAMESPACE))
                 socketio.sleep()
 
@@ -154,7 +154,7 @@ def get_genotyping_project(json):
             locus_parameters = GenotypingLocusParams.get_serialized_list(project_id)
             socketio.sleep()
             locus_params_dump = locus_params_schema.dumps(locus_parameters, many=True)
-            socketio.emit('get', {LOCUS_PARAMS_NAMESPACE: locus_params_dump.data},
+            socketio.emit('get', {LOCUS_PARAMS_NAMESPACE: locus_params_dump},
                           namespace=make_namespace(LOCUS_PARAMS_NAMESPACE))
             socketio.sleep()
 
@@ -163,7 +163,7 @@ def get_genotyping_project(json):
 
             bins = Bin.get_serialized_list(p['bin_estimator'])
             bins_dump = bin_schema.dumps(bins, many=True)
-            socketio.emit('get', {BIN_NAMESPACE: bins_dump.data}, namespace=make_namespace(BIN_NAMESPACE))
+            socketio.emit('get', {BIN_NAMESPACE: bins_dump}, namespace=make_namespace(BIN_NAMESPACE))
             socketio.sleep()
 
             db.session.expunge_all()
@@ -171,7 +171,7 @@ def get_genotyping_project(json):
 
             locus_bin_sets = LocusBinSet.get_serialized_list(p['bin_estimator'])
             locus_bin_sets_dump = locus_bin_set_schema.dumps(locus_bin_sets, many=True)
-            socketio.emit('get', {LOCUS_BIN_SET_NAMESPACE: locus_bin_sets_dump.data},
+            socketio.emit('get', {LOCUS_BIN_SET_NAMESPACE: locus_bin_sets_dump},
                           namespace=make_namespace(LOCUS_BIN_SET_NAMESPACE))
             socketio.sleep()
 
@@ -179,7 +179,7 @@ def get_genotyping_project(json):
             locus_bin_sets = None
 
             project_dump = project_schema.dumps(projects, many=True)
-            socketio.emit('get', {PROJECT_NAMESPACE: project_dump.data}, namespace=make_namespace(PROJECT_NAMESPACE))
+            socketio.emit('get', {PROJECT_NAMESPACE: project_dump}, namespace=make_namespace(PROJECT_NAMESPACE))
 
             socketio.sleep()
 

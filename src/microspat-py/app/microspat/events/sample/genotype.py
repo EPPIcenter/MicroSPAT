@@ -54,7 +54,7 @@ def get_genotypes(json):
             socketio.emit('get_failed', {JSON_NAMESPACE: missing_ids}, namespace=make_namespace(JSON_NAMESPACE))
 
         genotypes_dump = schema.dumps(res, many=True)
-        socketio.emit('get', {JSON_NAMESPACE: genotypes_dump.data}, namespace=make_namespace(JSON_NAMESPACE))
+        socketio.emit('get', {JSON_NAMESPACE: genotypes_dump}, namespace=make_namespace(JSON_NAMESPACE))
         socketio.sleep()
 
 
@@ -92,6 +92,6 @@ def get_genotypes(json):
             res.append(g)
 
         genotypes_dump = schema.dumps(res, many=True)
-        socketio.emit('get_updated', {JSON_NAMESPACE: genotypes_dump.data}, namespace=make_namespace(JSON_NAMESPACE))
+        socketio.emit('get_updated', {JSON_NAMESPACE: genotypes_dump}, namespace=make_namespace(JSON_NAMESPACE))
         socketio.sleep()
 

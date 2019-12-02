@@ -60,7 +60,7 @@ PROJECT_CHANNEL_ANNOTATIONS_NAMESPACE = table_to_string_mapping[ProjectChannelAn
 
 project_schema = QuantificationBiasEstimatorProjectSchema()
 project_dict_schema = dict_schemas.QuantificationBiasEstimatorProjectSchema()
-channel_schema = DeferredChannelSchema(exclude="data")
+channel_schema = DeferredChannelSchema(exclude=["data"])
 locus_params_schema = QuantificationBiasEstimatorLocusParamsSchema()
 control_sample_association_schema = DeferredControlSampleAssociationSchema()
 project_sample_annotations_schema = DeferredProjectSampleAnnotationsSchema()
@@ -95,26 +95,26 @@ def get_quantification_bias_estimator_project(json):
             socketio.emit('get_failed', {PROJECT_NAMESPACE: [project_id]}, namespace=make_namespace(PROJECT_NAMESPACE))
 
     channel_dump = channel_schema.dumps(channels, many=True)
-    socketio.emit('list', {CHANNEL_NAMESPACE: channel_dump.data}, namespace=make_namespace(CHANNEL_NAMESPACE))
+    socketio.emit('list', {CHANNEL_NAMESPACE: channel_dump}, namespace=make_namespace(CHANNEL_NAMESPACE))
     socketio.sleep()
 
     control_sample_association_dump = control_sample_association_schema.dumps(control_sample_associations, many=True)
-    socketio.emit('get', {CONTROL_SAMPLE_ASSOCIATION_NAMESPACE: control_sample_association_dump.data},
+    socketio.emit('get', {CONTROL_SAMPLE_ASSOCIATION_NAMESPACE: control_sample_association_dump},
                   namespace=make_namespace(CONTROL_SAMPLE_ASSOCIATION_NAMESPACE))
     socketio.sleep()
 
     project_sample_annotations_dump = project_sample_annotations_schema.dumps(project_sample_annotations, many=True)
-    socketio.emit('get', {PROJECT_SAMPLE_ANNOTATIONS_NAMESPACE: project_sample_annotations_dump.data},
+    socketio.emit('get', {PROJECT_SAMPLE_ANNOTATIONS_NAMESPACE: project_sample_annotations_dump},
                   namespace=make_namespace(PROJECT_SAMPLE_ANNOTATIONS_NAMESPACE))
     socketio.sleep()
 
     locus_params_dump = locus_params_schema.dumps(locus_parameters, many=True)
-    socketio.emit('get', {LOCUS_PARAMS_NAMESPACE: locus_params_dump.data},
+    socketio.emit('get', {LOCUS_PARAMS_NAMESPACE: locus_params_dump},
                   namespace=make_namespace(LOCUS_PARAMS_NAMESPACE))
     socketio.sleep()
 
     project_dump = project_schema.dumps(projects, many=True)
-    socketio.emit('get', {PROJECT_NAMESPACE: project_dump.data},
+    socketio.emit('get', {PROJECT_NAMESPACE: project_dump},
                   namespace=make_namespace(PROJECT_NAMESPACE))
     socketio.sleep()
 

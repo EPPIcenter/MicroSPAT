@@ -46,15 +46,15 @@ def get_sample(json):
             socketio.emit('get_failed', {SAMPLE_NAMESPACE: [sample_id]}, namespace=make_namespace(SAMPLE_NAMESPACE))
 
     channel_dump = channel_schema.dumps(channels, many=True)
-    socketio.emit('get', {CHANNEL_NAMESPACE: channel_dump.data}, namespace=make_namespace(CHANNEL_NAMESPACE))
+    socketio.emit('get', {CHANNEL_NAMESPACE: channel_dump}, namespace=make_namespace(CHANNEL_NAMESPACE))
     socketio.sleep()
 
     well_dump = well_schema.dumps(wells, many=True)
-    socketio.emit('get', {WELL_NAMESPACE: well_dump.data}, namespace=make_namespace(WELL_NAMESPACE))
+    socketio.emit('get', {WELL_NAMESPACE: well_dump}, namespace=make_namespace(WELL_NAMESPACE))
     socketio.sleep()
 
     sample_dump = sample_schema.dumps(samples, many=True)
-    socketio.emit('get', {SAMPLE_NAMESPACE: sample_dump.data}, namespace=make_namespace(SAMPLE_NAMESPACE))
+    socketio.emit('get', {SAMPLE_NAMESPACE: sample_dump}, namespace=make_namespace(SAMPLE_NAMESPACE))
     socketio.sleep()
 
 
