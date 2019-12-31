@@ -548,7 +548,7 @@ def calculate_peak_probabilities(json):
 def get_genotyping_peak_data(id):
     gp_title = GenotypingProject.query.filter(GenotypingProject.id == id).value(GenotypingProject.title)
     results = []
-    header = ["Sample", "Locus", "Peak Height", "Relative Peak Height", "Corrected Proportion", "Peak Size",
+    header = ["Sample", "Locus", "Peak Height", "Relative Peak Height", "Proportion", "Corrected Proportion", "Peak Size",
               "Peak Area", "Left Tail",
               "Right Tail", "Artifact Contribution", "Artifact Error", "In Bin", "Called Allele", "Allele Label",
               "Bleedthrough Ratio", "Crosstalk Ratio", "Probability", "Well", "Artifact Flag",
@@ -563,11 +563,13 @@ def get_genotyping_peak_data(id):
         if not la[5].get('failure'):
             alleles = la[4].items()
             bin_ids = [str(x[0]) for x in alleles if x[1]]
+            total_peak_height = sum(_['peak_height'] for _ in la[0])
             for peak in la[0]:
                 res = dict()
                 res["Sample"] = sample_ids[la[1]]
                 res["Locus"] = la[2]
                 res["Peak Height"] = peak['peak_height']
+                res["Proportion"] = peak['peak_height'] / total_peak_height
                 res["Corrected Proportion"] = peak.get('corrected_relative_quantification', 'NA')
                 res["Peak Size"] = peak['peak_size']
                 res["Peak Area"] = peak['peak_area']
