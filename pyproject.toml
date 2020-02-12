@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "microspat"
-version = "2.0.3"
+version = "2.0.4"
 description = ""
 authors = ["Max Murphy <murphy2122@berkeley.edu>"]
 
