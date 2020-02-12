@@ -1,1 +1,0 @@
-hiddenimports = ['scipy.special._ufuncs_cxx']

@@ -1,0 +1,38 @@
+[tool.poetry]
+name = "microspat-py"
+version = "2.0.3"
+description = ""
+authors = ["Max Murphy <murphy2122@berkeley.edu>"]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+click = "7.0"
+dnspython = "1.16.0"
+eventlet = "0.25.1"
+Flask = "1.1.1"
+Flask-SocketIO = "4.2.1"
+Flask-SQLAlchemy = "2.4.1"
+greenlet = "0.4.15"
+itsdangerous = "1.1.0"
+Jinja2 = "2.10.3"
+MarkupSafe = "1.1.1"
+marshmallow = "3.2.2"
+marshmallow-sqlalchemy = "0.20.0"
+monotonic = "1.5"
+numpy = "1.17.4"
+python-engineio = "3.10.0"
+python-socketio = "4.4.0"
+scikit-learn = "0.21.3"
+scipy = "1.3.3"
+six = "1.13.0"
+sklearn = "0.0"
+SQLAlchemy = "1.3.11"
+ujson = "1.35"
+Werkzeug = "0.16.0"
+
+[tool.poetry.dev-dependencies]
+ipython = "^7.12.0"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"

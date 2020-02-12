@@ -516,6 +516,7 @@ class GenotypingProject(SampleBasedProject, ArtifactEstimating, QuantificationBi
         true_peaks = []
         locus_annotation.alleles = dict.fromkeys(locus_annotation.alleles, False)
         locus_annotation.set_flag('manual_curation', False)
+
         if locus_annotation.annotated_peaks and not locus_annotation.get_flag('failure'):
             for peak in locus_annotation.annotated_peaks:
                 socketio.sleep()

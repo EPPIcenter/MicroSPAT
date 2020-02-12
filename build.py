@@ -2,15 +2,6 @@ import os
 import sys
 import shutil
 
-VENV_PATH = os.path.join(os.environ.get("WORKON_HOME"), "microspat")
-
-if sys.platform == 'darwin':
-    activate_script = os.path.join(VENV_PATH, "bin", "activate_this.py")
-elif sys.platform == 'win32':
-    activate_script = os.path.join(VENV_PATH, "Scripts", "activate_this.py")
-
-exec(open(activate_script).read())
-
 BUILD_PATH = './app'
 SERVER_SRC_PATH = './src/microspat-py/'
 SERVER_SRC_STATIC_PATH = os.path.join(SERVER_SRC_PATH, "microspat", "static")
@@ -59,8 +50,6 @@ def build_win_server():
         os.path.join(SERVER_SRC_PATH, 'build', 'win32'), 
         os.path.join(SERVER_BUILD_PATH, 'win32')
     )
-
-
     # Currently must build manually on windows, looking into setting up vagrant based build pipeline.
     # pyinstaller -y --clean --distpath build\win32 --workpath win32-pybuild --log-level WARN --hidden-import scipy.sparse.csr --hidden-import engineio.async_drivers.eventlet --hidden-import sklearn.neighbors.typedefs --hidden-import sklearn.neighbors.quad_tree --hidden-import sklearn.tree --hidden-import sklearn.tree._utils --hidden-import numpy.core._dtype_ctypes --additional-hooks-dir=additional_hooks run.py
 
@@ -75,9 +64,8 @@ def build_win_server():
 def build_darwin_server():
     if sys.platform == 'darwin':
         print("Building Mac Server...")
-        os.system(f"pip install -q -r {os.path.join(SERVER_SRC_PATH, 'requirements.txt')}")
         os.system(
-            f"pyinstaller -y --clean --distpath {os.path.join(SERVER_BUILD_PATH, 'darwin')} --workpath {SERVER_WORKING_BUILD_PATH_DARWIN} --log-level WARN --hidden-import engineio.async_drivers.eventlet --hidden-import sklearn.neighbors.typedefs --hidden-import sklearn.neighbors.quad_tree --hidden-import sklearn.tree --hidden-import sklearn.tree._utils --hidden-import numpy.core._dtype_ctypes --additional-hooks-dir={os.path.join(SERVER_SRC_PATH, 'additional_hooks')} {os.path.join(SERVER_SRC_PATH, 'run.py')}"
+            f"pyinstaller -y --clean --distpath {os.path.join(SERVER_BUILD_PATH, 'darwin')} --workpath {SERVER_WORKING_BUILD_PATH_DARWIN} --log-level WARN --hidden-import=sklearn.utils._cython_blas --hidden-import engineio.async_drivers.eventlet --hidden-import sklearn.neighbors.typedefs --hidden-import sklearn.neighbors.quad_tree --hidden-import sklearn.tree --hidden-import sklearn.tree._utils --hidden-import numpy.core._dtype_ctypes --hidden-import sqlalchemy.ext.baked --additional-hooks-dir={os.path.join(SERVER_SRC_PATH, 'additional_hooks')} {os.path.join(SERVER_SRC_PATH, 'run.py')}"
         )
     else:
         raise Exception("Cannot compile darwin on non-darwin system.")
