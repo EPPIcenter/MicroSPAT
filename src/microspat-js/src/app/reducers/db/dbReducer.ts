@@ -194,6 +194,7 @@ function dbListReceivedDefault(state: State<any>, action: db.ListReceivedAction,
 
 function dbDeleteReceivedDefault(state: State<any>, action: db.DeleteReceivedAction) {
   const deletedEntryIds = action.payload.ids.map(id => +id);
+
   const remainingEntries = state.ids.filter(id => deletedEntryIds.indexOf(+id) === -1).map(id => state.entities[id]);
   const remainingEntities = remainingEntries.reduce((entries: { [id: string]: any }, entry: any) => {
     return Object.assign(entries, {
@@ -201,9 +202,16 @@ function dbDeleteReceivedDefault(state: State<any>, action: db.DeleteReceivedAct
     });
   }, {});
 
+  let remainingPendingRequests = Object.assign({}, state.pendingRequests);
+  deletedEntryIds.forEach(id => {
+    delete remainingPendingRequests[id];
+  });
+
+
   return Object.assign({}, state, {
     ids: remainingEntries.map(well => well.id),
-    entities: remainingEntities
+    entities: remainingEntities,
+    pendingRequests: remainingPendingRequests
   });
 }
 
