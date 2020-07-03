@@ -25,7 +25,7 @@ def find_clusters(feature, items, bandwidth=None, min_bin_freq=None, cluster_all
     Cluster list of items based on feature using meanshift algorithm (Binning).
 
     :param feature: key used to retrieve item to cluster on
-    :param items:
+    :param items: list of dict like items containing feature
     :param bandwidth:
     :param min_bin_freq:
     :param cluster_all:

@@ -114,7 +114,9 @@ def base_get(model, schema, namespace, subset_size=384):
         for id_subset in subset(ids, subset_size):
             instances = []
             for id in ids:
-                instances.append(model.query.get(id))
+                el = model.query.get(id)
+                if el:
+                    instances.append(el)
             # instances = model.query.filter(model.id.in_(id_subset)).all()
             instance_ids = set([_.id for _ in instances])
             not_found = list(set(id_subset) - instance_ids)
@@ -143,7 +145,9 @@ def base_get_updated(model, detailed_schema, undetailed_schema, namespace, subse
         for id_subset in subset(ids, subset_size):
             instances = []
             for id in ids:
-                instances.append(model.query.get(id))
+                el = model.query.get(id)
+                if el:
+                    instances.append(el)
             # instances = model.query.filter(model.id.in_(id_subset)).all()
             instance_ids = set([_.id for _ in instances])
             not_found = list(set(id_subset) - instance_ids)

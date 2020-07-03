@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "microspat-py"
-version = "2.0.3"
+version = "2.0.4"
 description = ""
 authors = ["Max Murphy <murphy2122@berkeley.edu>"]
 
@@ -32,6 +32,7 @@ Werkzeug = "0.16.0"
 
 [tool.poetry.dev-dependencies]
 ipython = "^7.12.0"
+pywin32 = "^227"
 
 [build-system]
 requires = ["poetry>=0.12"]
