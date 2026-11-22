@@ -67,7 +67,7 @@ export default function LaddersPage() {
   // The editor calls this after saving, cancelling or deleting: nothing is left to lose.
   const done = (l: Ladder | null) => bypassUnsaved(() => navigate(l ? `/ladders/${l.id}` : '/ladders'))
   if (ladders.isPending) detail = <Centered><Spinner /></Centered>
-  else if (ladders.isError) detail = <EmptyState title="Could not load ladders" children={errorText(ladders.error)} />
+  else if (ladders.isError) detail = <EmptyState title="Could not load ladders">{errorText(ladders.error)}</EmptyState>
   else if (isNew) detail = <LadderEditor key="new" labels={labels} onDone={done} />
   else if (selected) detail = <LadderEditor key={selected.id} ladder={selected} labels={labels} onDone={done} />
   else if (selectedId != null) detail = <NotFound what="ladder" />

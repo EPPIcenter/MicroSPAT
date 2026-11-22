@@ -19,8 +19,6 @@ In a development build you can also add `?mock` to any URL to switch a tab to th
 
 The app uses browser-history routes (`/plates/12`). The HTTP server must answer non-`/api` paths with `index.html`.
 
-Tooling note: TypeScript is pinned to 6.0 because typescript-eslint does not support TypeScript 7 yet.
-
 ### Real-backend end-to-end tests
 
 `pnpm e2e:real` (`scripts/e2e-real.mjs`) runs every `e2e/*.real.spec.ts` against the real engine. It builds the UI, then for each spec file starts `microspat-server` on a free port with a fresh `--demo` workspace in a temp directory, serving the build (`--ui-dir`), runs the spec with `MICROSPAT_E2E_URL` pointing at it, and stops the server. Specs never share a workspace, so one feature's changes cannot break another's. At the end it prints a summary per spec and exits non-zero if any failed; the workspace of a failed spec is kept and its path printed.
