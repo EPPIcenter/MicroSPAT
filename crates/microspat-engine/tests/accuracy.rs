@@ -221,29 +221,15 @@ fn score(cx: &Ctx, gt: i64) -> Score {
                 && lt.alleles.len() >= 2
                 && !lt.alleles.iter().any(|a| a.saturated)
             {
-                let call = cx.h.call(
-                    "get_project_sample_calls",
-                    json!({ "project_id": gt, "sample_id": sid }),
-                );
-                let locus = call["loci"]
-                    .as_array()
-                    .unwrap()
-                    .iter()
-                    .find(|l| l["locus_id"] == lid)
-                    .unwrap()
-                    .clone();
+                let alleles = row["alleles"].as_array().unwrap();
                 for (b, truth) in pairs {
-                    let pk = locus["called"]
-                        .as_array()
-                        .unwrap()
-                        .iter()
-                        .find(|c| c["bin_id"] == b)
-                        .cloned()
-                        .unwrap_or(Value::Null);
-                    if let (Some(c), Some(u)) = (
-                        pk["corrected_relative_quantification"].as_f64(),
-                        pk["relative_quantification"].as_f64(),
-                    ) {
+                    let allele = alleles.iter().find(|a| a["bin_id"].as_i64() == Some(b));
+                    if let Some((c, u)) = allele.and_then(|a| {
+                        Some((
+                            a["corrected_proportion"].as_f64()?,
+                            a["proportion"].as_f64()?,
+                        ))
+                    }) {
                         s.prop_err.push(((c - truth).abs(), (u - truth).abs()));
                     }
                 }
@@ -450,6 +436,43 @@ fn miss_reasons(cx: &Ctx, gt: i64) -> (BTreeMap<String, (u32, u32)>, BleedCounts
 
 fn crosstalk_losses(cx: &Ctx, gt: i64, limit: usize) -> (u32, u32) {
     // Of true alleles sitting in a bin, how many were flagged as crosstalk.
+    let csv =
+        cx.h.call("export_peak_data", json!({ "id": gt, "allow_stale": true }))["content"]
+            .as_str()
+            .unwrap()
+            .to_string();
+    let mut rdr = csv::Reader::from_reader(csv.as_bytes());
+    let head: Vec<String> = rdr
+        .headers()
+        .unwrap()
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
+    let col = |n: &str| head.iter().position(|h| h == n).unwrap();
+    let (cs, cl, csz, ch, ccro) = (
+        col("Sample"),
+        col("Locus"),
+        col("Peak Size"),
+        col("Peak Height"),
+        col("Crosstalk Flag"),
+    );
+    struct PeakRow {
+        size: f64,
+        height: f64,
+        crosstalk: bool,
+    }
+    let mut peaks: HashMap<(String, String), Vec<PeakRow>> = HashMap::new();
+    for r in rdr.records() {
+        let r = r.unwrap();
+        peaks
+            .entry((r[cs].to_string(), r[cl].to_string()))
+            .or_default()
+            .push(PeakRow {
+                size: r[csz].parse::<f64>().unwrap(),
+                height: r[ch].parse::<f64>().unwrap(),
+                crosstalk: &r[ccro] == "True",
+            });
+    }
     let (mut flagged, mut checked) = (0, 0);
     let rows = cx.h.call("list_project_samples", json!({ "id": gt }));
     for r in rows.as_array().unwrap().iter().take(limit) {
@@ -460,37 +483,24 @@ fn crosstalk_losses(cx: &Ctx, gt: i64, limit: usize) -> (u32, u32) {
         {
             continue;
         }
-        let v = cx.h.call(
-            "get_project_sample_calls",
-            json!({ "project_id": gt, "sample_id": sid }),
-        );
-        let _ = v;
-        for (label, &lid) in cx.loci {
+        for label in cx.loci.keys() {
             let Some(lt) = t.loci.iter().find(|l| &l.locus == label) else {
                 continue;
             };
-            let d = cx.h.call(
-                "get_sample_locus_call",
-                json!({ "project_id": gt, "sample_id": sid, "locus_id": lid }),
-            );
+            let Some(pks) = peaks.get(&(barcode.clone(), label.clone())) else {
+                continue;
+            };
             for a in &lt.alleles {
                 if a.height < CALLABLE_RFU {
                     continue;
                 }
-                if let Some(pk) = d["peaks"]
-                    .as_array()
-                    .unwrap()
+                if let Some(pk) = pks
                     .iter()
-                    .filter(|p| (p["size"].as_f64().unwrap() - a.size).abs() < 0.8)
-                    .max_by(|x, y| {
-                        x["height"]
-                            .as_f64()
-                            .unwrap()
-                            .total_cmp(&y["height"].as_f64().unwrap())
-                    })
+                    .filter(|p| (p.size - a.size).abs() < 0.8)
+                    .max_by(|x, y| x.height.total_cmp(&y.height))
                 {
                     checked += 1;
-                    flagged += u32::from(pk["flags"]["crosstalk"] == true);
+                    flagged += u32::from(pk.crosstalk);
                 }
             }
         }
