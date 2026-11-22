@@ -274,42 +274,52 @@ mod tests {
 
     #[test]
     fn finds_the_workspace_argument() {
-        let cwd = Path::new("/home/me");
         let args = |a: &[&str]| a.iter().map(|s| s.to_string()).collect::<Vec<_>>();
-        assert_eq!(
-            file_argument(&args(&["app", "--flag", "lab.MicroSPAT"]), cwd),
-            Some(PathBuf::from("/home/me/lab.MicroSPAT"))
-        );
-        assert_eq!(
-            file_argument(&args(&["app", "/data/a.microspat"]), cwd),
-            Some(PathBuf::from("/data/a.microspat"))
-        );
-        assert_eq!(file_argument(&args(&["app", "notes.txt"]), cwd), None);
-        assert_eq!(
-            file_argument(
-                &args(&["app", "file:///data/my%20lab/a%CC%8A.microspat"]),
-                cwd
-            ),
-            Some(PathBuf::from("/data/my lab/a\u{30a}.microspat"))
-        );
-        #[cfg(windows)]
+        #[cfg(unix)]
         {
-            let win_cwd = Path::new(r"D:\work");
+            let cwd = Path::new("/home/me");
+            assert_eq!(
+                file_argument(&args(&["app", "--flag", "lab.MicroSPAT"]), cwd),
+                Some(PathBuf::from("/home/me/lab.MicroSPAT"))
+            );
+            assert_eq!(
+                file_argument(&args(&["app", "/data/a.microspat"]), cwd),
+                Some(PathBuf::from("/data/a.microspat"))
+            );
+            assert_eq!(file_argument(&args(&["app", "notes.txt"]), cwd), None);
             assert_eq!(
                 file_argument(
-                    &args(&["app", "file:///C:/Users/alice/a.microspat"]),
-                    win_cwd
+                    &args(&["app", "file:///data/my%20lab/a%CC%8A.microspat"]),
+                    cwd
                 ),
+                Some(PathBuf::from("/data/my lab/a\u{30a}.microspat"))
+            );
+            assert_eq!(file_argument(&args(&["a.microspat"]), cwd), None);
+        }
+        #[cfg(windows)]
+        {
+            let cwd = Path::new(r"D:\work");
+            assert_eq!(
+                file_argument(&args(&["app", "--flag", "lab.MicroSPAT"]), cwd),
+                Some(PathBuf::from(r"D:\work\lab.MicroSPAT"))
+            );
+            assert_eq!(
+                file_argument(&args(&["app", r"C:\data\a.microspat"]), cwd),
+                Some(PathBuf::from(r"C:\data\a.microspat"))
+            );
+            assert_eq!(file_argument(&args(&["app", "notes.txt"]), cwd), None);
+            assert_eq!(
+                file_argument(&args(&["app", "file:///C:/Users/alice/a.microspat"]), cwd),
                 Some(PathBuf::from(r"C:\Users\alice\a.microspat"))
             );
             assert_eq!(
                 file_argument(
                     &args(&["app", "file:///C%3A/Users/alice/my%20lab.microspat"]),
-                    win_cwd
+                    cwd
                 ),
                 Some(PathBuf::from(r"C:\Users\alice\my lab.microspat"))
             );
+            assert_eq!(file_argument(&args(&["a.microspat"]), cwd), None);
         }
-        assert_eq!(file_argument(&args(&["a.microspat"]), cwd), None);
     }
 }
