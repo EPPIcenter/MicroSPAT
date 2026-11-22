@@ -38,7 +38,13 @@ export function createQueryClient(): QueryClient {
         // Data only changes through the engine, which tells us via events.
         staleTime: Infinity,
         refetchOnWindowFocus: false,
+        // The engine is local (in-process Tauri IPC or localhost server), so
+        // browser offline/online transitions (e.g. macOS sleep/wake) must not pause queries.
+        networkMode: 'always',
         retry: (n, e) => !(isRpcError(e) && e.code !== 'transport') && n < 2,
+      },
+      mutations: {
+        networkMode: 'always',
       },
     },
   })
