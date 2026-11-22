@@ -1,35 +1,20 @@
 {
   "name": "microspat",
-  "version": "2.0.4",
+  "private": true,
+  "description": "MicroSPAT 3 build scripts: desktop app (Tauri), standalone server, checks. The version lives in Cargo.toml ([workspace.package]).",
+  "license": "AGPL-3.0-or-later",
+  "packageManager": "pnpm@12.11.2",
   "scripts": {
-    "dist-mac": "electron-builder -m",
-    "dist-win": "electron-builder -w",
-    "dist": "electron-builder -m -w",
-    "pack": "electron-builder --dir"
+    "postinstall": "pnpm --dir ui install",
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "build:server": "pnpm --dir ui build --sourcemap false && cargo build --release -p microspat-server --features embed-ui",
+    "serve": "pnpm --dir ui build --sourcemap false && cargo run --release -p microspat-server --features embed-ui -- --open",
+    "check": "cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace && pnpm --dir ui typecheck && pnpm --dir ui lint && pnpm --dir ui test",
+    "icons": "node scripts/icons.mjs",
+    "tauri": "tauri"
   },
   "devDependencies": {
-    "electron": "^7.1.2",
-    "electron-builder": "^22.2.0"
-  },
-  "build": {
-    "productName": "MicroSPAT",
-    "appId": "com.greenhouse.microspat",
-    "directories": {
-      "app": "app",
-      "output": "dist"
-    },
-    "asarUnpack": [
-      "**/*"
-    ],
-    "compression": "maximum",
-    "mac": {
-      "target": "dmg"
-    },
-    "win": {
-      "target": "nsis"
-    },
-    "nsis": {
-      "runAfterFinish": false
-    }
+    "@tauri-apps/cli": "2.12.6"
   }
 }

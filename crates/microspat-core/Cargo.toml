@@ -1,0 +1,38 @@
+[package]
+name = "microspat-core"
+description = "Pure analysis library for MicroSPAT: ABIF parsing, ladder sizing, peak calling, and mixture-aware microsatellite genotyping."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+libm = "0.2.16"
+rand = "0.10.4"
+rand_chacha = "0.10.0"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+sha2 = "0.11.1"
+thiserror = "2.0.21"
+ts-rs = { version = "12.0.1", optional = true }
+
+[features]
+default = ["signal", "calling"]
+# Instrument data to sized peaks: abif, signal, ladder, peaks, plate, synth.
+signal = []
+# Peaks to alleles: stats, bins, artifact, quant_bias, genotyping.
+calling = []
+# Derives TypeScript bindings for types that cross to the UI.
+ts = ["dep:ts-rs"]
+
+[dev-dependencies]
+approx = "0.5.1"
+
+[[example]]
+name = "plate_timing"
+required-features = ["signal"]
+
+[[example]]
+name = "ladder_eval"
+required-features = ["signal"]

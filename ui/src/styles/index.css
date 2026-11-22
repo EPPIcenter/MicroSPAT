@@ -1,0 +1,198 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Design tokens. Components use the Tailwind names (bg-surface, text-muted,
+ * border-line ...); canvas plots read the same variables through
+ * `readPlotTheme()` so plots follow the theme too.
+ */
+:root {
+  --c-bg: #f6f7f9;
+  --c-surface: #ffffff;
+  --c-surface-2: #f0f2f5;
+  --c-surface-3: #e6e9ee;
+  --c-line: #dde1e7;
+  --c-line-strong: #c3c9d2;
+  --c-fg: #1c2330;
+  --c-muted: #5d6878;
+  --c-faint: #8c96a5;
+  --c-accent: #2f6fdb;
+  --c-accent-fg: #ffffff;
+  --c-accent-soft: #e5eefc;
+  --c-ok: #1e8a4c;
+  --c-ok-soft: #e1f3e8;
+  --c-warn: #a86a00;
+  --c-warn-soft: #fbf0d9;
+  --c-danger: #c62f2f;
+  --c-danger-soft: #fbe5e5;
+  --c-focus: #2f6fdb;
+
+  /* Dye colors: tuned for contrast on the plot background and spread in hue
+     and lightness so deuteranopes can still tell green from red (red leans
+     crimson, green leans teal) and yellow stays readable on white. */
+  --dye-blue: #1764c0;
+  --dye-green: #08946b;
+  --dye-yellow: #a88400;
+  --dye-red: #d01c4b;
+  --dye-orange: #e2690c;
+
+  --plot-bg: #ffffff;
+  --plot-grid: #edf0f4;
+  --plot-axis: #8c96a5;
+  --plot-text: #4a5464;
+  --plot-bin: #5b7fbf;
+  --plot-range: #7a8698;
+  --plot-threshold: #c62f2f;
+  --plot-select: #2f6fdb;
+  --plot-overlay: #8c96a5;
+
+  --scale-none: #d64545;
+  --scale-low: #e8a33d;
+  --scale-good: #2f9e5a;
+  --scale-high: #2f7fd0;
+  --scale-off: #6a3fc0;
+}
+
+:root.dark {
+  --c-bg: #111418;
+  --c-surface: #181c22;
+  --c-surface-2: #1f242c;
+  --c-surface-3: #282e37;
+  --c-line: #2b313a;
+  --c-line-strong: #3a424e;
+  --c-fg: #e3e7ed;
+  --c-muted: #9aa4b2;
+  --c-faint: #6b7584;
+  --c-accent: #5b93f0;
+  --c-accent-fg: #0b1020;
+  --c-accent-soft: #1d2b44;
+  --c-ok: #4cc27c;
+  --c-ok-soft: #173225;
+  --c-warn: #e0a83a;
+  --c-warn-soft: #362a12;
+  --c-danger: #f0605f;
+  --c-danger-soft: #3a1c1d;
+  --c-focus: #5b93f0;
+
+  --dye-blue: #4ea3ff;
+  --dye-green: #3fd19f;
+  --dye-yellow: #f2dc3d;
+  --dye-red: #ff5a86;
+  --dye-orange: #ff9a3c;
+
+  --plot-bg: #14181d;
+  --plot-grid: #22282f;
+  --plot-axis: #5d6878;
+  --plot-text: #9aa4b2;
+  --plot-bin: #7ea2e6;
+  --plot-range: #8995a6;
+  --plot-threshold: #f0605f;
+  --plot-select: #5b93f0;
+  --plot-overlay: #6b7584;
+
+  --scale-none: #d65252;
+  --scale-low: #d9a040;
+  --scale-good: #3fae6a;
+  --scale-high: #4a90e0;
+  --scale-off: #9a72ea;
+}
+
+@theme inline {
+  --color-bg: var(--c-bg);
+  --color-surface: var(--c-surface);
+  --color-surface-2: var(--c-surface-2);
+  --color-surface-3: var(--c-surface-3);
+  --color-line: var(--c-line);
+  --color-line-strong: var(--c-line-strong);
+  --color-fg: var(--c-fg);
+  --color-muted: var(--c-muted);
+  --color-faint: var(--c-faint);
+  --color-accent: var(--c-accent);
+  --color-accent-fg: var(--c-accent-fg);
+  --color-accent-soft: var(--c-accent-soft);
+  --color-ok: var(--c-ok);
+  --color-ok-soft: var(--c-ok-soft);
+  --color-warn: var(--c-warn);
+  --color-warn-soft: var(--c-warn-soft);
+  --color-danger: var(--c-danger);
+  --color-danger-soft: var(--c-danger-soft);
+  --color-focus: var(--c-focus);
+  --color-dye-blue: var(--dye-blue);
+  --color-dye-green: var(--dye-green);
+  --color-dye-yellow: var(--dye-yellow);
+  --color-dye-red: var(--dye-red);
+  --color-dye-orange: var(--dye-orange);
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  html {
+    font-size: 14px;
+  }
+  body {
+    @apply bg-bg text-fg font-sans antialiased;
+    font-feature-settings: 'tnum' 1, 'cv11' 1;
+    overflow: hidden;
+  }
+  :focus-visible {
+    outline: 2px solid var(--c-focus);
+    outline-offset: 1px;
+  }
+  ::selection {
+    background: var(--c-accent-soft);
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--c-line-strong) transparent;
+  }
+  input[type='number']::-webkit-inner-spin-button {
+    opacity: 0.4;
+  }
+}
+
+@layer utilities {
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 4px) scale(0.98);
+  }
+}
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}
+@keyframes indeterminate {
+  0% {
+    left: -35%;
+  }
+  100% {
+    left: 100%;
+  }
+}

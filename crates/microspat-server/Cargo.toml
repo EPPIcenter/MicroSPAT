@@ -1,0 +1,29 @@
+[package]
+name = "microspat-server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+axum = { version = "0.8.9", features = ["multipart"] }
+clap = { version = "4.6.9", features = ["derive"] }
+dirs = "7.0.0"
+microspat-engine = { version = "3.0.0-beta.1", path = "../microspat-engine" }
+mime_guess = { version = "2.0.5", optional = true }
+open = "5.4.5"
+rust-embed = { version = "8.14.0", optional = true }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+tempfile = "3.27.0"
+tokio = { version = "1.54.1", features = ["full"] }
+tokio-stream = { version = "0.1.19", features = ["sync"] }
+
+[features]
+# Embed ui/dist in the binary (build the UI first). Without it, pass --ui-dir.
+embed-ui = ["dep:rust-embed", "dep:mime_guess"]
+
+[dev-dependencies]
+http-body-util = "0.1.5"
+tower = { version = "0.5.3", features = ["util"] }

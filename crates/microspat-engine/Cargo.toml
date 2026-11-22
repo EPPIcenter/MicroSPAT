@@ -1,0 +1,20 @@
+[package]
+name = "microspat-engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+csv = "1.4.0"
+dunce = "1.0.5"
+microspat-core = { version = "3.0.0-beta.1", path = "../microspat-core", features = ["ts"] }
+rayon = "1.12.0"
+rusqlite = { version = "0.43.0", features = ["bundled"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = { version = "1.0.154", features = ["preserve_order"] }
+tempfile = "3.27.0"
+thiserror = "2.0.21"
+ts-rs = "12.0.1"
+zip = { version = "9.8.1", default-features = false, features = ["deflate"] }

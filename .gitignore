@@ -1,203 +1,30 @@
-migrations/*
-/*.csv
-fixtures/**/*.csv
-static/plasmotrack-js/node_modules/*
-static/plasmotrack-js/typings/*
-static/plasmotrack-js/bootstrap/*
-app/static/plasmotrack-js/node_modules/*
-app/static/plasmotrack-js/typings/*
-app/static/plasmotrack-js/bootstrap/*
-.env
-test.py
-static/plasmotrack-js/build/**/*.js.map
-static/plasmotrack-js/build/**/*.js
-*.sqlite*
-.Rhistory
-tex/*
-*.xlsx
-*.pkl
-*.R
-__pycache__
-.vscode
+# Rust
+/target/
+**/target/
 
-
-### JetBrains template
-# Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio
-
-*.iml
-
-## Directory-based project format:
-.idea/
-# if you remove the above rule, at least ignore the following:
-
-# User-specific stuff:
-# .idea/workspace.xml
-# .idea/tasks.xml
-# .idea/dictionaries
-
-# Sensitive or high-churn files:
-# .idea/dataSources.ids
-# .idea/dataSources.xml
-# .idea/sqlDataSources.xml
-# .idea/dynamic.xml
-# .idea/uiDesigner.xml
-
-# Gradle:
-# .idea/gradle.xml
-# .idea/libraries
-
-# Mongo Explorer plugin:
-# .idea/mongoSettings.xml
-
-## File-based project format:
-*.ipr
-*.iws
-
-## Plugin-specific files:
-
-# IntelliJ
-/out/
-
-# mpeltonen/sbt-idea plugin
-.idea_modules/
-
-# JIRA plugin
-atlassian-ide-plugin.xml
-
-# Crashlytics plugin (for Android Studio and IntelliJ)
-com_crashlytics_export_strings.xml
-crashlytics.properties
-crashlytics-build.properties
-### VirtualEnv template
-# Virtualenv
-# http://iamzed.com/2009/05/07/a-primer-on-virtualenv/
-.Python
-[Bb]in
-[Ii]nclude
-[Ll]ib
-[Ss]cripts
-pyvenv.cfg
-pip-selfcheck.json
-### Example user template template
-### Example user template
-
-# IntelliJ project files
-.idea
-*.iml
-out
-gen### VisualStudioCode template
-.settings
-
-### CVS template
-/CVS/*
-*/CVS/*
-.cvsignore
-*/.cvsignore
-### Archives template
-# It's better to unpack these files and commit the raw source because
-# git has its own built in compression methods.
-*.7z
-*.jar
-*.rar
-*.zip
-*.gz
-*.bzip
-*.bz2
-*.xz
-*.lzma
-*.cab
-
-#packing-only formats
-*.iso
-*.tar
-
-#package management formats
-*.dmg
-*.xpi
-*.gem
-*.egg
-*.deb
-*.rpm
-*.msi
-*.msm
-*.msp
-### Python template
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
-
-# C extensions
-*.so
-
-# Distribution / packaging
-.Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*,cover
-
-# Translations
-*.mo
-*.pot
-
-# Django stuff:
-*.log
-
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-target/
-
-
-
-# Created by .ignore support plugin (hsz.mobi)
-
-
-*.map
-
-app/static/plasmotrack-js/node_modules/.bin/touch
-
-*.pdf
-
-fixtures/\.DS_Store
-
-\.DS_Store
-
-microspat-js/node_modules
-
+# Node / frontend
 node_modules/
+dist/
+*.tsbuildinfo
+.vite/
 
-src/microspat-py/win32-pybuild/
+# Tauri
+src-tauri/gen/schemas/
+src-tauri/target/
+
+# Local data and test output
+*.microspat
+*.sqlite
+*.sqlite-*
+*.db
+/tmp/
+playwright-report/
+test-results/
+
+# Editors and OS
+.idea/
+.vscode/
+.DS_Store
+*.swp
+.env
+__pycache__/

@@ -1,0 +1,21 @@
+[workspace]
+resolver = "2"
+members = ["crates/*", "src-tauri"]
+
+[workspace.package]
+version = "3.0.0-beta.1"
+edition = "2021"
+license = "AGPL-3.0-or-later"
+authors = ["Maxwell Murphy"]
+repository = "https://github.com/EPPIcenter/MicroSPAT"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+strip = true
+
+# Numerics are slow unoptimized; keep debug builds/tests usable.
+[profile.dev.package."*"]
+opt-level = 2
+[profile.dev]
+opt-level = 1
