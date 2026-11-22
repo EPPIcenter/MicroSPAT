@@ -34,7 +34,7 @@ fn sizes(v: &Value) -> Vec<f64> {
 fn ambiguous_wells_are_settled_by_their_plate_or_reported() {
     let dir = tempfile::tempdir().unwrap();
     let h = Harness::new(&dir.path().join("state"));
-    h.call("new_workspace", json!({ "path": null }));
+    h.new_scratch_workspace(dir.path());
     let ladder = id(&h.call(
         "create_ladder",
         json!({ "label": "Even 50–500", "spec": { "base_sizes": UNIFORM } }),

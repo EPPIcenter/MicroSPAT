@@ -2,39 +2,13 @@
 //! negative controls checked once a plate map names them, filled in for
 //! plates imported before reports existed, and exported.
 
+mod common;
+
+use common::Harness;
 use microspat_core::synth::{generate_plate, SynthSpec, SynthWell, WellKind};
 use microspat_engine::api::demo::write_dir;
-use microspat_engine::{AppEvent, Engine, EngineConfig};
+
 use serde_json::{json, Value};
-use std::path::Path;
-
-struct Harness {
-    engine: Engine,
-    events: std::sync::mpsc::Receiver<AppEvent>,
-}
-
-impl Harness {
-    fn new(state: &Path) -> Harness {
-        let engine = Engine::new(EngineConfig {
-            state_dir: Some(state.to_path_buf()),
-        });
-        let events = engine.subscribe();
-        Harness { engine, events }
-    }
-
-    fn call(&self, method: &str, params: Value) -> Value {
-        self.engine
-            .dispatch(method, params)
-            .unwrap_or_else(|e| panic!("{method} failed: {:?} {}", e.code, e.message))
-    }
-
-    fn changed_plates(&self) -> usize {
-        self.events
-            .try_iter()
-            .filter(|e| matches!(e, AppEvent::Changed { entity, .. } if entity == "plates"))
-            .count()
-    }
-}
 
 /// The first study plate (seed 2026 on) whose two capillaries with
 /// unseparated dyes both ran a sample.
@@ -261,7 +235,7 @@ fn quality_report_from_import_to_export() {
 fn clean_plate_reports_no_issue() {
     let dir = tempfile::tempdir().unwrap();
     let h = Harness::new(&dir.path().join("state"));
-    h.call("new_workspace", json!({ "path": null }));
+    h.new_scratch_workspace(dir.path());
     let ladder = hd400(&h);
     let spec = SynthSpec {
         plate_name: "CLEAN".into(),
@@ -424,7 +398,7 @@ fn settings_persist_refresh_plate_quality_and_reset() {
     // Settings survive save_workspace_as and open_workspace.
     let copy = dir.path().join("copy.microspat");
     h.call("save_workspace_as", json!({ "path": copy.to_str() }));
-    h.call("new_workspace", json!({ "path": null }));
+    h.new_scratch_workspace(dir.path());
     h.call("open_workspace", json!({ "path": copy.to_str() }));
     let reopened = h.call("get_settings", Value::Null);
     assert_eq!(reopened["quality_limits"]["control_height_limit"], 100.0);

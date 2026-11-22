@@ -21,6 +21,7 @@ pub mod codec;
 pub mod db;
 pub mod error;
 pub mod events;
+pub(crate) mod files;
 pub mod fingerprint;
 pub mod locus_runs;
 pub mod peak_codec;

@@ -252,7 +252,7 @@ pub(crate) fn remember_recent(e: &Engine, path: &Path) {
         let _ = std::fs::create_dir_all(dir);
     }
     if let Ok(json) = serde_json::to_string_pretty(&list) {
-        let _ = std::fs::write(file, json);
+        let _ = crate::files::write_atomic(&file, json.as_bytes());
     }
 }
 
@@ -278,5 +278,5 @@ fn list_tasks(e: &Engine, _: ()) -> Result<Vec<TaskInfo>> {
 
 fn write_text_file(_: &Engine, p: WriteTextFileParams) -> Result<()> {
     let path = Path::new(&p.path);
-    std::fs::write(path, p.content).map_err(|e| io_err(path, e))
+    crate::files::write_atomic(path, p.content.as_bytes()).map_err(|e| io_err(path, e))
 }
