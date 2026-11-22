@@ -31,7 +31,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libssl-dev \
-            libayatana-appindicator3-dev librsvg2-dev build-essential file
+            libayatana-appindicator3-dev librsvg2-dev build-essential file mold
 
       - uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc # master
         with:
@@ -39,10 +39,16 @@ jobs:
           components: clippy, rustfmt
 
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          cache-on-failure: true
 
       - run: cargo fmt --all --check
       - run: cargo clippy --workspace --all-targets -- -D warnings
+        env:
+          RUSTFLAGS: -C link-arg=-fuse-ld=mold
       - run: cargo test --workspace
+        env:
+          RUSTFLAGS: -C link-arg=-fuse-ld=mold
 
       - name: Check Rust advisories, licenses, and sources
         uses: EmbarkStudios/cargo-deny-action@17aeb3c839e42274e2b8adf721c8c65edfdc74dd # v2.1.3
@@ -109,6 +115,9 @@ jobs:
           - name: macOS
             os: macos-latest
     runs-on: ${{ matrix.os }}
+    env:
+      # Skip LTO on PR verification builds; release.yml keeps full lto = "thin".
+      CARGO_PROFILE_RELEASE_LTO: 'off'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -117,7 +126,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libssl-dev \
-            libayatana-appindicator3-dev librsvg2-dev build-essential file
+            libayatana-appindicator3-dev librsvg2-dev build-essential file mold
+          echo "RUSTFLAGS=-C link-arg=-fuse-ld=mold" >> "$GITHUB_ENV"
 
       - uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc # master
         with:
@@ -126,6 +136,7 @@ jobs:
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           key: ci-build-${{ runner.os }}
+          cache-on-failure: true
 
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
 
@@ -148,4 +159,4 @@ jobs:
         run: cargo build --release -p microspat-server --features embed-ui
 
       - name: Run desktop shell unit tests
-        run: cargo test -p microspat-desktop
+        run: cargo test -p microspat-desktop --release
