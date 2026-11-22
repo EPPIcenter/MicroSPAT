@@ -1,0 +1,12 @@
+{
+  "bundle": {
+    "targets": ["deb", "appimage"],
+    "linux": {
+      "deb": {
+        "files": {
+          "/usr/share/mime/packages/org.eppicenter.microspat.xml": "linux/org.eppicenter.microspat.xml"
+        }
+      }
+    }
+  }
+}

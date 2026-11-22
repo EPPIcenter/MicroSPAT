@@ -1,0 +1,88 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "MicroSPAT",
+  "identifier": "org.eppicenter.microspat",
+  "build": {
+    "beforeDevCommand": "pnpm --dir ui dev",
+    "devUrl": "http://localhost:5173",
+    "beforeBuildCommand": "pnpm --dir ui build --sourcemap false",
+    "frontendDist": "../ui/dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "MicroSPAT",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1024,
+        "minHeight": 640,
+        "center": true,
+        "visible": false,
+        "dragDropEnabled": true
+      }
+    ],
+    "security": {
+      "csp": {
+        "default-src": "'self'",
+        "script-src": "'self'",
+        "style-src": "'self' 'unsafe-inline'",
+        "img-src": "'self' data: blob:",
+        "font-src": "'self' data:",
+        "connect-src": "ipc: http://ipc.localhost",
+        "worker-src": "'self' blob:",
+        "object-src": "'none'",
+        "base-uri": "'self'",
+        "form-action": "'none'"
+      },
+      "dangerousDisableAssetCspModification": ["style-src"]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "publisher": "EPPIcenter",
+    "copyright": "Maxwell Murphy. Licensed under AGPL-3.0-or-later.",
+    "license": "AGPL-3.0-or-later",
+    "homepage": "https://github.com/EPPIcenter/MicroSPAT",
+    "category": "Utility",
+    "shortDescription": "Microsatellite genotyping from capillary electrophoresis",
+    "longDescription": "MicroSPAT sizes capillary electrophoresis (ABI .fsa) fragment data and genotypes microsatellites in mixed infections: bins, stutter models, quantification bias, multiplicity of infection and allele prevalence.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "fileAssociations": [
+      {
+        "ext": ["microspat"],
+        "name": "MicroSPAT Workspace",
+        "description": "MicroSPAT workspace",
+        "role": "Editor",
+        "rank": "Owner",
+        "mimeType": "application/x-microspat",
+        "exportedType": {
+          "identifier": "org.eppicenter.microspat.workspace",
+          "conformsTo": ["public.data", "public.database"]
+        }
+      }
+    ],
+    "macOS": {
+      "minimumSystemVersion": "12.0",
+      "signingIdentity": "-",
+      "hardenedRuntime": true
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    },
+    "linux": {
+      "appimage": {
+        "bundleMediaFramework": false
+      }
+    }
+  }
+}

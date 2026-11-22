@@ -1,0 +1,28 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "react"],
+  "categories": {
+    "correctness": "error"
+  },
+  "env": {
+    "browser": true,
+    "es2022": true
+  },
+  "ignorePatterns": ["dist", "node_modules", "test-results", "playwright-report"],
+  "rules": {
+    "no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
+    "typescript/unbound-method": "off",
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "error"
+  },
+  "overrides": [
+    {
+      "files": ["src/plot/**/*.ts", "src/components/{TraceViewer,BinPlot,ArtifactPlot}/**/*.tsx"],
+      "rules": {
+        "react/refs": "off",
+        "react/immutability": "off",
+        "react/exhaustive-deps": "off"
+      }
+    }
+  ]
+}

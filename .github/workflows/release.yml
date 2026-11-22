@@ -1,0 +1,246 @@
+# Builds the desktop installers and the standalone server for every platform
+# when a version tag (e.g. v3.0.0-beta.1 or v3.0.0) is pushed, and attaches
+# them to a draft release. Tags containing a hyphen (like -beta.1) are marked
+# as pre-releases on GitHub.
+#
+# Installers: macOS universal .dmg, Windows x64 NSIS setup.exe,
+# Linux x64 .AppImage and .deb. Server: microspat-server with the UI embedded.
+#
+# Code signing is off until secrets exist. Add these repository secrets to
+# sign and notarize the macOS app (nothing else changes):
+#   APPLE_CERTIFICATE (base64 .p12), APPLE_CERTIFICATE_PASSWORD,
+#   APPLE_SIGNING_IDENTITY ("Developer ID Application: …"),
+#   and either APPLE_ID + APPLE_PASSWORD (app-specific) + APPLE_TEAM_ID,
+#   or APPLE_API_ISSUER + APPLE_API_KEY + APPLE_API_KEY_P8 (contents of the .p8).
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to build (e.g. v3.0.0-beta.1)
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  TAG: ${{ inputs.tag || github.ref_name }}
+
+jobs:
+  create-release:
+    name: Create draft release
+    runs-on: ubuntu-latest
+    outputs:
+      release_id: ${{ steps.release.outputs.id }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.TAG }}
+
+      # The one version number is [workspace.package] in Cargo.toml.
+      - name: Check the tag matches the workspace version
+        id: version
+        run: |
+          version=$(cargo metadata --no-deps --format-version 1 \
+            | jq -r '.packages[] | select(.name == "microspat-desktop") | .version')
+          echo "workspace version: $version, tag: $TAG"
+          if [ "v$version" != "$TAG" ]; then
+            echo "::error::Tag $TAG does not match the workspace version $version (Cargo.toml)."
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Create the draft release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Reuse the draft when the workflow is run again for the same tag.
+          id=$(gh api "repos/$GITHUB_REPOSITORY/releases" --paginate \
+            --jq "map(select(.tag_name == \"$TAG\" and .draft)) | .[0].id // empty" | head -n 1)
+          if [ -n "$id" ]; then
+            echo "Reusing draft release $id for $TAG"
+            echo "id=$id" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          version="${{ steps.version.outputs.version }}"
+          if [[ "$TAG" == *-* ]]; then
+            prerelease=true
+            body="Beta pre-release of MicroSPAT $version. Installers for macOS (universal .dmg), Windows (setup .exe) and Linux (.AppImage, .deb), and the standalone server (microspat-server) with the web UI built in. The builds are not code-signed: see the README for how to open them. Please report issues on GitHub."
+          else
+            prerelease=false
+            body="Installers for macOS (universal .dmg), Windows (setup .exe) and Linux (.AppImage, .deb), and the standalone server (microspat-server) with the web UI built in. The builds are not code-signed: see the README for how to open them."
+          fi
+          id=$(gh api "repos/$GITHUB_REPOSITORY/releases" -X POST \
+            -f tag_name="$TAG" \
+            -f name="MicroSPAT $version" \
+            -F draft=true \
+            -F prerelease="$prerelease" \
+            -f body="$body" \
+            --jq .id)
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build (${{ matrix.name }})
+    needs: create-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS universal
+            os: macos-latest
+            args: --target universal-apple-darwin
+            rust-targets: aarch64-apple-darwin,x86_64-apple-darwin
+            server: macos-universal
+          - name: Windows x64
+            os: windows-latest
+            args: ''
+            rust-targets: ''
+            server: windows-x86_64
+          - name: Linux x64
+            # The oldest supported runner, so the AppImage runs on older glibc.
+            os: ubuntu-22.04
+            args: ''
+            rust-targets: ''
+            server: linux-x86_64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.TAG }}
+
+      - name: Install Tauri system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          # libfuse2: the AppImage tooling is itself an AppImage.
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libssl-dev \
+            libayatana-appindicator3-dev librsvg2-dev build-essential file patchelf libfuse2
+
+      - uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc # master
+        with:
+          toolchain: 1.94.0
+          targets: ${{ matrix.rust-targets }}
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          key: ${{ matrix.server }}
+          cache-on-failure: true
+
+      # Version from `packageManager` in package.json.
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            ui/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm install --frozen-lockfile
+        working-directory: ui
+
+      # Only secrets that are set reach the build: an empty APPLE_* variable
+      # would make the bundler try (and fail) to sign with it.
+      - name: Configure macOS signing (when secrets exist)
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+        run: |
+          for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY \
+                      APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID APPLE_API_ISSUER APPLE_API_KEY; do
+            value="${!name}"
+            if [ -n "$value" ]; then
+              { echo "$name<<__EOF__"; echo "$value"; echo "__EOF__"; } >> "$GITHUB_ENV"
+            fi
+          done
+          if [ -n "$APPLE_API_KEY_P8" ]; then
+            key="$RUNNER_TEMP/AuthKey.p8"
+            printf '%s' "$APPLE_API_KEY_P8" > "$key"
+            echo "APPLE_API_KEY_PATH=$key" >> "$GITHUB_ENV"
+          fi
+          if [ -z "$APPLE_SIGNING_IDENTITY" ]; then
+            echo "No signing secrets: the app is ad-hoc signed (signingIdentity \"-\") and not notarized."
+          fi
+
+      - name: Build the installers
+        uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # action-v1.0.0
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          # Runners often cannot mount FUSE; this makes the AppImage tools unpack themselves instead.
+          APPIMAGE_EXTRACT_AND_RUN: 1
+        with:
+          releaseId: ${{ needs.create-release.outputs.release_id }}
+          tauriScript: pnpm tauri
+          args: ${{ matrix.args }}
+          uploadUpdaterJson: false
+          retryAttempts: 1
+
+      # The UI in ui/dist was just built by the Tauri build (beforeBuildCommand).
+      - name: Build the standalone server
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ needs.create-release.outputs.version }}"
+          mkdir -p dist-server
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            # Same minimum as the app (bundle.macOS.minimumSystemVersion). Without
+            # it the binary is stamped with the runner's macOS and refuses to
+            # start on anything older.
+            export MACOSX_DEPLOYMENT_TARGET=12.0
+            for t in aarch64-apple-darwin x86_64-apple-darwin; do
+              cargo build --release -p microspat-server --features embed-ui --target "$t"
+            done
+            lipo -create -output dist-server/microspat-server \
+              target/aarch64-apple-darwin/release/microspat-server \
+              target/x86_64-apple-darwin/release/microspat-server
+            codesign --force --sign "${APPLE_SIGNING_IDENTITY:--}" dist-server/microspat-server
+          else
+            cargo build --release -p microspat-server --features embed-ui
+            cp "target/release/microspat-server$( [ "$RUNNER_OS" = "Windows" ] && echo .exe || true )" dist-server/
+          fi
+          cd dist-server
+          name="microspat-server-$version-${{ matrix.server }}"
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            mv microspat-server.exe "$name.exe"
+            echo "SERVER_ASSET=dist-server/$name.exe" >> "$GITHUB_ENV"
+          else
+            tar -czf "$name.tar.gz" microspat-server
+            echo "SERVER_ASSET=dist-server/$name.tar.gz" >> "$GITHUB_ENV"
+          fi
+
+      - name: Attach the server to the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_ID: ${{ needs.create-release.outputs.release_id }}
+        run: |
+          set -euo pipefail
+          name=$(basename "$SERVER_ASSET")
+          existing_id=$(gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID/assets" --paginate \
+            --jq "map(select(.name == \"$name\")) | .[0].id // empty" | head -n 1)
+          if [ -n "$existing_id" ]; then
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/releases/assets/$existing_id"
+          fi
+          curl --fail-with-body -sS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "Content-Type: application/octet-stream" \
+            --data-binary @"$SERVER_ASSET" \
+            "https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID/assets?name=$name"

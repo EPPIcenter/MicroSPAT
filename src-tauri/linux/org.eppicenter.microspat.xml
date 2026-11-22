@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Declares the workspace file type so file managers open *.microspat with
+     MicroSPAT. A workspace is an SQLite database; without the sub-class
+     relation, content sniffing would win and report it as plain SQLite. -->
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-microspat">
+    <comment>MicroSPAT workspace</comment>
+    <sub-class-of type="application/vnd.sqlite3"/>
+    <glob pattern="*.microspat" weight="80"/>
+  </mime-type>
+</mime-info>

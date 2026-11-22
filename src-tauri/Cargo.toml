@@ -1,0 +1,36 @@
+[package]
+name = "microspat-desktop"
+description = "MicroSPAT desktop app: the engine in a native window"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+# Named for what users see: `microspat` on Linux, `microspat.exe` on Windows.
+[[bin]]
+name = "microspat"
+path = "src/main.rs"
+
+[dependencies]
+microspat-engine = { version = "3.0.0-beta.1", path = "../crates/microspat-engine" }
+serde_json = "1.0.154"
+tauri = { version = "2.12.7", features = [] }
+tauri-plugin-dialog = "2.8.4"
+tauri-plugin-single-instance = "2.5.5"
+tauri-plugin-window-state = "2.5.0"
+
+[build-dependencies]
+tauri-build = { version = "2.7.6", features = [] }
+
+# Only for the `verify` feature.
+[target.'cfg(target_os = "macos")'.dependencies]
+block2 = { version = "0.6.2", optional = true }
+objc2 = { version = "0.6.5", optional = true }
+objc2-app-kit = { version = "0.3.2", default-features = false, features = ["NSImage", "std"], optional = true }
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["NSData", "NSError", "std"], optional = true }
+objc2-web-kit = { version = "0.3.2", default-features = false, features = ["WKWebView", "WKSnapshotConfiguration", "block2", "objc2-app-kit", "std"], optional = true }
+
+[features]
+# Hooks for automated checks of a built app (`verify.rs`). Never enabled in release bundles.
+verify = ["dep:objc2", "dep:block2", "dep:objc2-web-kit", "dep:objc2-app-kit", "dep:objc2-foundation"]

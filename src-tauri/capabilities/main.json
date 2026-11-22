@@ -1,0 +1,13 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main",
+  "description": "What the UI in the main window may call: the engine RPC, engine and drag-and-drop events, and the open/save dialogs.",
+  "windows": ["main"],
+  "permissions": [
+    "allow-rpc",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "dialog:allow-open",
+    "dialog:allow-save"
+  ]
+}
