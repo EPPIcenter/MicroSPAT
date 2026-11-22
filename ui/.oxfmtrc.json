@@ -3,5 +3,5 @@
   "semi": false,
   "singleQuote": true,
   "printWidth": 140,
-  "ignorePatterns": ["dist", "node_modules", "test-results", "playwright-report", "pnpm-lock.yaml", "src/api/bindings"]
+  "ignorePatterns": ["dist", "node_modules", "test-results", "playwright-report", "pnpm-lock.yaml", "src/api/bindings", "src/api/client.ts"]
 }

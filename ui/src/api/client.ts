@@ -4,102 +4,7 @@
  * method registry, so names and types match the engine exactly.
  */
 import { rpc } from './transport'
-import type {
-  AddSamplesResult,
-  AnalyzeProjectParams,
-  AnalyzeProjectResult,
-  ApplyPlateMapParams,
-  ArtifactBreakpointParams,
-  ArtifactEstimatorView,
-  BinScatter,
-  CalculateProbabilitiesParams,
-  CallParams,
-  CallRow,
-  ChannelTrace,
-  ComputePlateQualityParams,
-  ComputePlateQualityResult,
-  Control,
-  CreateControlParams,
-  CreateLadderParams,
-  CreateLocusParams,
-  CreateLocusSetParams,
-  CreateProjectParams,
-  CreateSampleParams,
-  CsvSource,
-  DeleteSamplesParams,
-  DemoResult,
-  DuplicateProjectParams,
-  ExportParams,
-  GenotypingSummary,
-  GetWellParams,
-  IdParams,
-  ImportControlMixturesParams,
-  ImportLociResult,
-  ImportPlatesParams,
-  ImportPlatesResult,
-  ImportProjectSamplesParams,
-  ImportSamplesResult,
-  Ladder,
-  LadderPreview,
-  ListControlsParams,
-  ListProjectsParams,
-  Locus,
-  LocusArtifacts,
-  LocusBins,
-  LocusCalls,
-  LocusParamsView,
-  LocusQuantBias,
-  LocusSet,
-  LocusSetDetail,
-  MixturesReport,
-  NewWorkspaceParams,
-  PathParams,
-  PlateDetail,
-  PlateMapReport,
-  PlateQualityView,
-  PlateRunTraces,
-  PlateSummary,
-  ProbabilityResult,
-  ProjectDetail,
-  ProjectLocusParams,
-  ProjectSampleParams,
-  ProjectSampleRow,
-  ProjectSamplesParams,
-  ProjectSummary,
-  RecentWorkspace,
-  ResetLocusParamsParams,
-  Sample,
-  SampleCalls,
-  SampleDetail,
-  SampleLocusCallView,
-  SamplesBatchResult,
-  SetArtifactErrorEstimatorParams,
-  SetArtifactMethodParams,
-  SetCallCommentParams,
-  SetCallReviewedParams,
-  SetCallsReviewedParams,
-  SetCallsReviewedResult,
-  SetControlMixturesParams,
-  SetSamplesDesignationParams,
-  SetWellLadderPeaksParams,
-  Settings,
-  SizePlateParams,
-  TaskInfo,
-  TextFile,
-  ToggleAlleleParams,
-  UpdateControlParams,
-  UpdateLadderParams,
-  UpdateLocusBinsParams,
-  UpdateLocusParams,
-  UpdateLocusParamsParams,
-  UpdateLocusSetParams,
-  UpdateProjectParams,
-  UpdateSampleParams,
-  UpdateSettingsParams,
-  WellDetail,
-  WorkspaceInfo,
-  WriteTextFileParams,
-} from './bindings'
+import type { AddSamplesResult, AnalyzeProjectParams, AnalyzeProjectResult, ApplyPlateMapParams, ArtifactBreakpointParams, ArtifactEstimatorView, BinScatter, CalculateProbabilitiesParams, CallParams, CallRow, ChannelTrace, ComputePlateQualityParams, ComputePlateQualityResult, Control, CreateControlParams, CreateLadderParams, CreateLocusParams, CreateLocusSetParams, CreateProjectParams, CreateSampleParams, CsvSource, DeleteSamplesParams, DemoResult, DuplicateProjectParams, ExportParams, GenotypingSummary, GetWellParams, IdParams, ImportControlMixturesParams, ImportLociResult, ImportPlatesParams, ImportPlatesResult, ImportProjectSamplesParams, ImportSamplesResult, Ladder, LadderPreview, ListControlsParams, ListProjectsParams, Locus, LocusArtifacts, LocusBins, LocusCalls, LocusParamsView, LocusQuantBias, LocusSet, LocusSetDetail, MixturesReport, NewWorkspaceParams, PathParams, PlateDetail, PlateMapReport, PlateQualityView, PlateRunTraces, PlateSummary, ProbabilityResult, ProjectDetail, ProjectLocusParams, ProjectSampleParams, ProjectSampleRow, ProjectSamplesParams, ProjectSummary, RecentWorkspace, ResetLocusParamsParams, Sample, SampleCalls, SampleDetail, SampleLocusCallView, SamplesBatchResult, SetArtifactErrorEstimatorParams, SetArtifactMethodParams, SetCallCommentParams, SetCallReviewedParams, SetCallsReviewedParams, SetCallsReviewedResult, SetControlMixturesParams, SetSamplesDesignationParams, SetWellLadderPeaksParams, Settings, SizePlateParams, TaskInfo, TextFile, ToggleAlleleParams, UpdateControlParams, UpdateLadderParams, UpdateLocusBinsParams, UpdateLocusParams, UpdateLocusParamsParams, UpdateLocusSetParams, UpdateProjectParams, UpdateSampleParams, UpdateSettingsParams, WellDetail, WorkspaceInfo, WriteTextFileParams } from './bindings'
 
 /** Params and result type of every method. */
 export interface Methods {
@@ -304,14 +209,7 @@ export const METHOD_CHANGES = {
 } as const satisfies Record<MethodName, readonly string[]>
 
 /** Methods that run as background tasks (progress arrives as `task` events). */
-export const TASK_METHODS: readonly MethodName[] = [
-  'analyze_project',
-  'calculate_peak_probabilities',
-  'compute_plate_quality',
-  'import_plates',
-  'load_demo_data',
-  'size_plate',
-]
+export const TASK_METHODS: readonly MethodName[] = ['analyze_project', 'calculate_peak_probabilities', 'compute_plate_quality', 'import_plates', 'load_demo_data', 'size_plate']
 
 /** Call a method by name with typed params and result. */
 export function call<M extends MethodName>(method: M, params: Methods[M]['params']): Promise<Methods[M]['result']> {
@@ -320,8 +218,7 @@ export function call<M extends MethodName>(method: M, params: Methods[M]['params
 
 export const api = {
   /** Split the segment containing a parent size in two and refit both halves. Changes: projects. */
-  add_artifact_breakpoint: (params: ArtifactBreakpointParams): Promise<ArtifactEstimatorView> =>
-    rpc<ArtifactEstimatorView>('add_artifact_breakpoint', params),
+  add_artifact_breakpoint: (params: ArtifactBreakpointParams): Promise<ArtifactEstimatorView> => rpc<ArtifactEstimatorView>('add_artifact_breakpoint', params),
   /** Add samples by id. For a bin or artifact estimator this switches it to the listed samples. Changes: projects. */
   add_project_samples: (params: ProjectSamplesParams): Promise<AddSamplesResult> => rpc<AddSamplesResult>('add_project_samples', params),
   /** Analyze loci of a project (all, a list, or only stale ones): scan, filter, then estimate bins, artifacts or β, or call alleles. Replaces earlier results and manual calls of those loci. Changes: projects, controls. Background task. */
@@ -329,16 +226,13 @@ export const api = {
   /** Assign samples and loci to a plate's channels from a plate-map CSV (Well, then one column per locus label; cells are sample barcodes). Replaces the previous map. Validates everything first: with problems, a dry run returns them and a real run fails with `invalid`. Changes: plates, samples, loci, workspace, projects. */
   apply_plate_map: (params: ApplyPlateMapParams): Promise<PlateMapReport> => rpc<PlateMapReport>('apply_plate_map', params),
   /** Project-wide probabilistic annotation of a genotyping project: allele prevalence, per-sample MOI, peak probabilities and re-called alleles. Every locus must be current. The MOI offset is stored on the project and reused when omitted. Changes: projects. Background task. */
-  calculate_peak_probabilities: (params: CalculateProbabilitiesParams): Promise<ProbabilityResult> =>
-    rpc<ProbabilityResult>('calculate_peak_probabilities', params),
+  calculate_peak_probabilities: (params: CalculateProbabilitiesParams): Promise<ProbabilityResult> => rpc<ProbabilityResult>('calculate_peak_probabilities', params),
   /** Replace all segments of a class by one spanning the locus and refit. Changes: projects. */
-  clear_artifact_breakpoints: (params: IdParams): Promise<ArtifactEstimatorView> =>
-    rpc<ArtifactEstimatorView>('clear_artifact_breakpoints', params),
+  clear_artifact_breakpoints: (params: IdParams): Promise<ArtifactEstimatorView> => rpc<ArtifactEstimatorView>('clear_artifact_breakpoints', params),
   /** Remove every run of a plate. Changes: plates, samples, loci, workspace, projects. */
   clear_plate_map: (params: IdParams): Promise<null> => rpc<null>('clear_plate_map', params),
   /** Measure the quality of the given plates again, or of every plate without a current report. Runs as a task. Changes: plates, workspace, projects. Background task. */
-  compute_plate_quality: (params: ComputePlateQualityParams): Promise<ComputePlateQualityResult> =>
-    rpc<ComputePlateQualityResult>('compute_plate_quality', params),
+  compute_plate_quality: (params: ComputePlateQualityParams): Promise<ComputePlateQualityResult> => rpc<ComputePlateQualityResult>('compute_plate_quality', params),
   /** Create a control of a bin estimator (labels unique per bin estimator). Changes: controls, projects. */
   create_control: (params: CreateControlParams): Promise<Control> => rpc<Control>('create_control', params),
   /** Create a ladder. Labels are unique (case-insensitive). Changes: ladders, workspace, projects. */
@@ -396,8 +290,7 @@ export const api = {
   /** One locus. */
   get_locus: (params: IdParams): Promise<Locus> => rpc<Locus>('get_locus', params),
   /** Artifact classes of one locus of an artifact estimator: points, segments and fits. */
-  get_locus_artifact_estimators: (params: ProjectLocusParams): Promise<LocusArtifacts> =>
-    rpc<LocusArtifacts>('get_locus_artifact_estimators', params),
+  get_locus_artifact_estimators: (params: ProjectLocusParams): Promise<LocusArtifacts> => rpc<LocusArtifacts>('get_locus_artifact_estimators', params),
   /** Bins of one locus of a bin estimator, with the locus's analysis status. */
   get_locus_bins: (params: ProjectLocusParams): Promise<LocusBins> => rpc<LocusBins>('get_locus_bins', params),
   /** Every sample's call at one locus: alleles (size, shares, probability), flags, MOI, comment, narrow misses, reference plate and well, run count, review state; plus the bins and analysis status. */
@@ -415,8 +308,7 @@ export const api = {
   /** One project: summary, every locus with its analysis status and staleness reasons, dependents, and upstream warnings. */
   get_project: (params: IdParams): Promise<ProjectDetail> => rpc<ProjectDetail>('get_project', params),
   /** Effective parameters of a project at one locus. */
-  get_project_locus_params: (params: ProjectLocusParams): Promise<LocusParamsView> =>
-    rpc<LocusParamsView>('get_project_locus_params', params),
+  get_project_locus_params: (params: ProjectLocusParams): Promise<LocusParamsView> => rpc<LocusParamsView>('get_project_locus_params', params),
   /** One sample across every locus of a project: alleles with proportions and probabilities, flags, comments, review state, model MOI and the most alleles called at any locus. */
   get_project_sample_calls: (params: ProjectSampleParams): Promise<SampleCalls> => rpc<SampleCalls>('get_project_sample_calls', params),
   /** One sample with its runs by locus and plate. */
@@ -430,15 +322,13 @@ export const api = {
   /** Path, name, counts, schema and app version of the open workspace. */
   get_workspace_info: (): Promise<WorkspaceInfo> => rpc<WorkspaceInfo>('get_workspace_info'),
   /** Set control mixtures from a CSV: Barcode, then cells "CONTROL;PROPORTION". Validates everything first; a dry run only reports. Changes: projects, controls. */
-  import_control_mixtures_csv: (params: ImportControlMixturesParams): Promise<MixturesReport> =>
-    rpc<MixturesReport>('import_control_mixtures_csv', params),
+  import_control_mixtures_csv: (params: ImportControlMixturesParams): Promise<MixturesReport> => rpc<MixturesReport>('import_control_mixtures_csv', params),
   /** Create loci from a CSV with header Label, Min. Base Length, Max. Base Length, Nucleotide Repeat Length, Color. All rows are checked first; nothing is created if any row is invalid. Changes: loci, workspace, projects. */
   import_loci_csv: (params: CsvSource): Promise<ImportLociResult> => rpc<ImportLociResult>('import_loci_csv', params),
   /** Import plates from zip archives, directories, and loose .fsa files (grouped by the plate name in the files), sizing every well with the chosen ladder. Runs as a task; returns one outcome per plate. Changes: plates, ladders, workspace, projects. Background task. */
   import_plates: (params: ImportPlatesParams): Promise<ImportPlatesResult> => rpc<ImportPlatesResult>('import_plates', params),
   /** Add samples from a CSV with a Barcode column. Every barcode must exist; nothing is added otherwise. Changes: projects. */
-  import_project_samples_csv: (params: ImportProjectSamplesParams): Promise<AddSamplesResult> =>
-    rpc<AddSamplesResult>('import_project_samples_csv', params),
+  import_project_samples_csv: (params: ImportProjectSamplesParams): Promise<AddSamplesResult> => rpc<AddSamplesResult>('import_project_samples_csv', params),
   /** Create samples from a CSV with a Barcode column and an optional Designation column (sample, negative/neg/NTC, positive/pos). Existing barcodes are skipped and reported. Changes: samples, workspace, projects. */
   import_samples_csv: (params: CsvSource): Promise<ImportSamplesResult> => rpc<ImportSamplesResult>('import_samples_csv', params),
   /** Controls, optionally of one bin estimator, with their allele at every locus. */
@@ -452,8 +342,7 @@ export const api = {
   /** All plates with sizing, plate-map and contamination summaries. */
   list_plates: (): Promise<Array<PlateSummary>> => rpc<Array<PlateSummary>>('list_plates'),
   /** Samples a project uses, with run counts, MOI (genotyping) and control mixtures (quantification bias). */
-  list_project_samples: (params: IdParams): Promise<Array<ProjectSampleRow>> =>
-    rpc<Array<ProjectSampleRow>>('list_project_samples', params),
+  list_project_samples: (params: IdParams): Promise<Array<ProjectSampleRow>> => rpc<Array<ProjectSampleRow>>('list_project_samples', params),
   /** Projects (optionally of one kind) with sample counts and how many loci are current, stale or not analyzed. */
   list_projects: (params: ListProjectsParams): Promise<Array<ProjectSummary>> => rpc<Array<ProjectSummary>>('list_projects', params),
   /** Recently opened workspaces, newest first. */
@@ -469,39 +358,31 @@ export const api = {
   /** Open an existing workspace file. Changes: workspace, ladders, loci, locus_sets, samples, plates, projects, controls, settings. */
   open_workspace: (params: PathParams): Promise<WorkspaceInfo> => rpc<WorkspaceInfo>('open_workspace', params),
   /** Dry run of set_well_ladder_peaks: the sizes, quality, state and reason the proposed peaks would give. Stores nothing. */
-  preview_well_ladder_peaks: (params: SetWellLadderPeaksParams): Promise<LadderPreview> =>
-    rpc<LadderPreview>('preview_well_ladder_peaks', params),
+  preview_well_ladder_peaks: (params: SetWellLadderPeaksParams): Promise<LadderPreview> => rpc<LadderPreview>('preview_well_ladder_peaks', params),
   /** Refit every segment of a class from its stored points. Changes: projects. */
-  refit_artifact_estimator: (params: IdParams): Promise<ArtifactEstimatorView> =>
-    rpc<ArtifactEstimatorView>('refit_artifact_estimator', params),
+  refit_artifact_estimator: (params: IdParams): Promise<ArtifactEstimatorView> => rpc<ArtifactEstimatorView>('refit_artifact_estimator', params),
   /** Merge the two segments meeting at (or nearest to, within 1 bp) a breakpoint and refit. Changes: projects. */
-  remove_artifact_breakpoint: (params: ArtifactBreakpointParams): Promise<ArtifactEstimatorView> =>
-    rpc<ArtifactEstimatorView>('remove_artifact_breakpoint', params),
+  remove_artifact_breakpoint: (params: ArtifactBreakpointParams): Promise<ArtifactEstimatorView> => rpc<ArtifactEstimatorView>('remove_artifact_breakpoint', params),
   /** Remove samples (and their calls and control mixtures) from a project. Changes: projects, controls. */
   remove_project_samples: (params: ProjectSamplesParams): Promise<number> => rpc<number>('remove_project_samples', params),
   /** Reset loci (or every locus) to the kind's default parameters. Changes: projects. */
-  reset_project_locus_params: (params: ResetLocusParamsParams): Promise<Array<LocusParamsView>> =>
-    rpc<Array<LocusParamsView>>('reset_project_locus_params', params),
+  reset_project_locus_params: (params: ResetLocusParamsParams): Promise<Array<LocusParamsView>> => rpc<Array<LocusParamsView>>('reset_project_locus_params', params),
   /** Write a compact standalone copy of the workspace to a path and continue working in the copy. Changes: workspace, ladders, loci, locus_sets, samples, plates, projects, controls, settings. */
   save_workspace_as: (params: PathParams): Promise<WorkspaceInfo> => rpc<WorkspaceInfo>('save_workspace_as', params),
   /** Change the regression method of one segment and refit it. Changes: projects. */
-  set_artifact_equation_method: (params: SetArtifactMethodParams): Promise<ArtifactEstimatorView> =>
-    rpc<ArtifactEstimatorView>('set_artifact_equation_method', params),
+  set_artifact_equation_method: (params: SetArtifactMethodParams): Promise<ArtifactEstimatorView> => rpc<ArtifactEstimatorView>('set_artifact_equation_method', params),
   /** Switch the error estimate (densest half, MAD or RMS) of one, some or every distance class at a locus by refitting in place, keeping breakpoints, methods and deleted classes. For every class (the global class keeps MAD) it also sets the locus parameter without making the locus stale. Changes: projects. */
-  set_artifact_error_estimator: (params: SetArtifactErrorEstimatorParams): Promise<LocusArtifacts> =>
-    rpc<LocusArtifacts>('set_artifact_error_estimator', params),
+  set_artifact_error_estimator: (params: SetArtifactErrorEstimatorParams): Promise<LocusArtifacts> => rpc<LocusArtifacts>('set_artifact_error_estimator', params),
   /** Set or clear the comment on a sample × locus call. Comments survive re-analysis. Changes: projects. */
   set_call_comment: (params: SetCallCommentParams): Promise<CallRow> => rpc<CallRow>('set_call_comment', params),
   /** Mark one sample × locus call reviewed (as it stands now) or clear the mark. It reads as reviewed until its alleles, flags or reference run change. Changes: projects. */
   set_call_reviewed: (params: SetCallReviewedParams): Promise<CallRow> => rpc<CallRow>('set_call_reviewed', params),
   /** Mark the calls of many samples at one locus reviewed, or clear the mark (sample_ids omitted = every call at the locus). Changes: projects. */
-  set_calls_reviewed: (params: SetCallsReviewedParams): Promise<SetCallsReviewedResult> =>
-    rpc<SetCallsReviewedResult>('set_calls_reviewed', params),
+  set_calls_reviewed: (params: SetCallsReviewedParams): Promise<SetCallsReviewedResult> => rpc<SetCallsReviewedResult>('set_calls_reviewed', params),
   /** Set the known composition of control-mixture samples of a quantification-bias estimator (adds the samples). Proportions must sum to 1. Changes: projects, controls. */
   set_control_mixtures: (params: SetControlMixturesParams): Promise<MixturesReport> => rpc<MixturesReport>('set_control_mixtures', params),
   /** Set the designation of many samples at once (one `changed` event). Missing ids are reported in `refused`. Changes: samples, plates, workspace, projects. */
-  set_samples_designation: (params: SetSamplesDesignationParams): Promise<SamplesBatchResult> =>
-    rpc<SamplesBatchResult>('set_samples_designation', params),
+  set_samples_designation: (params: SetSamplesDesignationParams): Promise<SamplesBatchResult> => rpc<SamplesBatchResult>('set_samples_designation', params),
   /** Refit a well's ladder from hand-picked peaks: `peaks` with their sizes, or `peak_indices` (sizes assigned using the plate's other wells as a guide); neither for the automatic fit. Returns the well without traces. Changes: plates, samples, workspace, projects. */
   set_well_ladder_peaks: (params: SetWellLadderPeaksParams): Promise<WellDetail> => rpc<WellDetail>('set_well_ladder_peaks', params),
   /** Fit the ladder of every well again (after ladder settings changed), optionally with a different ladder. Replaces manual ladder edits. Changes: plates, samples, ladders, workspace, projects. Background task. */
@@ -521,8 +402,7 @@ export const api = {
   /** Change title, description, linked estimators (null unlinks an optional one) or the all-samples setting. Changes: projects. */
   update_project: (params: UpdateProjectParams): Promise<ProjectDetail> => rpc<ProjectDetail>('update_project', params),
   /** Merge parameter values into some loci, or every locus when locus_ids is omitted (apply to all). Affected results become stale. Changes: projects. */
-  update_project_locus_params: (params: UpdateLocusParamsParams): Promise<Array<LocusParamsView>> =>
-    rpc<Array<LocusParamsView>>('update_project_locus_params', params),
+  update_project_locus_params: (params: UpdateLocusParamsParams): Promise<Array<LocusParamsView>> => rpc<Array<LocusParamsView>>('update_project_locus_params', params),
   /** Change a sample's barcode or designation (designation drives contamination flags). Changes: samples, plates, workspace, projects. */
   update_sample: (params: UpdateSampleParams): Promise<Sample> => rpc<Sample>('update_sample', params),
   /** Change workspace settings. Limits apply at once to plate reports and sample views. Changes: settings, plates, samples, workspace, projects. */
