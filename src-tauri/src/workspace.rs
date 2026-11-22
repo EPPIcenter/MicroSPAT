@@ -37,6 +37,7 @@ const OPEN_ANYWAY_AFTER: Duration = Duration::from_millis(1500);
 pub(crate) struct LaunchFile(Mutex<Option<PathBuf>>);
 
 /// Remembers a file to open at launch.
+#[cfg(target_os = "macos")]
 pub(crate) fn set_launch_file(app: &AppHandle, path: PathBuf) {
     *app.state::<LaunchFile>()
         .0
