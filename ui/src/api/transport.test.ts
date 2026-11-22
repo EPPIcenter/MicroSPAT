@@ -1,11 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { QueryClient } from '@tanstack/react-query'
+import { QueryClient, onlineManager } from '@tanstack/react-query'
 import { RpcError, rpc, setBackendForTesting, toRpcError, detectTransport } from './transport'
-import { handleAppEvent, keyMatchesEntity } from './query'
+import { createQueryClient, handleAppEvent, keyMatchesEntity } from './query'
 import { useTaskStore } from '@/stores/tasks'
 import { useToastStore } from '@/stores/toasts'
 
 afterEach(() => {
+  onlineManager.setOnline(true)
   setBackendForTesting(null)
   vi.unstubAllGlobals()
   sessionStorage.clear()
@@ -100,5 +101,21 @@ describe('event routing', () => {
     handleAppEvent(qc, { type: 'task', task: { ...task, status: 'failed', message: 'bad ladder' } })
     expect(useToastStore.getState().toasts.length).toBe(before + 1)
     expect(useTaskStore.getState().tasks.t1?.status).toBe('failed')
+  })
+})
+
+describe('createQueryClient', () => {
+  it('runs queries and mutations even when the browser reports offline', async () => {
+    onlineManager.setOnline(false)
+    const qc = createQueryClient()
+
+    const queryFn = vi.fn(async () => ({ id: 2 }))
+    await expect(qc.fetchQuery({ queryKey: ['plates', 2], queryFn })).resolves.toEqual({ id: 2 })
+    expect(queryFn).toHaveBeenCalledTimes(1)
+
+    const mutationFn = vi.fn(async () => 'saved')
+    const mutation = qc.getMutationCache().build(qc, { mutationFn })
+    await expect(mutation.execute(undefined)).resolves.toBe('saved')
+    expect(mutationFn).toHaveBeenCalledTimes(1)
   })
 })
