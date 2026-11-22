@@ -1,6 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import type { LadderPreview } from '@/api/bindings'
-import { addPeak, assignedSizes, diffDraft, draftMarks, explicitRequest, fitterRequest, hasChosenSizes, isClean, nearestPeak, removePeak, setPeakSize, shiftOthers, startDraft } from './ladderEdit'
+import {
+  addPeak,
+  assignedSizes,
+  diffDraft,
+  draftMarks,
+  explicitRequest,
+  fitterRequest,
+  hasChosenSizes,
+  isClean,
+  nearestPeak,
+  removePeak,
+  setPeakSize,
+  shiftOthers,
+  startDraft,
+} from './ladderEdit'
 
 const saved = [
   { index: 100, size: 50 },
@@ -41,7 +55,10 @@ describe('ladder draft', () => {
   })
 
   it('finds the nearest peak within a radius', () => {
-    const d = startDraft([{ index: 100, size: 50 }, { index: 108, size: 60 }])
+    const d = startDraft([
+      { index: 100, size: 50 },
+      { index: 108, size: 60 },
+    ])
     expect(nearestPeak(d, 105, 5)).toBe(108)
     expect(nearestPeak(d, 103, 5)).toBe(100)
     expect(nearestPeak(d, 120, 5)).toBeNull()
@@ -58,7 +75,15 @@ describe('requests', () => {
     const d = setPeakSize(startDraft(saved), 100, 60)
     const fitted = saved.map((p) => ({ ...p }))
     expect(explicitRequest(7, d, fitted)).toEqual({
-      request: { id: 7, peaks: [{ index: 100, size: 60 }, { index: 200, size: 60 }, { index: 300, size: 90 }, { index: 400, size: 100 }] },
+      request: {
+        id: 7,
+        peaks: [
+          { index: 100, size: 60 },
+          { index: 200, size: 60 },
+          { index: 300, size: 90 },
+          { index: 400, size: 100 },
+        ],
+      },
       problem: null,
     })
   })
@@ -101,12 +126,31 @@ describe('shift the others', () => {
 })
 
 describe('draft marks', () => {
-  const preview: LadderPreview = { sizing: 'unusable', sizing_quality: 0.05, reason: 'Only 5 of 21', peaks: [{ index: 100, size: 50 }, { index: 250, size: 75 }, { index: 300, size: 90 }, { index: 400, size: 100 }] }
+  const preview: LadderPreview = {
+    sizing: 'unusable',
+    sizing_quality: 0.05,
+    reason: 'Only 5 of 21',
+    peaks: [
+      { index: 100, size: 50 },
+      { index: 250, size: 75 },
+      { index: 300, size: 90 },
+      { index: 400, size: 100 },
+    ],
+  }
   const trace = Array.from({ length: 600 }, (_, i) => i)
 
   it('draws proposed peaks with preview sizes, removed ones crossed out, and candidates', () => {
     const d = setPeakSize(addPeak(removePeak(startDraft(saved), 200), 250), 300, 90)
-    const m = draftMarks(d, saved, { seriesId: 'red', trace, preview, candidates: [{ index: 200, height: 5 }, { index: 500, height: 900 }], selected: 250 })
+    const m = draftMarks(d, saved, {
+      seriesId: 'red',
+      trace,
+      preview,
+      candidates: [
+        { index: 200, height: 5 },
+        { index: 500, height: 900 },
+      ],
+      selected: 250,
+    })
     expect(m.ladder.map((l) => [l.index, l.size, l.status])).toEqual([
       [100, 50, 'ok'],
       [250, 75, 'ok'],

@@ -123,10 +123,7 @@ export function BinPlot({
     // Bounds follow the data extent; recomputing on every bin edit would
     // jump the view, so only points and the locus range count.
   }, [points, locusRange])
-  const initial = useMemo<Domain>(
-    () => (locusRange ? [locusRange[0] - 3, locusRange[1] + 3] : bounds),
-    [locusRange, bounds],
-  )
+  const initial = useMemo<Domain>(() => (locusRange ? [locusRange[0] - 3, locusRange[1] + 3] : bounds), [locusRange, bounds])
 
   const rect = useCallback(() => plotRect(size.width, size.height, MARGINS), [size])
   // Bumped when the points change, so the density raster is rebuilt.
@@ -200,7 +197,10 @@ export function BinPlot({
       const isSel = b === sel
       const st = L.binStyle?.(b)
       const toneColor = st?.tone === 'danger' ? t.danger : st?.tone === 'warn' ? t.warn : null
-      ctx.fillStyle = withAlpha(isSel ? t.select : (toneColor ?? t.bin), isSel ? 0.22 : toneColor ? (t.dark ? 0.2 : 0.16) : t.dark ? 0.16 : 0.13)
+      ctx.fillStyle = withAlpha(
+        isSel ? t.select : (toneColor ?? t.bin),
+        isSel ? 0.22 : toneColor ? (t.dark ? 0.2 : 0.16) : t.dark ? 0.16 : 0.13,
+      )
       ctx.fillRect(a, r.y, Math.max(1, c - a), r.h)
       if (!isSel && (toneColor || st?.dashed)) {
         ctx.strokeStyle = toneColor ?? t.bin
@@ -234,7 +234,15 @@ export function BinPlot({
       let img = raster.current
       if (!img || img.key !== key || img.canvas.dataset.points !== String(pointsVersion.current)) {
         const { xs, ys } = columnsRef.current
-        const g = densityGrid(xs, ys, (v) => x(v) - r.x, (v) => y(v) - r.y, r.w, r.h, cell)
+        const g = densityGrid(
+          xs,
+          ys,
+          (v) => x(v) - r.x,
+          (v) => y(v) - r.y,
+          r.w,
+          r.h,
+          cell,
+        )
         const canvasEl = img?.canvas ?? document.createElement('canvas')
         canvasEl.width = g.w
         canvasEl.height = g.h
@@ -286,14 +294,7 @@ export function BinPlot({
     if (sel) {
       ctx.textAlign = 'right'
       ctx.textBaseline = 'top'
-      haloText(
-        ctx,
-        `${sel.label}: ${sel.base_size.toFixed(2)} ± ${sel.bin_buffer.toFixed(2)} bp`,
-        r.x + r.w - 6,
-        r.y + 6,
-        t.fg,
-        t.bg,
-      )
+      haloText(ctx, `${sel.label}: ${sel.base_size.toFixed(2)} ± ${sel.bin_buffer.toFixed(2)} bp`, r.x + r.w - 6, r.y + 6, t.fg, t.bg)
     }
     if (hoverX.current != null && inRect(r, hoverX.current, r.y + 1)) {
       ctx.textAlign = 'left'
@@ -487,7 +488,10 @@ export function BinPlot({
           role="application"
           aria-label="Bin editor plot"
           onKeyDown={onKeyDown}
-          className={cn('relative min-h-0 min-w-0 overflow-hidden rounded-sm bg-[var(--plot-bg)] outline-none focus-visible:ring-2 focus-visible:ring-accent/40', className)}
+          className={cn(
+            'relative min-h-0 min-w-0 overflow-hidden rounded-sm bg-[var(--plot-bg)] outline-none focus-visible:ring-2 focus-visible:ring-accent/40',
+            className,
+          )}
           data-testid="bin-plot"
         >
           <canvas

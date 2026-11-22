@@ -12,16 +12,18 @@ const SCAN_PREFIX = 'scanning.'
 export function specToValues(spec: LadderSpec): ParamValues {
   const out: ParamValues = {}
   for (const key of Object.keys(defaultsOf(ladderParams))) {
-    const v = key.startsWith(SCAN_PREFIX)
-      ? spec.scanning[key.slice(SCAN_PREFIX.length) as keyof ScanParams]
-      : spec[key as keyof LadderSpec]
+    const v = key.startsWith(SCAN_PREFIX) ? spec.scanning[key.slice(SCAN_PREFIX.length) as keyof ScanParams] : spec[key as keyof LadderSpec]
     if (typeof v === 'number' || typeof v === 'boolean' || typeof v === 'string') out[key] = v
   }
   return out
 }
 
 /** A spec from form values plus the fields the form does not hold. */
-export function valuesToSpec(values: ParamValues, rest: Pick<LadderSpec, 'base_sizes' | 'color'>, base: LadderSpec = DEFAULT_SPEC): LadderSpec {
+export function valuesToSpec(
+  values: ParamValues,
+  rest: Pick<LadderSpec, 'base_sizes' | 'color'>,
+  base: LadderSpec = DEFAULT_SPEC,
+): LadderSpec {
   const spec: LadderSpec = { ...base, scanning: { ...base.scanning }, base_sizes: rest.base_sizes, color: rest.color }
   const top = spec as unknown as Record<string, unknown>
   const scan = spec.scanning as unknown as Record<string, unknown>

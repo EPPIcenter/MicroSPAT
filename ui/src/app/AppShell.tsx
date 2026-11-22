@@ -148,7 +148,13 @@ function Sidebar() {
         <div className="flex items-center gap-1">
           <ThemeSwitch />
           <Tooltip content="Keyboard shortcuts (?)">
-            <button type="button" onClick={openShortcuts} aria-label="Keyboard shortcuts" className="grid h-6 w-6 place-items-center rounded-md text-faint hover:bg-surface-3 hover:text-fg" data-testid="open-shortcuts">
+            <button
+              type="button"
+              onClick={openShortcuts}
+              aria-label="Keyboard shortcuts"
+              className="grid h-6 w-6 place-items-center rounded-md text-faint hover:bg-surface-3 hover:text-fg"
+              data-testid="open-shortcuts"
+            >
               <Keyboard size={13} />
             </button>
           </Tooltip>
@@ -294,8 +300,18 @@ function WorkspaceMenu() {
         })
     }
     actions.current = {
-      new_workspace: () => !busySwitching() && guarded('create a new workspace', once(() => create.mutateAsync())),
-      open_workspace: () => !busySwitching() && guarded('open another workspace', once(() => open.mutateAsync())),
+      new_workspace: () =>
+        !busySwitching() &&
+        guarded(
+          'create a new workspace',
+          once(() => create.mutateAsync()),
+        ),
+      open_workspace: () =>
+        !busySwitching() &&
+        guarded(
+          'open another workspace',
+          once(() => open.mutateAsync()),
+        ),
       save_workspace_as: once(() => saveAs.mutateAsync()),
       load_demo_data: () => {
         const running = Object.values(useTaskStore.getState().tasks).some((t) => t.kind === 'load_demo_data' && t.status === 'running')
@@ -423,8 +439,9 @@ function WorkspaceMenu() {
         description={
           guard && (
             <span data-testid="workspace-unsaved-prompt">
-              You have unsaved {guard.what.length === 1 ? guard.what[0] : `${guard.what.slice(0, -1).join(', ')} and ${guard.what[guard.what.length - 1]}`}. To {guard.verb}, they
-              are discarded.
+              You have unsaved{' '}
+              {guard.what.length === 1 ? guard.what[0] : `${guard.what.slice(0, -1).join(', ')} and ${guard.what[guard.what.length - 1]}`}.
+              To {guard.verb}, they are discarded.
             </span>
           )
         }
@@ -535,7 +552,12 @@ function TaskRow({ task: t, onDismiss }: { task: TrackedTask; onDismiss: () => v
         {t.message && <div className={cn('mt-1 text-2xs', t.status === 'failed' ? 'text-danger' : 'text-muted')}>{t.message}</div>}
       </div>
       {t.status !== 'running' && (
-        <button type="button" onClick={onDismiss} aria-label="Dismiss" className="self-start text-faint opacity-0 group-hover:opacity-100 hover:text-fg">
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label="Dismiss"
+          className="self-start text-faint opacity-0 group-hover:opacity-100 hover:text-fg"
+        >
           <X size={12} />
         </button>
       )}
@@ -563,10 +585,7 @@ function ThemeSwitch() {
             aria-checked={pref === o.v}
             aria-label={o.label}
             onClick={() => setPref(o.v)}
-            className={cn(
-              'grid h-5 w-6 place-items-center rounded-[4px] text-faint hover:text-fg',
-              pref === o.v && 'bg-surface-3 text-fg',
-            )}
+            className={cn('grid h-5 w-6 place-items-center rounded-[4px] text-faint hover:text-fg', pref === o.v && 'bg-surface-3 text-fg')}
           >
             {o.icon}
           </button>

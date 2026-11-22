@@ -29,9 +29,31 @@ import { SampleDetail } from './SampleDetail'
 
 const columns: DataColumn<Sample>[] = [
   { id: 'barcode', header: 'Barcode', value: (s) => s.barcode, width: 150 },
-  { id: 'designation', header: 'Designation', value: (s) => DESIGNATION_LABEL[s.designation], cell: (s) => <DesignationBadge d={s.designation} />, width: 104 },
-  { id: 'loci', header: 'Loci', value: (s) => s.locus_count ?? null, align: 'right', width: 48, searchable: false, description: 'Loci the sample has runs at (loci covered)' },
-  { id: 'runs', header: 'Runs', value: (s) => s.run_count, align: 'right', width: 52, searchable: false, description: 'Runs (well × locus) assigned to the sample' },
+  {
+    id: 'designation',
+    header: 'Designation',
+    value: (s) => DESIGNATION_LABEL[s.designation],
+    cell: (s) => <DesignationBadge d={s.designation} />,
+    width: 104,
+  },
+  {
+    id: 'loci',
+    header: 'Loci',
+    value: (s) => s.locus_count ?? null,
+    align: 'right',
+    width: 48,
+    searchable: false,
+    description: 'Loci the sample has runs at (loci covered)',
+  },
+  {
+    id: 'runs',
+    header: 'Runs',
+    value: (s) => s.run_count,
+    align: 'right',
+    width: 52,
+    searchable: false,
+    description: 'Runs (well × locus) assigned to the sample',
+  },
   {
     id: 'plates',
     header: 'Plates',
@@ -87,12 +109,13 @@ export default function SamplesPage() {
 
   const select = (ids: string[]) => {
     setSelected(ids)
-    if (ids.length === 1 && ids[0] !== id) navigate(`/samples/${ids[0]}`, { replace: true })
+    if (ids.length === 1 && ids[0] !== id) void navigate(`/samples/${ids[0]}`, { replace: true })
   }
 
   const designate = useMutation({
     meta: { errorTitle: 'Could not change the designation' },
-    mutationFn: (v: { ids: number[]; designation: Designation }) => api.set_samples_designation({ sample_ids: v.ids, designation: v.designation }),
+    mutationFn: (v: { ids: number[]; designation: Designation }) =>
+      api.set_samples_designation({ sample_ids: v.ids, designation: v.designation }),
     onMutate: () => setRefused(null),
     onSuccess: (r, v) => {
       const done = new Set(r.done)
@@ -127,7 +150,13 @@ export default function SamplesPage() {
 
   const actionBar = (
     <div className="flex h-9 shrink-0 items-center gap-2 border-b border-line bg-surface-2/60 px-2">
-      <SelectInput aria-label="Designation filter" className="h-6 w-44 text-xs" value={filter} onChange={(v) => setFilter(v as DesignationFilter)} options={FILTER_OPTIONS} />
+      <SelectInput
+        aria-label="Designation filter"
+        className="h-6 w-44 text-xs"
+        value={filter}
+        onChange={(v) => setFilter(v as DesignationFilter)}
+        options={FILTER_OPTIONS}
+      />
       <span className="flex-1" />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -146,7 +175,13 @@ export default function SamplesPage() {
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
-      <Button size="sm" variant="danger-ghost" disabled={selectedSamples.length === 0} onClick={() => setDeleting(true)} title="Delete the selected samples">
+      <Button
+        size="sm"
+        variant="danger-ghost"
+        disabled={selectedSamples.length === 0}
+        onClick={() => setDeleting(true)}
+        title="Delete the selected samples"
+      >
         <Trash2 size={12} />
         Delete
       </Button>
@@ -154,7 +189,11 @@ export default function SamplesPage() {
   )
 
   const refusedBar = refused && (
-    <div className="flex max-h-48 shrink-0 flex-col gap-1.5 border-b border-line bg-danger-soft/40 px-2 py-1.5" role="alert" data-testid="designation-refusals">
+    <div
+      className="flex max-h-48 shrink-0 flex-col gap-1.5 border-b border-line bg-danger-soft/40 px-2 py-1.5"
+      role="alert"
+      data-testid="designation-refusals"
+    >
       <div className="flex items-center gap-2 text-xs">
         <span className="font-medium text-danger">
           {countOf(refused.refused.length, 'sample')} not set to {DESIGNATION_LABEL[refused.designation].toLowerCase()}
@@ -181,7 +220,7 @@ export default function SamplesPage() {
         id={detailId}
         onDeleted={() => {
           setSelected([])
-          navigate('/samples', { replace: true })
+          void navigate('/samples', { replace: true })
         }}
       />
     )
@@ -224,7 +263,8 @@ export default function SamplesPage() {
             </div>
           }
         >
-          Samples are usually created by applying a plate map with “create samples” on the Plates page. You can also import a list of barcodes.
+          Samples are usually created by applying a plate map with “create samples” on the Plates page. You can also import a list of
+          barcodes.
         </EmptyState>
       ) : (
         <ListDetailLayout
@@ -261,7 +301,7 @@ export default function SamplesPage() {
         onDeleted={(ids) => {
           const gone = new Set(ids.map(String))
           setSelected((cur) => cur.filter((x) => !gone.has(x)))
-          if (id && gone.has(id)) navigate('/samples', { replace: true })
+          if (id && gone.has(id)) void navigate('/samples', { replace: true })
         }}
       />
     </Page>

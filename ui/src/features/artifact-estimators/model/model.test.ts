@@ -78,7 +78,9 @@ describe('expected stutter', () => {
     expect(bad.map((w) => w.text.split(' ')[0])).toEqual(['Only', 'Noisy:', 'R²'])
     const neg = fitWarnings(eq(230, 300, 0.00141, -0.25866, 0.0106))
     expect(neg).toEqual([])
-    expect(fitWarnings(eq(150, 200, 0.002, -0.35, 0.01)).at(-1)!.text).toBe('The line is below zero below 175 bp: no artifact is expected there.')
+    expect(fitWarnings(eq(150, 200, 0.002, -0.35, 0.01)).at(-1)!.text).toBe(
+      'The line is below zero below 175 bp: no artifact is expected there.',
+    )
     expect(slopeText(0.00158)).toBe('+0.158 % per bp')
   })
 })

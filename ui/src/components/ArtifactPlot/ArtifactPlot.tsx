@@ -230,19 +230,27 @@ export function ArtifactPlot({
   const scheduler = useMemo(() => createFrameScheduler(draw), [draw])
   useEffect(() => () => scheduler.cancel(), [scheduler])
   const view = useXView({ bounds, initial: bounds, minSpan: 2, onChange: scheduler.request, target: canvasRef, getRect: rect })
-  useEffect(() => scheduler.request(), [scheduler, points, segments, breakpoints, selected, theme, color, yTop, size, title, selectedSegment, markers])
+  useEffect(
+    () => scheduler.request(),
+    [scheduler, points, segments, breakpoints, selected, theme, color, yTop, size, title, selectedSegment, markers],
+  )
 
   const xScale = () => linear(view.domain.current, [rect().x, rect().x + rect().w])
   const local = (e: { clientX: number; clientY: number }) => {
     const b = canvasRef.current?.getBoundingClientRect()
     return b ? { x: e.clientX - b.left, y: e.clientY - b.top } : { x: 0, y: 0 }
   }
-  const hitAt = (px: number) => hitBreakpoint(breakpoints.map((b) => xScale()(b)), px)
+  const hitAt = (px: number) =>
+    hitBreakpoint(
+      breakpoints.map((b) => xScale()(b)),
+      px,
+    )
 
   const add = (bp: number) => {
     if (readOnly) return
     const next = addBreakpoint(breakpoints, bp)
-    if (next.length !== breakpoints.length) onBreakpointsChange?.(next, { type: 'add', x: next.find((v) => !breakpoints.includes(v)) ?? bp })
+    if (next.length !== breakpoints.length)
+      onBreakpointsChange?.(next, { type: 'add', x: next.find((v) => !breakpoints.includes(v)) ?? bp })
   }
   const remove = (bp: number) => {
     if (readOnly) return
@@ -258,7 +266,10 @@ export function ArtifactPlot({
           tabIndex={0}
           role="application"
           aria-label="Artifact equation plot"
-          className={cn('relative min-h-0 min-w-0 overflow-hidden rounded-sm bg-[var(--plot-bg)] outline-none focus-visible:ring-2 focus-visible:ring-accent/40', className)}
+          className={cn(
+            'relative min-h-0 min-w-0 overflow-hidden rounded-sm bg-[var(--plot-bg)] outline-none focus-visible:ring-2 focus-visible:ring-accent/40',
+            className,
+          )}
           onKeyDown={(e) => {
             if ((e.key === 'Delete' || e.key === 'Backspace') && selected != null) {
               const bp = breakpoints[selected]

@@ -47,7 +47,10 @@ describe('SamplesTab sample modes', () => {
     expect(screen.getByTestId('exclude-samples')).toBeDisabled() // leaving out everything is not a list
     await userEvent.click(screen.getByTestId('keep-samples'))
     await userEvent.click(await screen.findByRole('button', { name: 'Use only these' }))
-    await waitFor(async () => expect(((await dispatchMock('get_project', { id: d.project.id })) as ProjectDetail).project.all_samples).toBe(false), { timeout: 5000 })
+    await waitFor(
+      async () => expect(((await dispatchMock('get_project', { id: d.project.id })) as ProjectDetail).project.all_samples).toBe(false),
+      { timeout: 5000 },
+    )
     expect(((await dispatchMock('list_project_samples', { id: d.project.id })) as ProjectSampleRow[]).length).toBe(before)
     unmount()
     renderTab((await dispatchMock('get_project', { id: d.project.id })) as ProjectDetail)

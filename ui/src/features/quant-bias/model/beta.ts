@@ -102,7 +102,14 @@ export const FEW_MIXTURES = 3
 
 /** What makes a locus's β suspect, most serious first. */
 export function fitIssues(est: BiasEstimate | null | undefined, se?: number | null): FitIssue[] {
-  if (!est) return [{ level: 'danger', tag: 'no estimate', text: 'No mixture qualified, so there is no β. Genotyping projects get no correction at this locus.' }]
+  if (!est)
+    return [
+      {
+        level: 'danger',
+        tag: 'no estimate',
+        text: 'No mixture qualified, so there is no β. Genotyping projects get no correction at this locus.',
+      },
+    ]
   const out: FitIssue[] = []
   if (est.beta > 0)
     out.push({
@@ -111,9 +118,17 @@ export function fitIssues(est: BiasEstimate | null | undefined, se?: number | nu
       text: 'β is positive: longer fragments appear over-represented, the opposite of the usual PCR bias. Check the control alleles at this locus and the mixture proportions.',
     })
   if (est.r_squared < POOR_R2)
-    out.push({ level: 'warn', tag: `R² ${est.r_squared.toFixed(2)}`, text: `Poor fit (R² ${est.r_squared.toFixed(2)}): size explains little of the observed-versus-true difference.` })
+    out.push({
+      level: 'warn',
+      tag: `R² ${est.r_squared.toFixed(2)}`,
+      text: `Poor fit (R² ${est.r_squared.toFixed(2)}): size explains little of the observed-versus-true difference.`,
+    })
   if (est.n_sets < FEW_MIXTURES)
-    out.push({ level: 'warn', tag: `${est.n_sets} mixture${est.n_sets === 1 ? '' : 's'}`, text: `Only ${est.n_sets} mixture${est.n_sets === 1 ? '' : 's'} behind the estimate.` })
+    out.push({
+      level: 'warn',
+      tag: `${est.n_sets} mixture${est.n_sets === 1 ? '' : 's'}`,
+      text: `Only ${est.n_sets} mixture${est.n_sets === 1 ? '' : 's'} behind the estimate.`,
+    })
   if (se != null && est.beta < 0 && Math.abs(est.beta) < 1.96 * se)
     out.push({ level: 'warn', tag: 'not clearly ≠ 0', text: 'The 95% interval of β includes 0: the data do not show a clear bias.' })
   return out

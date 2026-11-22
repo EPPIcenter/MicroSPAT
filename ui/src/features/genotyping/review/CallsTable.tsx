@@ -24,15 +24,45 @@ import {
 import { AlleleChips, CallFlags, NarrowChips } from './parts'
 
 const COLS: { key: CallSortKey | null; label: string; width: string; title?: string; align?: 'right' }[] = [
-  { key: 'attention', label: '', width: 'w-6', title: 'Review state: ✓ reviewed, ! needs attention, dashed circle: mark dropped because the call changed. Sorts by attention.' },
+  {
+    key: 'attention',
+    label: '',
+    width: 'w-6',
+    title: 'Review state: ✓ reviewed, ! needs attention, dashed circle: mark dropped because the call changed. Sorts by attention.',
+  },
   { key: 'barcode', label: 'Sample', width: 'w-[128px]' },
-  { key: 'alleles', label: 'Alleles', width: 'flex-1 min-w-[150px]', title: 'Called alleles in size order, with their share of the called signal (bias-corrected when a quantification-bias estimator is linked); narrow misses after them, dashed. Sorts by count.' },
-  { key: 'moi', label: 'MOI', width: 'w-9', align: 'right', title: 'Model MOI of the sample (probabilistic pass): counts only alleles at or above the bootstrap probability, so it can be below the alleles called here' },
+  {
+    key: 'alleles',
+    label: 'Alleles',
+    width: 'flex-1 min-w-[150px]',
+    title:
+      'Called alleles in size order, with their share of the called signal (bias-corrected when a quantification-bias estimator is linked); narrow misses after them, dashed. Sorts by count.',
+  },
+  {
+    key: 'moi',
+    label: 'MOI',
+    width: 'w-9',
+    align: 'right',
+    title:
+      'Model MOI of the sample (probabilistic pass): counts only alleles at or above the bootstrap probability, so it can be below the alleles called here',
+  },
   { key: null, label: 'Flags', width: 'w-[58px]' },
   { key: 'well', label: 'Well', width: 'w-11', title: 'Well of the reference run (the run the call is based on)' },
 ]
 
-const FILTERS: CallFilterKey[] = ['attention', 'unreviewed', 'failed', 'low-prob', 'narrow', 'curated', 'commented', 'offscale', 'spectral', 'multi-run', 'controls']
+const FILTERS: CallFilterKey[] = [
+  'attention',
+  'unreviewed',
+  'failed',
+  'low-prob',
+  'narrow',
+  'curated',
+  'commented',
+  'offscale',
+  'spectral',
+  'multi-run',
+  'controls',
+]
 
 export interface CallsTableProps {
   rows: readonly CallView[]
@@ -49,7 +79,19 @@ export interface CallsTableProps {
   bulk?: ReactNode
 }
 
-export function CallsTable({ rows, total, selectedId, onSelect, sort, onSortChange, filters, onFiltersChange, stale, searchRef, bulk }: CallsTableProps) {
+export function CallsTable({
+  rows,
+  total,
+  selectedId,
+  onSelect,
+  sort,
+  onSortChange,
+  filters,
+  onFiltersChange,
+  stale,
+  searchRef,
+  bulk,
+}: CallsTableProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual is not compiler-safe; this component is not compiled.
   const virtualizer = useVirtualizer({
@@ -90,7 +132,12 @@ export function CallsTable({ rows, total, selectedId, onSelect, sort, onSortChan
               className="h-6 w-full rounded-[5px] border border-line bg-surface pr-6 pl-7 text-xs outline-none placeholder:text-faint focus:border-accent"
             />
             {filters.text && (
-              <button type="button" aria-label="Clear search" onClick={() => onFiltersChange({ ...filters, text: '' })} className="absolute right-1.5 text-faint hover:text-fg">
+              <button
+                type="button"
+                aria-label="Clear search"
+                onClick={() => onFiltersChange({ ...filters, text: '' })}
+                className="absolute right-1.5 text-faint hover:text-fg"
+              >
                 <X size={12} />
               </button>
             )}
@@ -141,9 +188,7 @@ export function CallsTable({ rows, total, selectedId, onSelect, sort, onSortChan
             {attentionCount} need attention
           </span>
           <span>·</span>
-          <span data-testid="reviewed-count">
-            {reviewedCount} reviewed
-          </span>
+          <span data-testid="reviewed-count">{reviewedCount} reviewed</span>
           {bulk && <span className="ml-auto">{bulk}</span>}
         </div>
       </div>
@@ -151,7 +196,11 @@ export function CallsTable({ rows, total, selectedId, onSelect, sort, onSortChan
         {COLS.map((c, i) => {
           const active = c.key != null && sort.key === c.key
           return (
-            <div key={i} className={cn('flex h-full shrink-0 items-center px-1.5', c.width, c.align === 'right' && 'justify-end')} title={c.title}>
+            <div
+              key={i}
+              className={cn('flex h-full shrink-0 items-center px-1.5', c.width, c.align === 'right' && 'justify-end')}
+              title={c.title}
+            >
               {c.key ? (
                 <button
                   type="button"
@@ -179,7 +228,9 @@ export function CallsTable({ rows, total, selectedId, onSelect, sort, onSortChan
         className="relative min-h-0 flex-1 overflow-auto outline-none focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:ring-inset"
       >
         {rows.length === 0 ? (
-          <div className="p-6 text-center text-xs text-muted">{total ? 'No sample matches these filters.' : 'No calls at this locus yet.'}</div>
+          <div className="p-6 text-center text-xs text-muted">
+            {total ? 'No sample matches these filters.' : 'No calls at this locus yet.'}
+          </div>
         ) : (
           <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
             {virtualizer.getVirtualItems().map((vi) => {
@@ -213,7 +264,9 @@ export function CallsTable({ rows, total, selectedId, onSelect, sort, onSortChan
                   </div>
                   <div role="gridcell" className="w-[128px] shrink-0 truncate px-1.5 py-1.5 font-medium" title={v.row.barcode}>
                     {v.row.barcode}
-                    {v.control && <span className="ml-1 text-2xs font-normal text-faint">{v.row.designation === 'negative_control' ? 'NC' : 'PC'}</span>}
+                    {v.control && (
+                      <span className="ml-1 text-2xs font-normal text-faint">{v.row.designation === 'negative_control' ? 'NC' : 'PC'}</span>
+                    )}
                   </div>
                   <div role="gridcell" className="min-w-[150px] flex-1 px-1.5 py-[5px]">
                     {v.noRun ? (
@@ -233,7 +286,11 @@ export function CallsTable({ rows, total, selectedId, onSelect, sort, onSortChan
                   <div role="gridcell" className="flex w-[58px] shrink-0 px-1.5 py-1.5">
                     <CallFlags v={v} />
                   </div>
-                  <div role="gridcell" className="num w-11 shrink-0 px-1.5 py-1.5 text-xs text-muted" title={v.well ? `${v.plate ?? ''} ${v.well}${v.runCount > 1 ? ` · ${v.runCount} runs at this locus` : ''}` : undefined}>
+                  <div
+                    role="gridcell"
+                    className="num w-11 shrink-0 px-1.5 py-1.5 text-xs text-muted"
+                    title={v.well ? `${v.plate ?? ''} ${v.well}${v.runCount > 1 ? ` · ${v.runCount} runs at this locus` : ''}` : undefined}
+                  >
                     {v.well ?? ''}
                     {v.runCount > 1 && <sup className="ml-px text-faint">{v.runCount}</sup>}
                   </div>
@@ -254,7 +311,13 @@ function ReviewMark({ v }: { v: CallView }) {
   const narrow = v.narrow.length ? ` Narrow misses: ${v.narrow.map((m) => `${m.label}, ${narrowMissText(m)}`).join('; ')}.` : ''
   if (v.reviewed)
     return (
-      <Tooltip content={<span>Reviewed{concerns ? `, despite: ${concerns}.` : '.'} The mark stays while the alleles, flags and reference run stay the same.</span>}>
+      <Tooltip
+        content={
+          <span>
+            Reviewed{concerns ? `, despite: ${concerns}.` : '.'} The mark stays while the alleles, flags and reference run stay the same.
+          </span>
+        }
+      >
         <span tabIndex={-1} role="img" aria-label="Reviewed" className="text-ok" data-testid="reviewed-mark">
           <Check size={12} strokeWidth={2.5} />
         </span>
@@ -262,7 +325,14 @@ function ReviewMark({ v }: { v: CallView }) {
     )
   if (dropped)
     return (
-      <Tooltip content={<span>Review mark dropped. {dropped}{concerns ? ` Flags: ${concerns}.` : ''}</span>}>
+      <Tooltip
+        content={
+          <span>
+            Review mark dropped. {dropped}
+            {concerns ? ` Flags: ${concerns}.` : ''}
+          </span>
+        }
+      >
         <span tabIndex={-1} role="img" aria-label={`Review mark dropped: ${dropped}`} className="text-warn" data-testid="dropped-mark">
           <CircleDashed size={12} />
         </span>
@@ -270,7 +340,13 @@ function ReviewMark({ v }: { v: CallView }) {
     )
   if (v.needsAttention)
     return (
-      <Tooltip content={<span>Needs attention: {concerns}.{narrow}</span>}>
+      <Tooltip
+        content={
+          <span>
+            Needs attention: {concerns}.{narrow}
+          </span>
+        }
+      >
         <span tabIndex={-1} role="img" aria-label={`Needs attention: ${concerns}`} className="text-warn">
           <CircleAlert size={12} />
         </span>

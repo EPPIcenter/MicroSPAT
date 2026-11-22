@@ -3,11 +3,7 @@ import type { Bin } from '@/api/bindings'
 
 export const MIN_BUFFER = 0.05
 
-export type BinChange =
-  | { type: 'move'; bin: Bin }
-  | { type: 'resize'; bin: Bin }
-  | { type: 'add'; bin: Bin }
-  | { type: 'delete'; bin: Bin }
+export type BinChange = { type: 'move'; bin: Bin } | { type: 'resize'; bin: Bin } | { type: 'add'; bin: Bin } | { type: 'delete'; bin: Bin }
 
 const roundBp = (v: number) => Math.round(v * 1000) / 1000
 

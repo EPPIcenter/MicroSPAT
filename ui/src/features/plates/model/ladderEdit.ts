@@ -122,7 +122,13 @@ export function explicitRequest(
  * by the same number of steps (from the sizes now shown), choosing all of
  * them. Null when that would run off either end of the ladder.
  */
-export function shiftOthers(d: LadderDraft, index: number, shown: ReadonlyMap<number, number>, fitted: number | null, ladderSizes: readonly number[]): DraftPeak[] | null {
+export function shiftOthers(
+  d: LadderDraft,
+  index: number,
+  shown: ReadonlyMap<number, number>,
+  fitted: number | null,
+  ladderSizes: readonly number[],
+): DraftPeak[] | null {
   const me = d.find((p) => p.index === index)
   if (me?.size == null || fitted == null) return null
   const steps = ladderSizes.indexOf(me.size) - ladderSizes.indexOf(fitted)

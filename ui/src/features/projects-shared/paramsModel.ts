@@ -7,7 +7,14 @@
  */
 import type { LocusParams, ProjectKind } from '@/api/bindings'
 import type { ParamField, ParamSchema, ParamValues } from '@/components/form/schema'
-import { artifactEstimatorParams, binEstimatorParams, filterParams, genotypingParams, quantBiasParams, scanningParams } from '@/params/schemas'
+import {
+  artifactEstimatorParams,
+  binEstimatorParams,
+  filterParams,
+  genotypingParams,
+  quantBiasParams,
+  scanningParams,
+} from '@/params/schemas'
 import { KINDS } from './kinds'
 
 export type ParamGroupKey = 'scan' | 'filter' | 'bins' | 'artifact' | 'quant_bias' | 'genotyping'

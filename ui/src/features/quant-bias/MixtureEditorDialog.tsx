@@ -20,7 +20,16 @@ import { cn } from '@/lib/cn'
 import { countOf } from '@/lib/format'
 import { toast } from '@/stores/toasts'
 import { useWorkspaceSamples } from '@/features/projects-shared/queries'
-import { checkMixture, fillRemainder, fmtPercentNumber, fromComponents, newComponent, sameComposition, toComponents, type DraftComponent } from './model/mixtures'
+import {
+  checkMixture,
+  fillRemainder,
+  fmtPercentNumber,
+  fromComponents,
+  newComponent,
+  sameComposition,
+  toComponents,
+  type DraftComponent,
+} from './model/mixtures'
 import { kbd } from '@/lib/platform'
 
 export interface MixtureEditorDialogProps {
@@ -57,7 +66,8 @@ export function MixtureEditorDialog({ detail, controls, rows, editing, onClose }
   const targets = editing ? editing.map((r) => r.sample_id) : picked.map(Number)
 
   const save = useMutation({
-    mutationFn: () => api.set_control_mixtures({ id: p.id, mixtures: targets.map((sample_id) => ({ sample_id, components: toComponents(draft) })) }),
+    mutationFn: () =>
+      api.set_control_mixtures({ id: p.id, mixtures: targets.map((sample_id) => ({ sample_id, components: toComponents(draft) })) }),
     meta: { silent: true },
     onSuccess: (r) => {
       toast.success(
@@ -75,15 +85,33 @@ export function MixtureEditorDialog({ detail, controls, rows, editing, onClose }
   }
   const sampleColumns = useMemo<DataColumn<Sample>[]>(
     () => [
-      { id: 'barcode', header: 'Barcode', value: (s) => s.barcode, cell: (s) => <span className="font-medium">{s.barcode}</span>, width: 190 },
+      {
+        id: 'barcode',
+        header: 'Barcode',
+        value: (s) => s.barcode,
+        cell: (s) => <span className="font-medium">{s.barcode}</span>,
+        width: 190,
+      },
       { id: 'runs', header: 'Runs', value: (s) => s.run_count, align: 'right', width: 56, searchable: false },
       {
         id: 'current',
         header: 'Current mixture',
-        value: (s) => (inProject.has(s.id) ? (inProject.get(s.id)!.controls.map((c) => `${c.label} ${fmtPercentNumber(c.proportion * 100)}%`).join(' · ') || 'none') : ''),
+        value: (s) =>
+          inProject.has(s.id)
+            ? inProject
+                .get(s.id)!
+                .controls.map((c) => `${c.label} ${fmtPercentNumber(c.proportion * 100)}%`)
+                .join(' · ') || 'none'
+            : '',
         cell: (s) =>
           inProject.has(s.id) ? (
-            <span className="text-warn">{inProject.get(s.id)!.controls.map((c) => `${c.label} ${fmtPercentNumber(c.proportion * 100)}%`).join(' · ') || 'in project'} (replaced)</span>
+            <span className="text-warn">
+              {inProject
+                .get(s.id)!
+                .controls.map((c) => `${c.label} ${fmtPercentNumber(c.proportion * 100)}%`)
+                .join(' · ') || 'in project'}{' '}
+              (replaced)
+            </span>
           ) : (
             <span className="text-faint">–</span>
           ),
@@ -99,7 +127,13 @@ export function MixtureEditorDialog({ detail, controls, rows, editing, onClose }
     <Dialog
       open
       onOpenChange={(o) => !o && onClose()}
-      title={editing ? (editing.length === 1 ? `Mixture of ${editing[0]!.barcode}` : `Mixtures of ${editing.length} samples`) : 'Assign control mixtures'}
+      title={
+        editing
+          ? editing.length === 1
+            ? `Mixture of ${editing[0]!.barcode}`
+            : `Mixtures of ${editing.length} samples`
+          : 'Assign control mixtures'
+      }
       description={
         editing
           ? 'Change the controls in the sample and their shares.'
@@ -138,17 +172,19 @@ export function MixtureEditorDialog({ detail, controls, rows, editing, onClose }
               />
             )}
             <p className="mt-1 text-2xs text-muted">
-              {picked.length ? `${countOf(picked.length, 'sample')} picked.` : kbd('Click to pick, Shift-click for a range, ⌘A for everything the filter shows.')}
+              {picked.length
+                ? `${countOf(picked.length, 'sample')} picked.`
+                : kbd('Click to pick, Shift-click for a range, ⌘A for everything the filter shows.')}
             </p>
           </div>
         )}
         <div className="flex flex-col gap-2">
           {!editing && <h3 className="text-xs font-semibold">2. Controls and shares</h3>}
-          {mixed && <p className="text-xs text-warn">These samples have different mixtures. Saving gives them all the composition below.</p>}
+          {mixed && (
+            <p className="text-xs text-warn">These samples have different mixtures. Saving gives them all the composition below.</p>
+          )}
           {controls.length === 0 ? (
-            <p className="text-xs text-danger">
-              {p.bin_estimator?.title} has no controls. Add them on the Controls page first.
-            </p>
+            <p className="text-xs text-danger">{p.bin_estimator?.title} has no controls. Add them on the Controls page first.</p>
           ) : (
             <ul className="flex flex-col gap-1.5" aria-label="Components">
               {draft.map((c, i) => (
@@ -183,7 +219,12 @@ export function MixtureEditorDialog({ detail, controls, rows, editing, onClose }
                     >
                       rest
                     </Button>
-                    <Button size="icon-sm" variant="ghost" aria-label={`Remove control ${i + 1}`} onClick={() => setDraft((d) => d.filter((x) => x.key !== c.key))}>
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      aria-label={`Remove control ${i + 1}`}
+                      onClick={() => setDraft((d) => d.filter((x) => x.key !== c.key))}
+                    >
                       <X size={13} />
                     </Button>
                   </div>
@@ -202,27 +243,40 @@ export function MixtureEditorDialog({ detail, controls, rows, editing, onClose }
               {draft.map((c, i) => (
                 <span
                   key={c.key}
-                  style={{ width: `${Math.max(0, Math.min(100, c.percent ?? 0))}%`, background: `var(--dye-${['blue', 'green', 'orange', 'red', 'yellow'][i % 5]})` }}
+                  style={{
+                    width: `${Math.max(0, Math.min(100, c.percent ?? 0))}%`,
+                    background: `var(--dye-${['blue', 'green', 'orange', 'red', 'yellow'][i % 5]})`,
+                  }}
                 />
               ))}
             </div>
             <p className={cn('flex items-center gap-1 text-xs', sumOk ? 'text-ok' : 'text-warn')}>
               {sumOk ? <CheckCircle2 size={12} /> : <AlertTriangle size={12} />}
               Sum <b className="num">{fmtPercentNumber(check.sum)}%</b>
-              {!sumOk && <span className="text-muted">{check.remainder > 0 ? ` · ${fmtPercentNumber(check.remainder)}% left` : ` · ${fmtPercentNumber(-check.remainder)}% too much`}</span>}
+              {!sumOk && (
+                <span className="text-muted">
+                  {check.remainder > 0
+                    ? ` · ${fmtPercentNumber(check.remainder)}% left`
+                    : ` · ${fmtPercentNumber(-check.remainder)}% too much`}
+                </span>
+              )}
             </p>
-            {check.errors.filter((e) => !/sum/.test(e)).map((e) => (
-              <p key={e} className="text-xs text-danger">
-                {e}
-              </p>
-            ))}
+            {check.errors
+              .filter((e) => !/sum/.test(e))
+              .map((e) => (
+                <p key={e} className="text-xs text-danger">
+                  {e}
+                </p>
+              ))}
             {check.warnings.map((w) => (
               <p key={w} className="text-2xs text-muted">
                 {w}
               </p>
             ))}
           </div>
-          <p className="text-2xs text-muted">Shares are of the parasite DNA, as mixed. They may be off by up to 1 point in total; the engine rescales them to sum to 100%.</p>
+          <p className="text-2xs text-muted">
+            Shares are of the parasite DNA, as mixed. They may be off by up to 1 point in total; the engine rescales them to sum to 100%.
+          </p>
           {error && (
             <p role="alert" className="text-xs text-danger" data-testid="mixture-error">
               {error}

@@ -12,7 +12,14 @@ import { moveBin, newBin, removeBin, replaceBin, setBuffer } from '@/components/
 import { NumberInput, TextInput } from '@/components/form/fields'
 import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/Menu'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/Menu'
 import { Tooltip } from '@/components/ui/Tooltip'
 import { cn } from '@/lib/cn'
 import { countOf } from '@/lib/format'
@@ -36,7 +43,18 @@ export interface BinsTableProps {
 
 const BLOCKING = new Set(['invalid', 'duplicate_label'])
 
-export function BinsTable({ bins, counts, issues, grid, unsaved, selectedId, onSelect, onChange, defaultBuffer, readOnly }: BinsTableProps) {
+export function BinsTable({
+  bins,
+  counts,
+  issues,
+  grid,
+  unsaved,
+  selectedId,
+  onSelect,
+  onChange,
+  defaultBuffer,
+  readOnly,
+}: BinsTableProps) {
   const [flaggedOnly, setFlaggedOnly] = useState(false)
   const [dialog, setDialog] = useState<'buffers' | 'below' | 'add' | null>(null)
   const sorted = useMemo(() => [...bins].sort((a, b) => a.base_size - b.base_size), [bins])
@@ -67,12 +85,22 @@ export function BinsTable({ bins, counts, issues, grid, unsaved, selectedId, onS
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 text-2xs text-muted" aria-live="polite">
           <span className="font-medium text-fg">{countOf(sorted.length, 'bin')}</span>
           {nOverlap > 0 && (
-            <button type="button" className="inline-flex items-center gap-0.5 text-warn hover:underline" onClick={nextFlagged} data-testid="overlap-count">
+            <button
+              type="button"
+              className="inline-flex items-center gap-0.5 text-warn hover:underline"
+              onClick={nextFlagged}
+              data-testid="overlap-count"
+            >
               <AlertTriangle size={10} /> {nOverlap} overlapping
             </button>
           )}
           {nOff > 0 && (
-            <button type="button" className="inline-flex items-center gap-0.5 text-warn hover:underline" onClick={nextFlagged} data-testid="offgrid-count">
+            <button
+              type="button"
+              className="inline-flex items-center gap-0.5 text-warn hover:underline"
+              onClick={nextFlagged}
+              data-testid="offgrid-count"
+            >
               <AlertTriangle size={10} /> {nOff} off the grid
             </button>
           )}
@@ -90,7 +118,13 @@ export function BinsTable({ bins, counts, issues, grid, unsaved, selectedId, onS
         </Button>
         {!readOnly && (
           <>
-            <Button size="sm" variant="ghost" onClick={() => setDialog('add')} title="Add a bin at a size you type (or double-click the plot)" data-testid="add-bin">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setDialog('add')}
+              title="Add a bin at a size you type (or double-click the plot)"
+              data-testid="add-bin"
+            >
               <Plus size={12} /> Add
             </Button>
             <DropdownMenu>
@@ -110,7 +144,11 @@ export function BinsTable({ bins, counts, issues, grid, unsaved, selectedId, onS
                 >
                   Snap {selected ? `bin ${selected.label}` : 'the selected bin'} to the grid
                 </DropdownMenuItem>
-                <DropdownMenuItem disabled={!grid || toSnap.length === 0} onSelect={() => grid && onChange(snapToGrid(bins, grid, new Set(toSnap.map((b) => b.id))))} data-testid="snap-all">
+                <DropdownMenuItem
+                  disabled={!grid || toSnap.length === 0}
+                  onSelect={() => grid && onChange(snapToGrid(bins, grid, new Set(toSnap.map((b) => b.id))))}
+                  data-testid="snap-all"
+                >
                   Snap {countOf(toSnap.length, 'bin')} on the grid to exact positions
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -173,15 +211,35 @@ export function BinsTable({ bins, counts, issues, grid, unsaved, selectedId, onS
           </tbody>
         </table>
         {shown.length === 0 && (
-          <p className="p-4 text-center text-xs text-muted">{flaggedOnly ? 'No flagged bins.' : 'No bins. Double-click the plot to add one.'}</p>
+          <p className="p-4 text-center text-xs text-muted">
+            {flaggedOnly ? 'No flagged bins.' : 'No bins. Double-click the plot to add one.'}
+          </p>
         )}
       </div>
-      <BuffersDialog open={dialog === 'buffers'} onClose={() => setDialog(null)} initial={defaultBuffer} onApply={(v) => onChange(setAllBuffers(bins, v))} n={bins.length} />
-      <BelowDialog open={dialog === 'below'} onClose={() => setDialog(null)} bins={bins} counts={counts} onApply={(ids) => onChange(bins.filter((b) => !ids.has(b.id)))} />
+      <BuffersDialog
+        open={dialog === 'buffers'}
+        onClose={() => setDialog(null)}
+        initial={defaultBuffer}
+        onApply={(v) => onChange(setAllBuffers(bins, v))}
+        n={bins.length}
+      />
+      <BelowDialog
+        open={dialog === 'below'}
+        onClose={() => setDialog(null)}
+        bins={bins}
+        counts={counts}
+        onApply={(ids) => onChange(bins.filter((b) => !ids.has(b.id)))}
+      />
       <AddDialog
         open={dialog === 'add'}
         onClose={() => setDialog(null)}
-        suggest={selected && grid ? gridPosition(grid, selected.base_size).expected + grid.step : sorted.length && grid ? gridPosition(grid, sorted[sorted.length - 1]!.base_size).expected + grid.step : 100}
+        suggest={
+          selected && grid
+            ? gridPosition(grid, selected.base_size).expected + grid.step
+            : sorted.length && grid
+              ? gridPosition(grid, sorted[sorted.length - 1]!.base_size).expected + grid.step
+              : 100
+        }
         buffer={defaultBuffer}
         onApply={(center, buffer) => {
           const nb = newBin(bins, center, buffer)
@@ -229,7 +287,12 @@ function BinRow({
         </ul>
       }
     >
-      <span tabIndex={-1} className={cn('inline-flex', blocking ? 'text-danger' : 'text-warn')} aria-label={issues.map((i) => i.message).join(' ')} data-flags={issues.map((i) => i.kind).join(' ')}>
+      <span
+        tabIndex={-1}
+        className={cn('inline-flex', blocking ? 'text-danger' : 'text-warn')}
+        aria-label={issues.map((i) => i.message).join(' ')}
+        data-flags={issues.map((i) => i.kind).join(' ')}
+      >
         <AlertTriangle size={12} />
       </span>
     </Tooltip>
@@ -247,20 +310,44 @@ function BinRow({
         <span className="inline-flex items-center gap-0.5">
           {flag}
           {unsaved && (
-            <span title={bin.id <= 0 ? 'New, not saved' : 'Changed, not saved'} aria-label={bin.id <= 0 ? 'new, unsaved' : 'changed, unsaved'} className="text-accent">
+            <span
+              title={bin.id <= 0 ? 'New, not saved' : 'Changed, not saved'}
+              aria-label={bin.id <= 0 ? 'new, unsaved' : 'changed, unsaved'}
+              className="text-accent"
+            >
               <CircleDot size={10} />
             </span>
           )}
         </span>
       </td>
       <td className="w-[38%]">
-        <CellText value={bin.label} disabled={readOnly} invalid={blocking} onCommit={(v) => onChange({ ...bin, label: v })} ariaLabel={`Label of bin ${bin.label}`} />
+        <CellText
+          value={bin.label}
+          disabled={readOnly}
+          invalid={blocking}
+          onCommit={(v) => onChange({ ...bin, label: v })}
+          ariaLabel={`Label of bin ${bin.label}`}
+        />
       </td>
       <td className="w-[92px]">
-        <CellNumber value={bin.base_size} step={0.05} disabled={readOnly} onCommit={(v) => onChange(moveBin(bin, v), `center:${bin.id}`)} ariaLabel={`Center of bin ${bin.label}`} />
+        <CellNumber
+          value={bin.base_size}
+          step={0.05}
+          disabled={readOnly}
+          onCommit={(v) => onChange(moveBin(bin, v), `center:${bin.id}`)}
+          ariaLabel={`Center of bin ${bin.label}`}
+        />
       </td>
       <td className="w-[78px]">
-        <CellNumber value={bin.bin_buffer} step={0.05} min={0.05} max={49.9} disabled={readOnly} onCommit={(v) => onChange(setBuffer(bin, v), `buffer:${bin.id}`)} ariaLabel={`Buffer of bin ${bin.label}`} />
+        <CellNumber
+          value={bin.bin_buffer}
+          step={0.05}
+          min={0.05}
+          max={49.9}
+          disabled={readOnly}
+          onCommit={(v) => onChange(setBuffer(bin, v), `buffer:${bin.id}`)}
+          ariaLabel={`Buffer of bin ${bin.label}`}
+        />
       </td>
       <td className="num text-right" title={`${count} peaks in the window now${bin.id > 0 ? `; ${bin.peak_count} when estimated` : ''}`}>
         {count.toLocaleString('en-US')}
@@ -276,7 +363,10 @@ function BinRow({
               e.stopPropagation()
               onDelete()
             }}
-            className={cn('grid size-5 place-items-center rounded text-faint hover:bg-danger-soft hover:text-danger', !selected && 'opacity-0 group-hover:opacity-100 focus:opacity-100')}
+            className={cn(
+              'grid size-5 place-items-center rounded text-faint hover:bg-danger-soft hover:text-danger',
+              !selected && 'opacity-0 group-hover:opacity-100 focus:opacity-100',
+            )}
             aria-label={`Delete bin ${bin.label}`}
             title="Delete bin (Del in the plot)"
           >
@@ -290,7 +380,19 @@ function BinRow({
 
 const cellCls = 'h-6 rounded-[4px] border-transparent bg-transparent px-1 text-xs hover:border-line focus:border-accent focus:bg-surface'
 
-function CellText({ value, onCommit, disabled, invalid, ariaLabel }: { value: string; onCommit: (v: string) => void; disabled?: boolean; invalid?: boolean; ariaLabel: string }) {
+function CellText({
+  value,
+  onCommit,
+  disabled,
+  invalid,
+  ariaLabel,
+}: {
+  value: string
+  onCommit: (v: string) => void
+  disabled?: boolean
+  invalid?: boolean
+  ariaLabel: string
+}) {
   const [draft, setDraft] = useState<string | null>(null)
   const commit = () => {
     if (draft != null && draft !== value) onCommit(draft)
@@ -369,7 +471,19 @@ function CellNumber({
   )
 }
 
-function BuffersDialog({ open, onClose, initial, onApply, n }: { open: boolean; onClose: () => void; initial: number; onApply: (v: number) => void; n: number }) {
+function BuffersDialog({
+  open,
+  onClose,
+  initial,
+  onApply,
+  n,
+}: {
+  open: boolean
+  onClose: () => void
+  initial: number
+  onApply: (v: number) => void
+  n: number
+}) {
   const [v, setV] = useState<number | null>(initial)
   const ok = v != null && v >= 0.05 && v < 50
   return (
@@ -400,7 +514,17 @@ function BuffersDialog({ open, onClose, initial, onApply, n }: { open: boolean; 
     >
       <label className="flex items-center gap-2 text-xs">
         Buffer
-        <NumberInput value={v} onChange={setV} step={0.05} min={0.05} max={49.9} unit="bp" className="w-28" aria-label="Buffer for every bin" autoFocus />
+        <NumberInput
+          value={v}
+          onChange={setV}
+          step={0.05}
+          min={0.05}
+          max={49.9}
+          unit="bp"
+          className="w-28"
+          aria-label="Buffer for every bin"
+          autoFocus
+        />
       </label>
     </Dialog>
   )
@@ -452,13 +576,27 @@ function BelowDialog({
         <NumberInput value={min} onChange={setMin} step={1} min={1} unit="peaks" className="w-28" aria-label="Minimum peaks" autoFocus />
       </label>
       <p className="mt-2 min-h-8 text-xs text-muted">
-        {doomed.length ? `Deletes ${doomed.map((b) => `${b.label} (${counts.get(b.id) ?? 0})`).join(', ')}. You can undo this.` : 'No bin has fewer peaks than that.'}
+        {doomed.length
+          ? `Deletes ${doomed.map((b) => `${b.label} (${counts.get(b.id) ?? 0})`).join(', ')}. You can undo this.`
+          : 'No bin has fewer peaks than that.'}
       </p>
     </Dialog>
   )
 }
 
-function AddDialog({ open, onClose, suggest, buffer, onApply }: { open: boolean; onClose: () => void; suggest: number; buffer: number; onApply: (center: number, buffer: number) => void }) {
+function AddDialog({
+  open,
+  onClose,
+  suggest,
+  buffer,
+  onApply,
+}: {
+  open: boolean
+  onClose: () => void
+  suggest: number
+  buffer: number
+  onApply: (center: number, buffer: number) => void
+}) {
   const [center, setCenter] = useState<number | null>(null)
   const [buf, setBuf] = useState<number | null>(null)
   const c = center ?? +suggest.toFixed(2)

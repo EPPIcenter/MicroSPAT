@@ -65,12 +65,15 @@ describe('valuesToUpdate', () => {
   })
 
   it('resets when every value is back at its default', () => {
-    expect(valuesToUpdate(defaultsOf(workspaceSettingsSchema), ['pull_up_warning', 'contamination_limit'])).toEqual({ reset_defaults: true })
+    expect(valuesToUpdate(defaultsOf(workspaceSettingsSchema), ['pull_up_warning', 'contamination_limit'])).toEqual({
+      reset_defaults: true,
+    })
   })
 })
 
 describe('validation', () => {
-  const errorsWith = (patch: Record<string, number>) => validateValues(workspaceSettingsSchema, { ...defaultsOf(workspaceSettingsSchema), ...patch })
+  const errorsWith = (patch: Record<string, number>) =>
+    validateValues(workspaceSettingsSchema, { ...defaultsOf(workspaceSettingsSchema), ...patch })
 
   it('accepts the defaults', () => {
     expect(errorsWith({})).toEqual({})

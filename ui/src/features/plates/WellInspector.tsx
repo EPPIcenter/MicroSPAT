@@ -28,7 +28,20 @@ import { SelectInput } from '@/components/form/fields'
 import { cn } from '@/lib/cn'
 import { fmtRfu } from '@/lib/format'
 import { toast } from '@/stores/toasts'
-import { addPeak, assignedSizes, diffDraft, draftMarks, isClean, nearestPeak, removePeak, setPeakSize, shiftOthers, startDraft, type DraftPeak, type LadderDraft } from './model/ladderEdit'
+import {
+  addPeak,
+  assignedSizes,
+  diffDraft,
+  draftMarks,
+  isClean,
+  nearestPeak,
+  removePeak,
+  setPeakSize,
+  shiftOthers,
+  startDraft,
+  type DraftPeak,
+  type LadderDraft,
+} from './model/ladderEdit'
 import { isTypingTarget, overlayOpen } from '@/lib/keys'
 import { fmtQuality, SIZING_LABEL, SIZING_TONE } from './model/status'
 import { SizingSwatch } from './parts'
@@ -102,7 +115,11 @@ export function WellInspector({
   const stale = !!data && data.id !== well?.id
 
   if (!well) {
-    return <EmptyState title="Select a well" className="bg-surface">Click a well on the plate, or move with the arrow keys.</EmptyState>
+    return (
+      <EmptyState title="Select a well" className="bg-surface">
+        Click a well on the plate, or move with the arrow keys.
+      </EmptyState>
+    )
   }
   if (!data) {
     return q.isError ? (
@@ -188,7 +205,10 @@ function WellBody({
   const selectedPeak = selected != null ? (d.find((p) => p.index === selected) ?? null) : null
   const live = useLadderPreview(plateId, data.id, editing && !stale && diff.dirty ? d : null)
   // Without edits the stored fit is the preview.
-  const storedFit = useMemo<LadderPreview>(() => ({ sizing: data.sizing, sizing_quality: data.sizing_quality, reason: null, peaks: saved }), [data.sizing, data.sizing_quality, saved])
+  const storedFit = useMemo<LadderPreview>(
+    () => ({ sizing: data.sizing, sizing_quality: data.sizing_quality, reason: null, peaks: saved }),
+    [data.sizing, data.sizing_quality, saved],
+  )
   const shown: LadderPreview | null = diff.dirty ? live.preview : storedFit
   const ladderTrace = data.channels.find((c) => c.color === ladderColor)?.trace ?? null
   const candidates = useMemo(() => data.ladder_candidates ?? [], [data.ladder_candidates])
@@ -213,7 +233,8 @@ function WellBody({
   )
 
   const marks = useMemo<{ ladder: LadderMarker[]; peaks: TracePeak[] }>(() => {
-    if (editing && ladderTrace) return draftMarks(d, saved, { seriesId: ladderColor, trace: ladderTrace, preview: shown, candidates, selected })
+    if (editing && ladderTrace)
+      return draftMarks(d, saved, { seriesId: ladderColor, trace: ladderTrace, preview: shown, candidates, selected })
     return {
       ladder: saved.map((p: LadderPeak) => ({ index: p.index, size: p.size, seriesId: ladderColor, status: 'ok' as const })),
       peaks: [],
@@ -236,7 +257,9 @@ function WellBody({
       if (auto)
         toast.success(
           `${data.label}: automatic ladder fit restored`,
-          res.sizing === 'good' ? `Good, SQ ${fmtQuality(res.sizing_quality)}` : `${SIZING_LABEL[res.sizing]}: ${res.sizing_reason ?? res.sizing_error ?? ''}`,
+          res.sizing === 'good'
+            ? `Good, SQ ${fmtQuality(res.sizing_quality)}`
+            : `${SIZING_LABEL[res.sizing]}: ${res.sizing_reason ?? res.sizing_error ?? ''}`,
         )
     },
     onError: (e) => toast.error(`Could not refit ${data.label}`, isRpcError(e) || e instanceof Error ? e.message : String(e)),
@@ -321,7 +344,11 @@ function WellBody({
   const reason = data.sizing_reason ?? data.sizing_error ?? null
 
   return (
-    <div className={cn('flex min-h-0 min-w-0 flex-1 flex-col bg-surface', stale && 'opacity-80')} data-testid="well-inspector" data-well={data.label}>
+    <div
+      className={cn('flex min-h-0 min-w-0 flex-1 flex-col bg-surface', stale && 'opacity-80')}
+      data-testid="well-inspector"
+      data-well={data.label}
+    >
       {/* Header: well, sizing, dyes, edit toggle. */}
       <div className="flex min-h-9 shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b border-line px-2 py-1">
         <span className="text-sm font-semibold" data-testid="well-label">
@@ -332,7 +359,10 @@ function WellBody({
         </span>
         <Tooltip content={sizingTooltip(data, ladder)}>
           <span data-testid="well-sizing">
-            <StatusChip status={STATUS_OF[data.sizing]} label={`${SIZING_LABEL[data.sizing]}${data.sizing_quality != null ? ` · SQ ${fmtQuality(data.sizing_quality)}` : ''}`} />
+            <StatusChip
+              status={STATUS_OF[data.sizing]}
+              label={`${SIZING_LABEL[data.sizing]}${data.sizing_quality != null ? ` · SQ ${fmtQuality(data.sizing_quality)}` : ''}`}
+            />
           </span>
         </Tooltip>
         {data.manual_ladder && (
@@ -468,7 +498,11 @@ function DyeToggles({
             aria-pressed={!off}
             disabled={locked}
             onClick={() => onToggle(c)}
-            title={locked ? 'The ladder dye stays visible while editing' : `${off ? 'Show' : 'Hide'} ${name} (${c})${c === ladderColor ? ', ladder' : ''}`}
+            title={
+              locked
+                ? 'The ladder dye stays visible while editing'
+                : `${off ? 'Show' : 'Hide'} ${name} (${c})${c === ladderColor ? ', ladder' : ''}`
+            }
             className={cn(
               'inline-flex h-6 items-center gap-1 rounded-[4px] px-1.5 text-2xs text-muted outline-none hover:bg-surface-3 focus-visible:ring-2 focus-visible:ring-accent/40 disabled:cursor-default',
               off && 'opacity-45',
@@ -498,9 +532,24 @@ function FitBadge({ fit, strong }: { fit: { sizing: SizingState; quality: number
 }
 
 /** "SQ ■ 0.067 good → ■ 0.048 unusable". */
-function FitArrow({ before, after, testId, pending }: { before: FitState; after: { sizing: SizingState; quality: number | null } | null; testId: string; pending?: boolean }) {
+function FitArrow({
+  before,
+  after,
+  testId,
+  pending,
+}: {
+  before: FitState
+  after: { sizing: SizingState; quality: number | null } | null
+  testId: string
+  pending?: boolean
+}) {
   return (
-    <span className="inline-flex items-center gap-1 text-xs" data-testid={testId} data-after={after?.sizing} data-pending={pending ? 'true' : 'false'}>
+    <span
+      className="inline-flex items-center gap-1 text-xs"
+      data-testid={testId}
+      data-after={after?.sizing}
+      data-pending={pending ? 'true' : 'false'}
+    >
       <span className="text-faint">SQ</span>
       <FitBadge fit={before} />
       <span className="text-faint">→</span>
@@ -531,7 +580,13 @@ function InfoBar({
           {ladder ? ` of ${ladder.spec.base_sizes.length}` : ''} ladder peaks · {data.ladder.label}
         </span>
       )}
-      {lastChange && <FitArrow before={lastChange.before} after={{ sizing: lastChange.after.sizing, quality: lastChange.after.quality }} testId="quality-change" />}
+      {lastChange && (
+        <FitArrow
+          before={lastChange.before}
+          after={{ sizing: lastChange.after.sizing, quality: lastChange.after.quality }}
+          testId="quality-change"
+        />
+      )}
       {reason && (
         <span className={TONE_TEXT[SIZING_TONE[data.sizing]]} data-testid="sizing-reason">
           {reason}
@@ -607,7 +662,13 @@ function EditBar({
   const reason = dirty ? (live.problem ?? live.error ?? shown?.reason ?? null) : (data.sizing_reason ?? data.sizing_error ?? null)
   // An empty draft is not a failed fit: there is nothing to preview yet.
   const empty = dirty && draft.length === 0
-  const afterState: SizingState | null = empty ? null : dirty ? (live.problem || live.error ? 'failed' : (shown?.sizing ?? null)) : data.sizing
+  const afterState: SizingState | null = empty
+    ? null
+    : dirty
+      ? live.problem || live.error
+        ? 'failed'
+        : (shown?.sizing ?? null)
+      : data.sizing
   const chosen = draft.filter((p) => p.size != null).length
   return (
     <div className="flex shrink-0 flex-col gap-1 border-b border-line bg-accent-soft/40 px-2 py-1.5 text-xs" data-testid="ladder-editor">
@@ -622,7 +683,11 @@ function EditBar({
             <Badge tone="accent">unsaved</Badge>
             {diff.added.length > 0 && <span className="text-accent">+{diff.added.length} new</span>}
             {diff.removed.length > 0 && <span className="text-danger">−{diff.removed.length} removed</span>}
-            {chosen > 0 && <span className="text-fg">{chosen} size{chosen === 1 ? '' : 's'} set by hand</span>}
+            {chosen > 0 && (
+              <span className="text-fg">
+                {chosen} size{chosen === 1 ? '' : 's'} set by hand
+              </span>
+            )}
           </span>
         ) : (
           <span className="text-muted">{data.manual_ladder ? 'saved, picked by hand' : 'saved, automatic fit'}</span>
@@ -630,20 +695,40 @@ function EditBar({
         {dirty ? (
           <FitArrow
             before={before}
-            after={empty ? null : live.problem || live.error ? { sizing: 'failed', quality: null } : shown ? { sizing: shown.sizing, quality: shown.sizing_quality } : null}
+            after={
+              empty
+                ? null
+                : live.problem || live.error
+                  ? { sizing: 'failed', quality: null }
+                  : shown
+                    ? { sizing: shown.sizing, quality: shown.sizing_quality }
+                    : null
+            }
             pending={live.pending}
             testId="ladder-preview"
           />
         ) : lastChange ? (
-          <FitArrow before={lastChange.before} after={{ sizing: lastChange.after.sizing, quality: lastChange.after.quality }} testId="quality-change" />
+          <FitArrow
+            before={lastChange.before}
+            after={{ sizing: lastChange.after.sizing, quality: lastChange.after.quality }}
+            testId="quality-change"
+          />
         ) : (
-          <span className="text-muted">{data.sizing_quality == null ? 'no ladder fit' : `current SQ ${fmtQuality(data.sizing_quality)}`}</span>
+          <span className="text-muted">
+            {data.sizing_quality == null ? 'no ladder fit' : `current SQ ${fmtQuality(data.sizing_quality)}`}
+          </span>
         )}
         <div className="ml-auto flex items-center gap-1">
           <Button size="sm" variant="ghost" onClick={onDiscard} disabled={!dirty || pending} title="Discard unsaved changes (Esc)">
             <Undo2 size={12} /> Discard
           </Button>
-          <Button size="sm" variant="ghost" onClick={onAuto} disabled={pending || (!data.manual_ladder && !dirty)} title="Throw away hand-picked peaks and fit the ladder automatically">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onAuto}
+            disabled={pending || (!data.manual_ladder && !dirty)}
+            title="Throw away hand-picked peaks and fit the ladder automatically"
+          >
             <RotateCcw size={12} /> Automatic fit
           </Button>
           <Button
@@ -661,7 +746,16 @@ function EditBar({
         </div>
       </div>
       {selected && (
-        <PeakControls data={data} ladder={ladder} draft={draft} shown={shown} peak={selected} onSize={onSize} onShift={canShift(selected.index) ? onShift : null} onRemove={onRemove} />
+        <PeakControls
+          data={data}
+          ladder={ladder}
+          draft={draft}
+          shown={shown}
+          peak={selected}
+          onSize={onSize}
+          onShift={canShift(selected.index) ? onShift : null}
+          onRemove={onRemove}
+        />
       )}
       {(error || reason || (dirty && shown?.sizing === 'good')) && (
         <div className="text-xs">
@@ -670,8 +764,16 @@ function EditBar({
               {error}
             </span>
           ) : reason ? (
-            <span className={afterState ? TONE_TEXT[SIZING_TONE[afterState]] : 'text-muted'} role={dirty ? 'status' : undefined} data-testid="ladder-reason">
-              {dirty && afterState === 'failed' ? 'Cannot be fitted: ' : dirty && afterState && afterState !== 'good' ? `Would be ${SIZING_LABEL[afterState].toLowerCase()}: ` : ''}
+            <span
+              className={afterState ? TONE_TEXT[SIZING_TONE[afterState]] : 'text-muted'}
+              role={dirty ? 'status' : undefined}
+              data-testid="ladder-reason"
+            >
+              {dirty && afterState === 'failed'
+                ? 'Cannot be fitted: '
+                : dirty && afterState && afterState !== 'good'
+                  ? `Would be ${SIZING_LABEL[afterState].toLowerCase()}: `
+                  : ''}
               {reason}
             </span>
           ) : (
@@ -723,7 +825,10 @@ function PeakControls({
   for (const [i, s] of sizes) if (i !== peak.index) usedBy.set(s, i)
   const options = [
     { value: AUTO, label: peak.size == null && fitted != null ? `Fitter’s choice: ${fitted} bp` : 'Fitter’s choice' },
-    ...(ladder?.spec.base_sizes ?? []).map((s) => ({ value: String(s), label: usedBy.has(s) ? `${s} bp (now on #${usedBy.get(s)})` : `${s} bp` })),
+    ...(ladder?.spec.base_sizes ?? []).map((s) => ({
+      value: String(s),
+      label: usedBy.has(s) ? `${s} bp (now on #${usedBy.get(s)})` : `${s} bp`,
+    })),
   ]
   return (
     <div className="flex flex-wrap items-center gap-2" data-testid="peak-controls">
@@ -740,7 +845,12 @@ function PeakControls({
         options={options}
       />
       {onShift && (
-        <Button size="sm" variant="ghost" onClick={() => onShift(peak.index)} title="Assign every other peak the size the same number of ladder steps away from the fitter's choice">
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => onShift(peak.index)}
+          title="Assign every other peak the size the same number of ladder steps away from the fitter's choice"
+        >
           Shift the rest too
         </Button>
       )}
@@ -750,4 +860,3 @@ function PeakControls({
     </div>
   )
 }
-

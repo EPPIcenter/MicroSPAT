@@ -44,9 +44,17 @@ export function exclusionOf(p: QuantBiasPoint, params: QuantBiasParams | null | 
   const range = min != null ? `the ${pct(min)}–${pct(1 - min)} range used for estimation` : 'the range used for estimation'
   switch (p.exclusion) {
     case 'below_min_true_proportion':
-      return { code: p.exclusion, label: `share ${pct(p.true_proportion)} below range`, text: `Its true share, ${pct(p.true_proportion)}, is below ${range} (minimum true proportion).` }
+      return {
+        code: p.exclusion,
+        label: `share ${pct(p.true_proportion)} below range`,
+        text: `Its true share, ${pct(p.true_proportion)}, is below ${range} (minimum true proportion).`,
+      }
     case 'above_max_true_proportion':
-      return { code: p.exclusion, label: `share ${pct(p.true_proportion)} above range`, text: `Its true share, ${pct(p.true_proportion)}, is above ${range}.` }
+      return {
+        code: p.exclusion,
+        label: `share ${pct(p.true_proportion)} above range`,
+        text: `Its true share, ${pct(p.true_proportion)}, is above ${range}.`,
+      }
     case 'below_min_height':
       return {
         code: p.exclusion,
@@ -102,7 +110,9 @@ export function buildPointRows(
 ): PointRow[] {
   return points.map((p, index) => {
     const z =
-      p.used && p.log_odds_error != null && opts.beta != null && opts.sd != null && opts.sd > 0 ? (p.log_odds_error - opts.beta * p.centered_size) / opts.sd : null
+      p.used && p.log_odds_error != null && opts.beta != null && opts.sd != null && opts.sd > 0
+        ? (p.log_odds_error - opts.beta * p.centered_size) / opts.sd
+        : null
     return {
       key: `${p.sample_id}:${p.size.toFixed(2)}`,
       point: p,

@@ -73,7 +73,11 @@ async function openShowcase(page: Page) {
 
 /** Number key of the peak in bin `label` (from the peak table). */
 async function peakKey(page: Page, label: string): Promise<string> {
-  const row = page.getByTestId('peak-table').locator('tbody tr').filter({ has: page.locator('td', { hasText: new RegExp(`^${label}$`) }) }).first()
+  const row = page
+    .getByTestId('peak-table')
+    .locator('tbody tr')
+    .filter({ has: page.locator('td', { hasText: new RegExp(`^${label}$`) }) })
+    .first()
   return (await row.locator('td').first().innerText()).trim()
 }
 
@@ -129,7 +133,10 @@ test('shows both alleles of D1-SHOW-1 at PfY1 and the peak evidence', async ({ p
   await expect(page.getByTestId('call-alleles')).toHaveAttribute('data-alleles', '203;206')
   await expect(page.locator('[data-testid=calls-table] [role=row][data-sample="D1-SHOW-1"]')).toHaveAttribute('data-alleles', '203;206')
   // The minor allele sits on the 206 allele's stutter position, with its expected artifact height.
-  const row203 = page.getByTestId('peak-table').locator('tbody tr').filter({ has: page.locator('td', { hasText: /^203$/ }) })
+  const row203 = page
+    .getByTestId('peak-table')
+    .locator('tbody tr')
+    .filter({ has: page.locator('td', { hasText: /^203$/ }) })
   await expect(row203).toHaveAttribute('data-state', /called/)
   await row203.click()
   await expect(page.getByTestId('peak-readout')).toContainText('expected artifact')
@@ -142,7 +149,12 @@ test('toggles an allele off and on, marks the call curated, and persists', async
   await page.keyboard.press(key)
   await expect(page.getByTestId('call-alleles')).toHaveAttribute('data-alleles', '206')
   await expect(page.getByTestId('curated-marker')).toBeVisible()
-  await expect(page.getByTestId('peak-table').locator('tbody tr').filter({ has: page.locator('td', { hasText: /^203$/ }) })).toHaveAttribute('data-state', 'manual-off')
+  await expect(
+    page
+      .getByTestId('peak-table')
+      .locator('tbody tr')
+      .filter({ has: page.locator('td', { hasText: /^203$/ }) }),
+  ).toHaveAttribute('data-state', 'manual-off')
   await page.reload()
   await expect(page.getByTestId('call-alleles')).toHaveAttribute('data-alleles', '206')
   await expect(page.getByTestId('curated-marker')).toBeVisible()
@@ -185,12 +197,20 @@ test('review marks persist across reload and a re-analysis that leaves the call 
   await openShowcase(page)
   const state = page.getByTestId('review-state')
   await expect(state).toHaveAttribute('data-reviewed', 'false')
-  const before = Number(await page.locator('[data-testid=locus-strip] [data-locus=PfY1] [data-testid=locus-review-progress]').getAttribute('data-reviewed').catch(() => '0'))
+  const before = Number(
+    await page
+      .locator('[data-testid=locus-strip] [data-locus=PfY1] [data-testid=locus-review-progress]')
+      .getAttribute('data-reviewed')
+      .catch(() => '0'),
+  )
   await page.locator('body').click({ position: { x: 5, y: 5 } })
   await page.keyboard.press('m')
   await expect(state).toHaveAttribute('data-reviewed', 'true')
   await expect(tableRow(page, 'D1-SHOW-1')).toHaveAttribute('data-reviewed', 'true')
-  await expect(page.locator('[data-testid=locus-strip] [data-locus=PfY1] [data-testid=locus-review-progress]')).toHaveAttribute('data-reviewed', String(before + 1))
+  await expect(page.locator('[data-testid=locus-strip] [data-locus=PfY1] [data-testid=locus-review-progress]')).toHaveAttribute(
+    'data-reviewed',
+    String(before + 1),
+  )
   await page.reload()
   await expect(state).toHaveAttribute('data-reviewed', 'true')
   // Re-analysis with the same inputs gives the same call: the mark stays.
@@ -261,7 +281,10 @@ test('marks narrow misses in the trace, the peak table and the call table, with 
   const peakRow = page.locator('[data-testid=peak-table] tbody tr[data-narrow]').first()
   await expect(peakRow).toHaveAttribute('data-narrow', miss.reason)
   await peakRow.click()
-  const words = miss.reason === 'artifact' ? `${Math.round(miss.limit - miss.value)} RFU below the calling limit after expected stutter` : `probability ${miss.value.toFixed(2)}, threshold ${miss.limit.toFixed(2)}`
+  const words =
+    miss.reason === 'artifact'
+      ? `${Math.round(miss.limit - miss.value)} RFU below the calling limit after expected stutter`
+      : `probability ${miss.value.toFixed(2)}, threshold ${miss.limit.toFixed(2)}`
   await expect(page.getByTestId('peak-readout')).toContainText(`Narrow miss: ${words}`)
   // The filter shows the rows that have one.
   await page.locator('[data-filter=narrow]').click()
@@ -271,10 +294,16 @@ test('marks narrow misses in the trace, the peak table and the call table, with 
 
 test('shows the model MOI with the most alleles called and where, for a sample where they differ', async ({ page }) => {
   // Any sample that has more alleles called at some locus than its model MOI.
-  const samples = await rpc<{ sample_id: number; moi: number | null; max_alleles?: number }[]>(page, 'list_project_samples', { id: ids.project })
+  const samples = await rpc<{ sample_id: number; moi: number | null; max_alleles?: number }[]>(page, 'list_project_samples', {
+    id: ids.project,
+  })
   const pick = samples.find((r) => r.moi != null && (r.max_alleles ?? 0) > r.moi)
   expect(pick, 'the demo has a sample with more alleles called at a locus than its model MOI').toBeTruthy()
-  const sc = await rpc<{ moi: number; max_alleles: number; max_alleles_loci: { locus_id: number; locus_label: string }[] }>(page, 'get_project_sample_calls', { project_id: ids.project, sample_id: pick!.sample_id })
+  const sc = await rpc<{ moi: number; max_alleles: number; max_alleles_loci: { locus_id: number; locus_label: string }[] }>(
+    page,
+    'get_project_sample_calls',
+    { project_id: ids.project, sample_id: pick!.sample_id },
+  )
   expect(sc.max_alleles).toBeGreaterThan(sc.moi)
   const where = sc.max_alleles_loci.map((l) => l.locus_label)
   const line = `MOI ${sc.moi} (model) · up to ${sc.max_alleles} alleles called at ${where.join(', ')}`
@@ -383,23 +412,40 @@ test('downloads each export with the right header; D1-SHOW-1 has two alleles at 
   const wl = wide.split('\n')
   expect(wl[0]).toBe('Sample,PfB1,PfB2,PfG1,PfG2,PfY1,PfY2')
   const col = wl[0]!.split(',').indexOf('PfY1')
-  expect(wl.find((l) => l.startsWith('D1-SHOW-1,'))!.split(',')[col]!.split(';')).toEqual(['203', '206'])
+  expect(
+    wl
+      .find((l) => l.startsWith('D1-SHOW-1,'))!
+      .split(',')
+      [col]!.split(';'),
+  ).toEqual(['203', '206'])
   const long = await get('long')
   expect(long.split('\n')[0]).toBe('Sample,Locus,Allele,Size,Height,Proportion,Corrected Proportion,Probability,MOI,Reviewed')
-  const show = long.split('\n').filter((l) => l.startsWith('D1-SHOW-1,PfY1,')).map((l) => l.split(','))
+  const show = long
+    .split('\n')
+    .filter((l) => l.startsWith('D1-SHOW-1,PfY1,'))
+    .map((l) => l.split(','))
   expect(show.map((c) => c[2])).toEqual(['203', '206'])
   const reviewed = (await locusRows(page, ids.pfy1)).find((r) => r.sample_id === ids.show1)!.reviewed ? 'True' : 'False'
   expect(show.map((c) => c[9])).toEqual([reviewed, reviewed])
   const peaks = await get('peaks')
-  expect(peaks.split('\n')[0]).toMatch(/^Sample,Locus,Peak Height,Relative Peak Height,Proportion,Corrected Proportion,.*,Crosstalk Flag,Height Share of All Peaks,Spectral Dip Ratio,Spectral Flag,Expected Pull-Up,Pull-Up Error$/)
+  expect(peaks.split('\n')[0]).toMatch(
+    /^Sample,Locus,Peak Height,Relative Peak Height,Proportion,Corrected Proportion,.*,Crosstalk Flag,Height Share of All Peaks,Spectral Dip Ratio,Spectral Flag,Expected Pull-Up,Pull-Up Error$/,
+  )
   // Proportion: share of the called signal, NA for peaks not called.
   const head = peaks.split('\n')[0]!.split(',')
   const [pi, ci] = [head.indexOf('Proportion'), head.indexOf('Called Allele')]
-  const uncalled = peaks.split('\n').filter((l) => l.startsWith('D1-SHOW-1,PfY1,')).map((l) => l.split(',')).filter((c) => c[ci] !== 'True')
+  const uncalled = peaks
+    .split('\n')
+    .filter((l) => l.startsWith('D1-SHOW-1,PfY1,'))
+    .map((l) => l.split(','))
+    .filter((c) => c[ci] !== 'True')
   expect(uncalled.length).toBeGreaterThan(0)
   expect(uncalled.every((c) => c[pi] === 'NA')).toBe(true)
   const showcase = peaks.split('\n').filter((l) => l.startsWith('D1-SHOW-1,PfY1,'))
-  const called = showcase.map((l) => l.split(',')).filter((c) => c[13] === 'True').map((c) => c[14])
+  const called = showcase
+    .map((l) => l.split(','))
+    .filter((c) => c[13] === 'True')
+    .map((c) => c[14])
   expect(called).toEqual(['203', '206'])
 })
 
@@ -417,7 +463,11 @@ test('creates a project, adds samples by CSV, analyzes it, and deletes it', asyn
   await expect(page.getByTestId('project-title')).toHaveText(title)
   await expect(page).toHaveURL(/tab=samples/)
   // Add samples from a CSV, with an unknown barcode in it.
-  await page.getByTestId('samples-tab').getByRole('button', { name: /Add samples/ }).first().click()
+  await page
+    .getByTestId('samples-tab')
+    .getByRole('button', { name: /Add samples/ })
+    .first()
+    .click()
   const add = page.getByRole('dialog', { name: /Add samples/ })
   await add.getByRole('tab', { name: 'From CSV' }).click()
   await add.getByLabel('Sample CSV').fill('Barcode\nD1-SHOW-1\nD1-SHOW-2\nNOT-A-SAMPLE\n')

@@ -12,7 +12,8 @@ export function isTypingTarget(t: EventTarget | null): boolean {
 }
 
 // Only overlays: a page's own list boxes (a locus list, a class list) are always there and must not block its shortcuts.
-const OVERLAYS = '[role=dialog],[role=alertdialog],[role=menu],[data-radix-popper-content-wrapper] [role=listbox],[data-radix-select-viewport]'
+const OVERLAYS =
+  '[role=dialog],[role=alertdialog],[role=menu],[data-radix-popper-content-wrapper] [role=listbox],[data-radix-select-viewport]'
 
 /** A dialog, menu or popup list is open. */
 export function overlayOpen(): boolean {

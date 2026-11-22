@@ -9,8 +9,16 @@ import { LIZ500 } from '@/mock/data'
 import { checkSizes, fmtSize } from './baseSizes'
 import { DEFAULT_SPEC } from './spec'
 
-const GS600 = [20, 40, 60, 80, 100, 114, 120, 140, 160, 180, 200, 214, 220, 240, 250, 260, 280, 300, 314, 320, 340, 360, 380, 400, 414, 420, 440, 460, 480, 500, 514, 520, 540, 560, 580, 600]
-const with_ = (color: LadderSpec['color'], base_sizes: number[]): LadderSpec => ({ ...DEFAULT_SPEC, scanning: { ...DEFAULT_SPEC.scanning }, color, base_sizes })
+const GS600 = [
+  20, 40, 60, 80, 100, 114, 120, 140, 160, 180, 200, 214, 220, 240, 250, 260, 280, 300, 314, 320, 340, 360, 380, 400, 414, 420, 440, 460,
+  480, 500, 514, 520, 540, 560, 580, 600,
+]
+const with_ = (color: LadderSpec['color'], base_sizes: number[]): LadderSpec => ({
+  ...DEFAULT_SPEC,
+  scanning: { ...DEFAULT_SPEC.scanning },
+  color,
+  base_sizes,
+})
 
 let ladders: { id: number; label: string; spec: LadderSpec }[] = [
   { id: 1, label: 'GeneScan 500 LIZ', spec: with_('orange', LIZ500) },
@@ -46,14 +54,17 @@ function validate(spec: LadderSpec) {
   if (!c.sizes) throw new RpcError('invalid', 'Ladder sizes must be positive numbers in strictly increasing order.')
   if (!(spec.sq_flag_limit > 0 && spec.sq_unusable_limit >= spec.sq_flag_limit))
     throw new RpcError('invalid', 'Sizing-quality limits must be positive, with the unusable limit at or above the flag limit.')
-  if (!(spec.min_relative_height >= 0 && spec.min_relative_height < 1)) throw new RpcError('invalid', 'Min relative height must be a fraction from 0 up to 1.')
-  if (spec.maximum_missing_peak_count >= spec.base_sizes.length) throw new RpcError('invalid', 'Maximum missing peaks must be fewer than the number of ladder sizes.')
+  if (!(spec.min_relative_height >= 0 && spec.min_relative_height < 1))
+    throw new RpcError('invalid', 'Min relative height must be a fraction from 0 up to 1.')
+  if (spec.maximum_missing_peak_count >= spec.base_sizes.length)
+    throw new RpcError('invalid', 'Maximum missing peaks must be fewer than the number of ladder sizes.')
 }
 
 function checkLabel(label: string, except: number) {
   const t = label.trim()
   if (!t) throw new RpcError('invalid', 'Ladder label cannot be empty.')
-  if (ladders.some((l) => l.id !== except && l.label.toLowerCase() === t.toLowerCase())) throw new RpcError('conflict', `A ladder named "${t}" already exists.`)
+  if (ladders.some((l) => l.id !== except && l.label.toLowerCase() === t.toLowerCase()))
+    throw new RpcError('conflict', `A ladder named "${t}" already exists.`)
   return t
 }
 
@@ -94,7 +105,11 @@ const handlers: Record<string, MockHandler> = {
   delete_ladder: async (params, ctx) => {
     const l = find((params as IdParams).id)
     const used = (await plateCounts()).get(l.id) ?? 0
-    if (used > 0) throw new RpcError('in_use', `Ladder "${l.label}" is used by ${used} plate(s). Delete those plates or size them with another ladder first.`)
+    if (used > 0)
+      throw new RpcError(
+        'in_use',
+        `Ladder "${l.label}" is used by ${used} plate(s). Delete those plates or size them with another ladder first.`,
+      )
     ladders = ladders.filter((x) => x.id !== l.id)
     ctx.changed('ladders', [l.id])
     ctx.changed('workspace')

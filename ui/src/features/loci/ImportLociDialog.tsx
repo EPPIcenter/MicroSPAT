@@ -69,7 +69,9 @@ export function ImportLociDialog({
           <Button onClick={() => close(false)}>Cancel</Button>
           <Button variant="primary" disabled={!preview || n === 0 || !!preview.headerError || imp.isPending} onClick={() => imp.mutate()}>
             {imp.isPending && <Spinner className="size-3" />}
-            {preview && preview.rejected > 0 && n > 0 ? `Import ${countOf(n, 'valid locus', 'valid loci')}` : `Import ${countOf(n, 'locus', 'loci')}`}
+            {preview && preview.rejected > 0 && n > 0
+              ? `Import ${countOf(n, 'valid locus', 'valid loci')}`
+              : `Import ${countOf(n, 'locus', 'loci')}`}
           </Button>
         </>
       }
@@ -100,8 +102,8 @@ export function ImportLociDialog({
             {newOverlaps.length > 0 && (
               <Banner tone="warn">
                 Overlapping size ranges on the same dye after import:{' '}
-                {newOverlaps.map((o) => `${o.a.label} / ${o.b.label} (${o.color}, ${o.from}–${o.to} bp)`).join('; ')}. Peaks in a shared range can be assigned to the
-                wrong locus.
+                {newOverlaps.map((o) => `${o.a.label} / ${o.b.label} (${o.color}, ${o.from}–${o.to} bp)`).join('; ')}. Peaks in a shared
+                range can be assigned to the wrong locus.
               </Banner>
             )}
             <div className="max-h-64 overflow-auto rounded-md border border-line">
@@ -122,7 +124,9 @@ export function ImportLociDialog({
                       <td className="num px-2 py-1 text-right text-faint">{r.line}</td>
                       <td className="px-2 py-1 font-medium">{r.label || <span className="text-faint">(empty)</span>}</td>
                       <td className="px-2 py-1">{r.locus ? <DyeChip color={r.locus.color} /> : <span className="text-muted">–</span>}</td>
-                      <td className="num px-2 py-1 text-right">{r.locus ? `${r.locus.min_base_length}–${r.locus.max_base_length}` : '–'}</td>
+                      <td className="num px-2 py-1 text-right">
+                        {r.locus ? `${r.locus.min_base_length}–${r.locus.max_base_length}` : '–'}
+                      </td>
                       <td className="num px-2 py-1 text-right">{r.locus?.nucleotide_repeat_length ?? '–'}</td>
                       <td className={cn('px-2 py-1', r.locus ? 'text-ok' : 'text-danger')}>{r.locus ? 'Create' : r.problems.join('; ')}</td>
                     </tr>

@@ -39,7 +39,10 @@ describe('http transport', () => {
     expect(e).toMatchObject({ code: 'not_found', message: 'No plate 9' })
   })
   it('network failures become transport errors', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => Promise.reject(new TypeError('Failed to fetch'))))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Promise.reject(new TypeError('Failed to fetch'))),
+    )
     await expect(rpc('x')).rejects.toMatchObject({ code: 'transport' })
   })
 })

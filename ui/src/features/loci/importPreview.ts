@@ -70,7 +70,8 @@ export function previewLociCsv(text: string, existingLabels: readonly string[]):
     if (!COLORS.includes(colorText as Color)) problems.push(`Color "${get(4)}" must be blue, green, yellow, red or orange`)
     if (!Number.isNaN(min) && !Number.isNaN(max) && !(Number.isFinite(min) && Number.isFinite(max) && min >= 0 && min < max))
       problems.push(`Size range must satisfy 0 ≤ min < max (got ${get(1)}–${get(2)})`)
-    if (!Number.isNaN(repeat) && !(Number.isFinite(repeat) && repeat > 0 && repeat <= 100)) problems.push('Repeat length must be a positive number of bases (at most 100)')
+    if (!Number.isNaN(repeat) && !(Number.isFinite(repeat) && repeat > 0 && repeat <= 100))
+      problems.push('Repeat length must be a positive number of bases (at most 100)')
     const key = label.toLowerCase()
     if (label !== '') {
       if (existing.has(key)) problems.push(`A locus named "${label}" already exists`)

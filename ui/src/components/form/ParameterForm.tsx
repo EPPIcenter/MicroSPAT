@@ -184,10 +184,7 @@ export function ParameterSections({
               </legend>
             )}
             {sec.description && <p className="-mt-1 mb-2 text-xs text-muted">{sec.description}</p>}
-            <div
-              className="grid gap-x-4 gap-y-3"
-              style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${columnWidth}px, 1fr))` }}
-            >
+            <div className="grid gap-x-4 gap-y-3" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${columnWidth}px, 1fr))` }}>
               {fields.map((f) => (
                 <SchemaField
                   key={f.key}

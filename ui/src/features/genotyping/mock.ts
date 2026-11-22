@@ -70,7 +70,8 @@ let binSeq = 5000
 const BINS = new Map<number, Bin[]>(
   LOCI.map((l) => {
     const bins: Bin[] = []
-    for (let bp = l.range[0] + 3; bp <= l.range[1] - 3; bp += l.repeat) bins.push({ id: binSeq++, label: String(Math.round(bp)), base_size: bp, bin_buffer: 0.75, peak_count: 40 })
+    for (let bp = l.range[0] + 3; bp <= l.range[1] - 3; bp += l.repeat)
+      bins.push({ id: binSeq++, label: String(Math.round(bp)), base_size: bp, bin_buffer: 0.75, peak_count: 40 })
     return [l.id, bins]
   }),
 )
@@ -119,7 +120,8 @@ const SAMPLES: MockSampleDef[] = []
       pullup: i === 9 ? 1 : undefined,
     })
   }
-  for (let j = 1; j <= 2; j++) SAMPLES.push({ id: 900100 + j, barcode: `MX-NTC-${j}`, designation: 'negative_control', clones: [], scale: 0 })
+  for (let j = 1; j <= 2; j++)
+    SAMPLES.push({ id: 900100 + j, barcode: `MX-NTC-${j}`, designation: 'negative_control', clones: [], scale: 0 })
 })()
 const SAMPLE_BY_ID = new Map(SAMPLES.map((s) => [s.id, s]))
 
@@ -212,7 +214,10 @@ function runOf(s: MockSampleDef, l: L, k = 0): Trace {
       ac += 2
       err += 3
     }
-    const near = bins.reduce<Bin | null>((best, b) => (Math.abs(b.base_size - p.size) < Math.abs((best?.base_size ?? Infinity) - p.size) ? b : best), null)
+    const near = bins.reduce<Bin | null>(
+      (best, b) => (Math.abs(b.base_size - p.size) < Math.abs((best?.base_size ?? Infinity) - p.size) ? b : best),
+      null,
+    )
     const dist = near ? Math.abs(near.base_size - p.size) : Infinity
     const pull = s.pullup === l.id && k === 0 && near && Math.abs(p.size - (bins[3]?.base_size ?? 0) - 0.2) < 0.3
     return makePeak({
@@ -286,7 +291,16 @@ function mockWell(id: number): WellDetail | null {
   const channels = colors.map((c, i) => {
     const mine = own.get(c)!
     const trace = mine.map((v, j) => Math.round(v + 0.02 * colors.reduce((a, o) => (o === c ? a : a + (own.get(o)![j] ?? 0)), 0)))
-    return { id: id * 10 + i, color: c, dye_number: i + 1, dye_name: `Dye ${i + 1} (${c})`, wavelength: null, max_signal: Math.max(...trace), trace, runs: [] }
+    return {
+      id: id * 10 + i,
+      color: c,
+      dye_number: i + 1,
+      dye_name: `Dye ${i + 1} (${c})`,
+      wavelength: null,
+      max_signal: Math.max(...trace),
+      trace,
+      runs: [],
+    }
   })
   return {
     id,
@@ -341,7 +355,8 @@ function flag(peaks: Peak[], g: GenotypingParams) {
       const bound = p.pullup_contribution + g.pullup_sd_limit * p.pullup_error
       const hit =
         p.height - p.artifact_contribution >= g.absolute_peak_height_limit
-          ? (bound > 0 && p.height - p.artifact_contribution <= bound) || (p.pullup_contribution > 0 && p.height - p.pullup_contribution < g.absolute_peak_height_limit)
+          ? (bound > 0 && p.height - p.artifact_contribution <= bound) ||
+            (p.pullup_contribution > 0 && p.height - p.pullup_contribution < g.absolute_peak_height_limit)
           : bound > 0 && p.height <= bound
       bleedthrough = hit || p.fallback_bleedthrough_ratio > g.bleedthrough_filter_limit
     }
@@ -354,7 +369,8 @@ function flag(peaks: Peak[], g: GenotypingParams) {
     }
   }
 }
-const callable = (p: Peak) => p.in_bin && p.bin_id != null && !(p.flags.artifact || p.flags.bleedthrough || p.flags.crosstalk || p.flags.below_relative_threshold)
+const callable = (p: Peak) =>
+  p.in_bin && p.bin_id != null && !(p.flags.artifact || p.flags.bleedthrough || p.flags.crosstalk || p.flags.below_relative_threshold)
 
 /** Shares of the called signal: height minus expected artifact, over every called peak (as the engine). */
 function quantify(c: StoredCall) {
@@ -390,12 +406,22 @@ function narrowMisses(c: StoredCall, g: GenotypingParams, bins: readonly Bin[]):
       if (left < limit && limit - left <= margin) hit = { reason: 'artifact', value: Math.round(left), limit }
     } else if (!(f.artifact || f.bleedthrough || f.crosstalk || f.below_relative_threshold) && p.probability != null) {
       const sds = (p.height - p.artifact_contribution) / Math.max(p.artifact_error, 1)
-      if (p.probability >= 0.5 && p.probability < g.probability_threshold && sds <= g.soft_artifact_sd_limit) hit = { reason: 'probability', value: r4(p.probability), limit: g.probability_threshold }
+      if (p.probability >= 0.5 && p.probability < g.probability_threshold && sds <= g.soft_artifact_sd_limit)
+        hit = { reason: 'probability', value: r4(p.probability), limit: g.probability_threshold }
     }
     if (!hit) continue
     const prev = by.get(p.bin_id)
     if (!prev || p.height > prev.p.height)
-      by.set(p.bin_id, { p, m: { bin_id: p.bin_id, label: bins.find((b) => b.id === p.bin_id)?.label ?? '?', size: Math.round(p.size * 100) / 100, height: Math.round(p.height), ...hit } })
+      by.set(p.bin_id, {
+        p,
+        m: {
+          bin_id: p.bin_id,
+          label: bins.find((b) => b.id === p.bin_id)?.label ?? '?',
+          size: Math.round(p.size * 100) / 100,
+          height: Math.round(p.height),
+          ...hit,
+        },
+      })
   }
   return [...by.values()].map((x) => x.m).sort((a, b) => a.size - b.size)
 }
@@ -409,11 +435,24 @@ function callLocus(p: MockProject, l: L) {
     const key = `${sid}:${l.id}`
     const prev = m.get(key)
     if (!s) {
-      m.set(key, { sample_id: sid, locus_id: l.id, reference_run_id: null, peaks: [], alleles: new Set(), failure: false, offscale: false, manual: false, comment: prev?.comment ?? null, reviewed: prev?.reviewed ?? null })
+      m.set(key, {
+        sample_id: sid,
+        locus_id: l.id,
+        reference_run_id: null,
+        peaks: [],
+        alleles: new Set(),
+        failure: false,
+        offscale: false,
+        manual: false,
+        comment: prev?.comment ?? null,
+        reviewed: prev?.reviewed ?? null,
+      })
       continue
     }
     const run = runOf(s, l)
-    const peaks = run.peaks.filter((x) => x.height >= params.filter.min_peak_height && x.height <= params.filter.max_peak_height).map((x) => ({ ...x, flags: { ...x.flags }, probability: null }))
+    const peaks = run.peaks
+      .filter((x) => x.height >= params.filter.min_peak_height && x.height <= params.filter.max_peak_height)
+      .map((x) => ({ ...x, flags: { ...x.flags }, probability: null }))
     flag(peaks, g)
     const failure = !peaks.some((x) => x.height > g.failure_threshold)
     const c: StoredCall = {
@@ -435,12 +474,29 @@ function callLocus(p: MockProject, l: L) {
 
 registerMockAnalyzer('genotyping', async (p, locus) => {
   const l = LOCI.find((x) => x.id === locus.id)
-  if (!l) return { locus_id: locus.id, locus_label: locus.label, run_count: 0, usable_runs: 0, summary: 'No runs at this locus.', warnings: ['No runs.'], ms: 1 }
+  if (!l)
+    return {
+      locus_id: locus.id,
+      locus_label: locus.label,
+      run_count: 0,
+      usable_runs: 0,
+      summary: 'No runs at this locus.',
+      warnings: ['No runs.'],
+      ms: 1,
+    }
   callLocus(p, l)
   const m = callsOf(p.id)
   const rows = [...p.samples.keys()].map((sid) => m.get(`${sid}:${l.id}`))
   const typed = rows.filter((c) => c && c.alleles.size).length
-  return { locus_id: l.id, locus_label: l.label, run_count: p.samples.size, usable_runs: p.samples.size, summary: `${typed} of ${p.samples.size} samples typed`, warnings: [], ms: 12 }
+  return {
+    locus_id: l.id,
+    locus_label: l.label,
+    run_count: p.samples.size,
+    usable_runs: p.samples.size,
+    summary: `${typed} of ${p.samples.size} samples typed`,
+    warnings: [],
+    ms: 12,
+  }
 })
 registerMockSampleRemover('genotyping', (p, ids) => {
   const m = callsOf(p.id)
@@ -481,7 +537,12 @@ function rowOf(p: MockProject, c: StoredCall): CallRow {
     designation: s.designation,
     reference_run_id: c.reference_run_id,
     alleles,
-    flags: { failure: c.failure, offscale: c.offscale, spectral: c.peaks.some((p) => p.in_bin && spectralBreakdown(p)), manual_curation: c.manual },
+    flags: {
+      failure: c.failure,
+      offscale: c.offscale,
+      spectral: c.peaks.some((p) => p.in_bin && spectralBreakdown(p)),
+      manual_curation: c.manual,
+    },
     moi: s.moi,
     comment: c.comment,
     peak_count: c.peaks.length,
@@ -526,7 +587,14 @@ function probabilities(p: MockProject) {
     }
     if (!c.manual && !c.failure)
       c.alleles = new Set(
-        c.peaks.filter((x) => callable(x) && ((x.probability ?? 0) >= g.probability_threshold || (x.height - x.artifact_contribution) / Math.max(x.artifact_error, 1) > g.soft_artifact_sd_limit)).map((x) => x.bin_id!),
+        c.peaks
+          .filter(
+            (x) =>
+              callable(x) &&
+              ((x.probability ?? 0) >= g.probability_threshold ||
+                (x.height - x.artifact_contribution) / Math.max(x.artifact_error, 1) > g.soft_artifact_sd_limit),
+          )
+          .map((x) => x.bin_id!),
       )
     quantify(c)
   }
@@ -540,8 +608,26 @@ async function seedProjects() {
   if (seeded) return
   seeded = true
   const common = { description: '', locus_set_id: 1, quant_bias_estimator_id: null, samples: new Map() } as const
-  const bins = createMockProject({ ...common, kind: 'bin_estimator', title: 'Mock bins', description: 'Bins from every mock sample.', bin_estimator_id: null, artifact_estimator_id: null, all_samples: true, samples: new Map() })
-  const art = createMockProject({ ...common, kind: 'artifact_estimator', title: 'Mock artifacts', description: 'Stutter model.', bin_estimator_id: bins.id, artifact_estimator_id: null, all_samples: true, samples: new Map() })
+  const bins = createMockProject({
+    ...common,
+    kind: 'bin_estimator',
+    title: 'Mock bins',
+    description: 'Bins from every mock sample.',
+    bin_estimator_id: null,
+    artifact_estimator_id: null,
+    all_samples: true,
+    samples: new Map(),
+  })
+  const art = createMockProject({
+    ...common,
+    kind: 'artifact_estimator',
+    title: 'Mock artifacts',
+    description: 'Stutter model.',
+    bin_estimator_id: bins.id,
+    artifact_estimator_id: null,
+    all_samples: true,
+    samples: new Map(),
+  })
   for (const l of LOCI) {
     markAnalyzed(bins, l.id)
     markAnalyzed(art, l.id)
@@ -586,9 +672,13 @@ function csv(rows: (string | number | null)[][]): string {
 
 function checkExport(p: MockProject, a: ExportParams) {
   if (a.allow_stale) return
-  const bad = LOCI.filter((l) => locusStatus(p, l.id).state !== 'current').map((l) => `${l.label} (${locusStatus(p, l.id).state === 'stale' ? 'stale' : 'not analyzed'})`)
-  if (bad.length) throw new RpcError('invalid', `Some loci need analysis: ${bad.join(', ')}. Analyze them, or export anyway with allow_stale.`)
-  if (probStatus(p)?.state === 'stale') throw new RpcError('invalid', 'Peak probabilities are stale. Recalculate them, or export anyway with allow_stale.')
+  const bad = LOCI.filter((l) => locusStatus(p, l.id).state !== 'current').map(
+    (l) => `${l.label} (${locusStatus(p, l.id).state === 'stale' ? 'stale' : 'not analyzed'})`,
+  )
+  if (bad.length)
+    throw new RpcError('invalid', `Some loci need analysis: ${bad.join(', ')}. Analyze them, or export anyway with allow_stale.`)
+  if (probStatus(p)?.state === 'stale')
+    throw new RpcError('invalid', 'Peak probabilities are stale. Recalculate them, or export anyway with allow_stale.')
 }
 
 const handlers: Record<string, MockHandler> = {
@@ -602,7 +692,10 @@ const handlers: Record<string, MockHandler> = {
     const l = (await locusLabelMap(p)).get(a.locus_id)
     if (!l) throw new RpcError('not_found', `Locus ${a.locus_id} is not in this project`)
     const m = callsOf(p.id)
-    const rows = [...p.samples.keys()].map((sid) => m.get(`${sid}:${a.locus_id}`)).filter((c): c is StoredCall => !!c).map((c) => rowOf(p, c))
+    const rows = [...p.samples.keys()]
+      .map((sid) => m.get(`${sid}:${a.locus_id}`))
+      .filter((c): c is StoredCall => !!c)
+      .map((c) => rowOf(p, c))
     const out: LocusCalls = {
       project_id: p.id,
       locus_id: a.locus_id,
@@ -656,7 +749,16 @@ const handlers: Record<string, MockHandler> = {
       row: rowOf(p, c),
       peaks: c.peaks,
       bins: BINS.get(l.id) ?? [],
-      reference: run && c.reference_run_id != null ? { run_id: c.reference_run_id, channel_id: channelId(a.sample_id, l.id, 0), color: l.color, trace: run.trace, base_sizes: run.base_sizes } : null,
+      reference:
+        run && c.reference_run_id != null
+          ? {
+              run_id: c.reference_run_id,
+              channel_id: channelId(a.sample_id, l.id, 0),
+              color: l.color,
+              trace: run.trace,
+              base_sizes: run.base_sizes,
+            }
+          : null,
       runs,
     }
     return view
@@ -677,7 +779,13 @@ const handlers: Record<string, MockHandler> = {
       designation: s.designation,
       moi: s.moi,
       ...(maxAlleles != null
-        ? { max_alleles: maxAlleles, max_alleles_loci: maxAlleles > 0 ? counts.filter((x) => x.c!.alleles.size === maxAlleles).map((x) => ({ locus_id: x.l.id, locus_label: x.l.label })) : [] }
+        ? {
+            max_alleles: maxAlleles,
+            max_alleles_loci:
+              maxAlleles > 0
+                ? counts.filter((x) => x.c!.alleles.size === maxAlleles).map((x) => ({ locus_id: x.l.id, locus_label: x.l.label }))
+                : [],
+          }
         : {}),
       probabilities: probStatus(p),
       loci: ls.map((l) => {
@@ -692,7 +800,15 @@ const handlers: Record<string, MockHandler> = {
           called: c
             ? c.peaks
                 .filter((x) => x.bin_id != null && c.alleles.has(x.bin_id))
-                .map((x) => ({ bin_id: x.bin_id!, label: bins.find((b) => b.id === x.bin_id)?.label ?? '?', size: x.size, height: x.height, relative_quantification: x.relative_quantification, corrected_relative_quantification: x.corrected_relative_quantification, probability: x.probability }))
+                .map((x) => ({
+                  bin_id: x.bin_id!,
+                  label: bins.find((b) => b.id === x.bin_id)?.label ?? '?',
+                  size: x.size,
+                  height: x.height,
+                  relative_quantification: x.relative_quantification,
+                  corrected_relative_quantification: x.corrected_relative_quantification,
+                  probability: x.probability,
+                }))
             : [],
         }
       }),
@@ -702,7 +818,8 @@ const handlers: Record<string, MockHandler> = {
   toggle_allele: (params, ctx) => {
     const a = params as ToggleAlleleParams
     const p = getProject(a.project_id)
-    if (!(BINS.get(a.locus_id) ?? []).some((b) => b.id === a.bin_id)) throw new RpcError('invalid', `Bin ${a.bin_id} is not a bin of this project's bin estimator at this locus.`)
+    if (!(BINS.get(a.locus_id) ?? []).some((b) => b.id === a.bin_id))
+      throw new RpcError('invalid', `Bin ${a.bin_id} is not a bin of this project's bin estimator at this locus.`)
     const c = getCall(p.id, a.sample_id, a.locus_id)
     if (c.alleles.has(a.bin_id)) c.alleles.delete(a.bin_id)
     else c.alleles.add(a.bin_id)
@@ -756,7 +873,11 @@ const handlers: Record<string, MockHandler> = {
     ctx.changed('projects', [p.id])
     const counts = new Map<number, number>()
     for (const s of p.samples.values()) if (s.moi != null) counts.set(s.moi, (counts.get(s.moi) ?? 0) + 1)
-    return { samples: p.samples.size, moi: [...counts].sort((x, y) => x[0] - y[0]).map(([moi, samples]) => ({ moi, samples })), manual_calls_kept: [...callsOf(p.id).values()].filter((c) => c.manual).length }
+    return {
+      samples: p.samples.size,
+      moi: [...counts].sort((x, y) => x[0] - y[0]).map(([moi, samples]) => ({ moi, samples })),
+      manual_calls_kept: [...callsOf(p.id).values()].filter((c) => c.manual).length,
+    }
   },
   get_genotyping_summary: async (params) => {
     const p = getProject((params as IdParams).id)
@@ -791,7 +912,14 @@ const handlers: Record<string, MockHandler> = {
           failure_rate: rows.length ? (failed + noRun) / rows.length : 0,
           alleles: (BINS.get(l.id) ?? []).map((b) => {
             const count = rows.filter((c) => c.alleles.has(b.id)).length
-            return { bin_id: b.id, label: b.label, base_size: b.base_size, count, prevalence: typed ? count / typed : 0, estimated_prevalence: p.prob ? (typed ? Math.max(0, count / typed - 0.01) : 0) : null }
+            return {
+              bin_id: b.id,
+              label: b.label,
+              base_size: b.base_size,
+              count,
+              prevalence: typed ? count / typed : 0,
+              estimated_prevalence: p.prob ? (typed ? Math.max(0, count / typed - 0.01) : 0) : null,
+            }
           }),
         }
       }),
@@ -809,7 +937,16 @@ const handlers: Record<string, MockHandler> = {
     const ls = await projectLoci(p)
     const m = callsOf(p.id)
     const rows: (string | null)[][] = [['Sample', ...ls.map((l) => l.label)]]
-    for (const [sid, s] of p.samples) rows.push([s.barcode, ...ls.map((l) => (BINS.get(l.id) ?? []).filter((b) => m.get(`${sid}:${l.id}`)?.alleles.has(b.id)).map((b) => b.label).join(';'))])
+    for (const [sid, s] of p.samples)
+      rows.push([
+        s.barcode,
+        ...ls.map((l) =>
+          (BINS.get(l.id) ?? [])
+            .filter((b) => m.get(`${sid}:${l.id}`)?.alleles.has(b.id))
+            .map((b) => b.label)
+            .join(';'),
+        ),
+      ])
     return { filename: `${p.title.replace(/\W+/g, '_')}_alleles.csv`, content: csv(rows) }
   },
   export_alleles_long: async (params) => {
@@ -818,7 +955,9 @@ const handlers: Record<string, MockHandler> = {
     checkExport(p, a)
     const ls = await projectLoci(p)
     const m = callsOf(p.id)
-    const rows: (string | number | null)[][] = [['Sample', 'Locus', 'Allele', 'Size', 'Height', 'Proportion', 'Corrected Proportion', 'Probability', 'MOI', 'Reviewed']]
+    const rows: (string | number | null)[][] = [
+      ['Sample', 'Locus', 'Allele', 'Size', 'Height', 'Proportion', 'Corrected Proportion', 'Probability', 'MOI', 'Reviewed'],
+    ]
     for (const [sid, s] of p.samples)
       for (const l of ls) {
         const c = m.get(`${sid}:${l.id}`)
@@ -826,7 +965,18 @@ const handlers: Record<string, MockHandler> = {
         for (const b of BINS.get(l.id) ?? []) {
           if (!c.alleles.has(b.id)) continue
           const pk = c.peaks.find((x) => x.bin_id === b.id)
-          rows.push([s.barcode, l.label, b.label, pk?.size.toFixed(2) ?? '', pk ? Math.round(pk.height) : '', pk?.relative_quantification?.toFixed(4) ?? '', pk?.corrected_relative_quantification?.toFixed(4) ?? '', pk?.probability?.toFixed(4) ?? '', s.moi, c.reviewed != null && c.reviewed === reviewKey(c) ? 'True' : 'False'])
+          rows.push([
+            s.barcode,
+            l.label,
+            b.label,
+            pk?.size.toFixed(2) ?? '',
+            pk ? Math.round(pk.height) : '',
+            pk?.relative_quantification?.toFixed(4) ?? '',
+            pk?.corrected_relative_quantification?.toFixed(4) ?? '',
+            pk?.probability?.toFixed(4) ?? '',
+            s.moi,
+            c.reviewed != null && c.reviewed === reviewKey(c) ? 'True' : 'False',
+          ])
         }
       }
     return { filename: `${p.title.replace(/\W+/g, '_')}_alleles_long.csv`, content: csv(rows) }
@@ -838,7 +988,36 @@ const handlers: Record<string, MockHandler> = {
     const ls = await projectLoci(p)
     const m = callsOf(p.id)
     const rows: (string | number | null)[][] = [
-      ['Sample', 'Locus', 'Peak Height', 'Relative Peak Height', 'Proportion', 'Corrected Proportion', 'Peak Size', 'Peak Area', 'Left Tail', 'Right Tail', 'Artifact Contribution', 'Artifact Error', 'In Bin', 'Called Allele', 'Allele Label', 'Bleedthrough Ratio', 'Crosstalk Ratio', 'Probability', 'Well', 'Artifact Flag', 'Below Relative Threshold Flag', 'Bleedthrough Flag', 'Crosstalk Flag', 'Height Share of All Peaks', 'Spectral Dip Ratio', 'Spectral Flag', 'Expected Pull-Up', 'Pull-Up Error'],
+      [
+        'Sample',
+        'Locus',
+        'Peak Height',
+        'Relative Peak Height',
+        'Proportion',
+        'Corrected Proportion',
+        'Peak Size',
+        'Peak Area',
+        'Left Tail',
+        'Right Tail',
+        'Artifact Contribution',
+        'Artifact Error',
+        'In Bin',
+        'Called Allele',
+        'Allele Label',
+        'Bleedthrough Ratio',
+        'Crosstalk Ratio',
+        'Probability',
+        'Well',
+        'Artifact Flag',
+        'Below Relative Threshold Flag',
+        'Bleedthrough Flag',
+        'Crosstalk Flag',
+        'Height Share of All Peaks',
+        'Spectral Dip Ratio',
+        'Spectral Flag',
+        'Expected Pull-Up',
+        'Pull-Up Error',
+      ],
     ]
     const T = (b: boolean) => (b ? 'True' : 'False')
     for (const [sid, s] of p.samples) {
@@ -848,7 +1027,36 @@ const handlers: Record<string, MockHandler> = {
         if (!c || c.failure) continue
         const total = c.peaks.reduce((a, x) => a + x.height, 0)
         for (const x of c.peaks)
-          rows.push([s.barcode, l.label, Math.round(x.height), x.relative_height.toFixed(4), x.relative_quantification?.toFixed(4) ?? 'NA', x.corrected_relative_quantification?.toFixed(4) ?? 'NA', x.size.toFixed(2), Math.round(x.area), 'NA', 'NA', x.artifact_contribution.toFixed(2), x.artifact_error.toFixed(2), T(x.in_bin), x.bin_id != null ? T(c.alleles.has(x.bin_id)) : '', x.bin_label ?? '', x.bleedthrough_ratio.toFixed(4), x.crosstalk_ratio.toFixed(4), x.probability?.toFixed(4) ?? 'NA', well, T(x.flags.artifact), T(x.flags.below_relative_threshold), T(x.flags.bleedthrough), T(x.flags.crosstalk), total ? (x.height / total).toFixed(4) : 'NA', x.spectral_dip_ratio.toFixed(4), T(x.flags.spectral), x.pullup_contribution?.toFixed(2) ?? 'NA', x.pullup_error?.toFixed(2) ?? 'NA'])
+          rows.push([
+            s.barcode,
+            l.label,
+            Math.round(x.height),
+            x.relative_height.toFixed(4),
+            x.relative_quantification?.toFixed(4) ?? 'NA',
+            x.corrected_relative_quantification?.toFixed(4) ?? 'NA',
+            x.size.toFixed(2),
+            Math.round(x.area),
+            'NA',
+            'NA',
+            x.artifact_contribution.toFixed(2),
+            x.artifact_error.toFixed(2),
+            T(x.in_bin),
+            x.bin_id != null ? T(c.alleles.has(x.bin_id)) : '',
+            x.bin_label ?? '',
+            x.bleedthrough_ratio.toFixed(4),
+            x.crosstalk_ratio.toFixed(4),
+            x.probability?.toFixed(4) ?? 'NA',
+            well,
+            T(x.flags.artifact),
+            T(x.flags.below_relative_threshold),
+            T(x.flags.bleedthrough),
+            T(x.flags.crosstalk),
+            total ? (x.height / total).toFixed(4) : 'NA',
+            x.spectral_dip_ratio.toFixed(4),
+            T(x.flags.spectral),
+            x.pullup_contribution?.toFixed(2) ?? 'NA',
+            x.pullup_error?.toFixed(2) ?? 'NA',
+          ])
       }
     }
     return { filename: `${p.title.replace(/\W+/g, '_')}_peak_data.csv`, content: csv(rows) }

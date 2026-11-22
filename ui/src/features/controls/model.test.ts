@@ -47,7 +47,15 @@ describe('controls', () => {
       { locus_id: 1, bin_id: null },
       { locus_id: 2, bin_id: 4 },
     ])
-    expect(changedAlleles(new Map([[1, 2], [2, null]]), null)).toEqual([{ locus_id: 1, bin_id: 2 }])
+    expect(
+      changedAlleles(
+        new Map([
+          [1, 2],
+          [2, null],
+        ]),
+        null,
+      ),
+    ).toEqual([{ locus_id: 1, bin_id: 2 }])
   })
   it('flags missing alleles, vanished bins and bins that are not current', () => {
     const issues = alleleIssues(
@@ -83,7 +91,9 @@ describe('controls', () => {
         { locus_id: 2, label: 'B', binsState: 'current' },
       ],
       new Map([[1, BINS]]),
-      deletedBins({ alleles: [{ locus_id: 1, locus_label: 'A', bin_id: null, bin_label: null, deleted_bin: { label: '210', base_size: 210.4 } }] }),
+      deletedBins({
+        alleles: [{ locus_id: 1, locus_label: 'A', bin_id: null, bin_label: null, deleted_bin: { label: '210', base_size: 210.4 } }],
+      }),
     )
     expect(issues.map((i) => [i.locusId, i.kind])).toEqual([
       [1, 'deleted'],

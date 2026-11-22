@@ -86,7 +86,10 @@ function ProjectsIndex() {
 function OverviewLoci({ detail, onOpen }: { detail: ProjectDetail; onOpen: (locusId: number) => void }) {
   const summary = useSummary(detail.project.id)
   const by = new Map((summary.data?.loci ?? []).map((l) => [l.locus_id, { calls: l.calls ?? 0, reviewed: l.reviewed ?? 0 }]))
-  const total = [...by.values()].reduce((a, b) => ({ calls: a.calls + b.calls, reviewed: a.reviewed + b.reviewed }), { calls: 0, reviewed: 0 })
+  const total = [...by.values()].reduce((a, b) => ({ calls: a.calls + b.calls, reviewed: a.reviewed + b.reviewed }), {
+    calls: 0,
+    reviewed: 0,
+  })
   return (
     <>
       {total.calls > 0 && (
@@ -101,7 +104,11 @@ function OverviewLoci({ detail, onOpen }: { detail: ProjectDetail; onOpen: (locu
         className="min-h-0 flex-1"
         trailing={(l) => {
           const p = by.get(l.locus_id)
-          return p && p.calls ? <span className={cn('num text-2xs', p.reviewed >= p.calls ? 'text-ok' : 'text-muted')}>{p.reviewed}/{p.calls} reviewed</span> : null
+          return p && p.calls ? (
+            <span className={cn('num text-2xs', p.reviewed >= p.calls ? 'text-ok' : 'text-muted')}>
+              {p.reviewed}/{p.calls} reviewed
+            </span>
+          ) : null
         }}
       />
     </>
@@ -148,15 +155,27 @@ function ProjectWorkspace({ projectId }: { projectId: number }) {
     [setSearch],
   )
 
-  if (project.isLoading) return <div className="grid h-full place-items-center text-muted"><Spinner /></div>
-  if (project.isError || !project.data) {
+  if (project.isLoading)
     return (
-      <NotFound what="project" error={project.error ?? undefined} back={{ to: '/projects', label: 'All genotyping projects' }} />
+      <div className="grid h-full place-items-center text-muted">
+        <Spinner />
+      </div>
     )
+  if (project.isError || !project.data) {
+    return <NotFound what="project" error={project.error ?? undefined} back={{ to: '/projects', label: 'All genotyping projects' }} />
   }
   const detail = project.data
   if (detail.project.kind !== 'genotyping') {
-    return <EmptyState title="Not a genotyping project" action={<Button asChild size="sm"><Link to="/projects">All genotyping projects</Link></Button>} />
+    return (
+      <EmptyState
+        title="Not a genotyping project"
+        action={
+          <Button asChild size="sm">
+            <Link to="/projects">All genotyping projects</Link>
+          </Button>
+        }
+      />
+    )
   }
   const p = detail.project
   const probStale = p.probabilities?.state === 'stale'
@@ -181,7 +200,10 @@ function ProjectWorkspace({ projectId }: { projectId: number }) {
             <TabsTrigger key={t} value={t} data-tab={t}>
               {TAB_LABEL[t]}
               {t === 'probabilities' && p.probabilities && p.probabilities.state !== 'current' && (
-                <span className={cn('ml-1 size-1.5 rounded-full', probStale ? 'bg-warn' : 'bg-faint')} aria-label={probStale ? 'stale' : 'not calculated'} />
+                <span
+                  className={cn('ml-1 size-1.5 rounded-full', probStale ? 'bg-warn' : 'bg-faint')}
+                  aria-label={probStale ? 'stale' : 'not calculated'}
+                />
               )}
               {t === 'samples' && <span className="num ml-0.5 text-2xs text-faint">{p.sample_count}</span>}
             </TabsTrigger>
@@ -191,7 +213,12 @@ function ProjectWorkspace({ projectId }: { projectId: number }) {
           <ReviewTab detail={detail} locusId={locusId} sampleId={sampleId} onSelect={select} active={tab === 'review'} />
         </TabsContent>
         <TabsContent value="sample" className="flex min-h-0 flex-col">
-          <SampleView detail={detail} sampleId={sampleId} onSelectSample={(s) => select({ sample: s })} onOpenReview={(l, s) => select({ tab: 'review', locus: l, sample: s })} />
+          <SampleView
+            detail={detail}
+            sampleId={sampleId}
+            onSelectSample={(s) => select({ sample: s })}
+            onOpenReview={(l, s) => select({ tab: 'review', locus: l, sample: s })}
+          />
         </TabsContent>
         <TabsContent value="probabilities" className="flex min-h-0 flex-col">
           <ProbabilitiesTab detail={detail} />

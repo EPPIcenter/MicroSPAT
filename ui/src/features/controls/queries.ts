@@ -18,7 +18,10 @@ export function useControls() {
 }
 
 export function locusBinsQuery(projectId: number, locusId: number) {
-  return { ...apiQuery(['projects', projectId, 'bins', locusId], 'get_locus_bins', { project_id: projectId, locus_id: locusId }), meta: { silent: true } }
+  return {
+    ...apiQuery(['projects', projectId, 'bins', locusId], 'get_locus_bins', { project_id: projectId, locus_id: locusId }),
+    meta: { silent: true },
+  }
 }
 
 /** Bins of a bin estimator at each locus, keyed by locus id (missing while loading). */

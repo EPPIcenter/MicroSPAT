@@ -88,8 +88,15 @@ export function alleleIssues(
   for (const l of loci) {
     const bin = alleles.get(l.locus_id) ?? null
     const bins = binsByLocus.get(l.locus_id)
-    if (l.binsState === 'not_analyzed') out.push({ locusId: l.locus_id, kind: 'no_bins', level: 'warn', text: `${l.label}: the bin estimator has no bins here yet.` })
-    else if (l.binsState === 'stale') out.push({ locusId: l.locus_id, kind: 'stale', level: 'warn', text: `${l.label}: the bin estimator's bins are out of date; re-estimating may remove or rename this allele's bin.` })
+    if (l.binsState === 'not_analyzed')
+      out.push({ locusId: l.locus_id, kind: 'no_bins', level: 'warn', text: `${l.label}: the bin estimator has no bins here yet.` })
+    else if (l.binsState === 'stale')
+      out.push({
+        locusId: l.locus_id,
+        kind: 'stale',
+        level: 'warn',
+        text: `${l.label}: the bin estimator's bins are out of date; re-estimating may remove or rename this allele's bin.`,
+      })
     const was = deleted.get(l.locus_id)
     if (bin == null && was)
       out.push({
@@ -99,7 +106,13 @@ export function alleleIssues(
         text: `${l.label}: its allele's bin ${was.label} (${was.base_size.toFixed(2)} bp) was deleted from the bin estimator. Pick the allele again.`,
       })
     else if (bin == null) out.push({ locusId: l.locus_id, kind: 'missing', level: 'warn', text: `${l.label}: no allele set.` })
-    else if (bins && !bins.some((b) => b.id === bin)) out.push({ locusId: l.locus_id, kind: 'gone', level: 'danger', text: `${l.label}: the allele's bin no longer exists in the bin estimator.` })
+    else if (bins && !bins.some((b) => b.id === bin))
+      out.push({
+        locusId: l.locus_id,
+        kind: 'gone',
+        level: 'danger',
+        text: `${l.label}: the allele's bin no longer exists in the bin estimator.`,
+      })
   }
   return out
 }

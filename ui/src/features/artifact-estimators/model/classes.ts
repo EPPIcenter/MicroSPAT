@@ -92,7 +92,8 @@ export const METHOD_HELP: Record<RegressionMethod, string> = {
   theil_sen: 'Median of pairwise slopes. Robust to outliers; the default for distance classes.',
   least_squares: 'Ordinary least squares. Pulled by outliers such as minor alleles that passed as stutter.',
   ransac: 'Fits the inliers of repeated random samples. Very tight when there is plenty of data, erratic with few points.',
-  no_slope: 'A flat line (at the mean ratio, or at the densest half with that error estimate). Used when parents cover too narrow a size range to measure a slope, or the line would go negative between them; the default for the global class.',
+  no_slope:
+    'A flat line (at the mean ratio, or at the densest half with that error estimate). Used when parents cover too narrow a size range to measure a slope, or the line would go negative between them; the default for the global class.',
 }
 
 export const ERROR_LABEL: Record<ErrorEstimator, string> = {

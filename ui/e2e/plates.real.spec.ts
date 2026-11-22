@@ -107,7 +107,9 @@ interface WellJson {
 
 async function plateWell(page: Page, plateLabel: string, wellLabel: string): Promise<WellJson> {
   const plates = await rpc<{ id: number; label: string }[]>(page, 'list_plates', null)
-  const plate = await rpc<{ wells: { id: number; label: string }[] }>(page, 'get_plate', { id: plates.find((p) => p.label === plateLabel)!.id })
+  const plate = await rpc<{ wells: { id: number; label: string }[] }>(page, 'get_plate', {
+    id: plates.find((p) => p.label === plateLabel)!.id,
+  })
   return rpc<WellJson>(page, 'get_well', { id: plate.wells.find((w) => w.label === wellLabel)!.id })
 }
 
@@ -199,7 +201,10 @@ test('edits a failed ladder from the candidates, with a live preview, and revert
   await expect(page.getByTestId('ladder-reason')).toContainText("Only 7 of the ladder's 21 peaks are assigned")
   await expect(page.getByTestId('well-inspector').getByText('edited by hand')).toBeVisible()
   await expect(well(page, 'A09').locator('[data-marker]')).toHaveCount(1)
-  await expect(page.getByTestId('plate-detail').getByTestId('sizing-counts').locator('[data-state=unusable]')).toHaveAttribute('title', /A09: Only 7 of the ladder's 21 peaks/)
+  await expect(page.getByTestId('plate-detail').getByTestId('sizing-counts').locator('[data-state=unusable]')).toHaveAttribute(
+    'title',
+    /A09: Only 7 of the ladder's 21 peaks/,
+  )
 
   await page.getByRole('button', { name: 'Automatic fit' }).click()
   await expect(page.getByTestId('well-sizing')).toContainText('Failed')
@@ -310,7 +315,10 @@ test('previews a corrected plate map from the engine’s assignments', async ({ 
 
 test.describe('plate quality', () => {
   function plateRow(page: Page, label: string): Locator {
-    return page.getByRole('grid', { name: 'Plates' }).getByRole('row').filter({ has: page.getByText(label, { exact: true }) })
+    return page
+      .getByRole('grid', { name: 'Plates' })
+      .getByRole('row')
+      .filter({ has: page.getByText(label, { exact: true }) })
   }
 
   test('shows each plate’s quality in the list and sorts by it', async ({ page }) => {
@@ -371,7 +379,10 @@ test.describe('plate quality', () => {
     await page.keyboard.press('Enter')
     await expect(well(page, 'F06')).toHaveAttribute('data-highlighted', 'true')
     // The other issue's wells replace them.
-    await issues.nth(1).getByRole('button', { name: /Weak wells/ }).click()
+    await issues
+      .nth(1)
+      .getByRole('button', { name: /Weak wells/ })
+      .click()
     await expect(highlighted).toHaveCount(3)
     await first.getByRole('button', { name: /Dyes not separated/ }).click()
 
@@ -403,10 +414,14 @@ test.describe('plate quality', () => {
     expect(pct).toBeGreaterThan(2)
     expect(pct).toBeLessThan(6)
     await expect(blueGreen).toHaveAttribute('title', /from \d+ peaks/)
-    await expect(panel.locator('[data-testid=pull-up-matrix] td[data-level=warning], [data-testid=pull-up-matrix] td[data-level=problem]')).toHaveCount(0)
+    await expect(
+      panel.locator('[data-testid=pull-up-matrix] td[data-level=warning], [data-testid=pull-up-matrix] td[data-level=problem]'),
+    ).toHaveCount(0)
     const next = panel.locator('[data-testid=crosstalk-table] td[data-distance="1"][data-saturated=false]')
     await expect(next).toHaveAttribute('data-level', 'ok')
-    await expect(panel.getByTestId('limits-legend')).toContainText('Calling accounts for each plate’s measured pull-up automatically; pull-up above 8% is unusual for a 3730 and above 20% points to a stale spectral calibration. Crosstalk uses the fixed limit up to 3.3%')
+    await expect(panel.getByTestId('limits-legend')).toContainText(
+      'Calling accounts for each plate’s measured pull-up automatically; pull-up above 8% is unusual for a 3730 and above 20% points to a stale spectral calibration. Crosstalk uses the fixed limit up to 3.3%',
+    )
     // The negative controls were checked against the plate map: no unexplained peaks.
     const controls = panel.getByTestId('quality-controls')
     await expect(controls).not.toContainText('not checked')

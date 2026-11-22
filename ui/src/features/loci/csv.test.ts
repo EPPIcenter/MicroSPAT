@@ -15,7 +15,10 @@ describe('parseCsv', () => {
     ])
   })
   it('round-trips through toCsvText', () => {
-    const rows = [['Label', 'Note'], ['P,1', 'a "b"']]
+    const rows = [
+      ['Label', 'Note'],
+      ['P,1', 'a "b"'],
+    ]
     expect(parseCsv(toCsvText(rows))).toEqual(rows)
   })
   it('normalizes headers like the engine', () => {

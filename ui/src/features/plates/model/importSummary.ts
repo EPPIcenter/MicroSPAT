@@ -37,11 +37,18 @@ export function summarizeImport(outcomes: readonly PlateImportOutcome[]): Import
 }
 
 /** Imported plates whose quality check found something, worst first: "DEMO-2: 1 problem, 1 note in the quality check". */
-export function qualityFindings(outcomes: readonly PlateImportOutcome[]): { label: string; plateId: number; worst: 'problem' | 'warning' | 'info'; text: string }[] {
+export function qualityFindings(
+  outcomes: readonly PlateImportOutcome[],
+): { label: string; plateId: number; worst: 'problem' | 'warning' | 'info'; text: string }[] {
   const rank = { problem: 0, warning: 1, info: 2 } as const
   return outcomes
     .filter((o) => o.status === 'imported' && o.plate_id != null && o.quality && issueCount(o.quality) > 0 && o.quality.worst)
-    .map((o) => ({ label: o.label, plateId: o.plate_id as number, worst: o.quality!.worst!, text: `${o.label}: ${qualityLabel(o.quality)} in the quality check` }))
+    .map((o) => ({
+      label: o.label,
+      plateId: o.plate_id as number,
+      worst: o.quality!.worst!,
+      text: `${o.label}: ${qualityLabel(o.quality)} in the quality check`,
+    }))
     .sort((a, b) => rank[a.worst] - rank[b.worst] || a.label.localeCompare(b.label, undefined, { numeric: true }))
 }
 

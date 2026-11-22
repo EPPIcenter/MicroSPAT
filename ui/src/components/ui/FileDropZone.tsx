@@ -5,13 +5,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Upload } from 'lucide-react'
 import { cn } from '@/lib/cn'
-import {
-  onNativeFileDrop,
-  pickFiles,
-  uploadFiles,
-  type PickFilesOptions,
-  type PickedFile,
-} from '@/api/transport'
+import { onNativeFileDrop, pickFiles, uploadFiles, type PickFilesOptions, type PickedFile } from '@/api/transport'
 import { toast } from '@/stores/toasts'
 import { Spinner } from './ProgressBar'
 

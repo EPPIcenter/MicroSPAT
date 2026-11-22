@@ -51,7 +51,10 @@ import { logit, sigmoid } from './model/beta'
 /** project id → sample id → components. */
 const mixtures = new Map<number, Map<number, MixtureComponent[]>>()
 /** project id → locus id → stored result. */
-const results = new Map<number, Map<number, { estimate: BiasEstimate | null; points: QuantBiasPoint[]; params: QuantBiasParams; mixtures: QuantBiasMixture[] }>>()
+const results = new Map<
+  number,
+  Map<number, { estimate: BiasEstimate | null; points: QuantBiasPoint[]; params: QuantBiasParams; mixtures: QuantBiasMixture[] }>
+>()
 
 const mixOf = (pid: number) => {
   let m = mixtures.get(pid)
@@ -59,8 +62,12 @@ const mixOf = (pid: number) => {
   return m
 }
 
-controlUse.count = (id) => [...mixtures.values()].reduce((n, m) => n + [...m.values()].filter((cs) => cs.some((c) => c.control_id === id)).length, 0)
-controlUse.titles = (id) => [...mixtures.entries()].filter(([, m]) => [...m.values()].some((cs) => cs.some((c) => c.control_id === id))).map(([pid]) => mockProjects.get(pid)?.title ?? `#${pid}`)
+controlUse.count = (id) =>
+  [...mixtures.values()].reduce((n, m) => n + [...m.values()].filter((cs) => cs.some((c) => c.control_id === id)).length, 0)
+controlUse.titles = (id) =>
+  [...mixtures.entries()]
+    .filter(([, m]) => [...m.values()].some((cs) => cs.some((c) => c.control_id === id)))
+    .map(([pid]) => mockProjects.get(pid)?.title ?? `#${pid}`)
 onMockProjectDeleted((id) => {
   mixtures.delete(id)
   results.delete(id)
@@ -115,17 +122,34 @@ async function analyzeLocus(p: MockProject, locusId: number, position: number) {
       byBin.set(bin.id, { c: { ...c, proportion: (had?.c.proportion ?? 0) + c.proportion }, bin })
     }
     const parts = [...byBin.values()]
-    const mixture: QuantBiasMixture = { sample_id: sid, barcode: s.barcode, reference_run_id: sid, plate_label: 'Demo plate', well_label: 'A01', used: false, components }
+    const mixture: QuantBiasMixture = {
+      sample_id: sid,
+      barcode: s.barcode,
+      reference_run_id: sid,
+      plate_label: 'Demo plate',
+      well_label: 'A01',
+      used: false,
+      components,
+    }
     mixtures.push(mixture)
     if (parts.length === 0) continue
     const sizes = parts.map((q) => q.bin.base_size + (r.next() - 0.5) * 0.2)
     const center = sizes.reduce((a, b) => a + b, 0) / sizes.length
-    const raw = parts.map((q, i) => sigmoid(logit(Math.min(0.999, Math.max(0.001, q.c.proportion))) + beta0 * (sizes[i]! - center) + (r.next() - 0.5) * 0.06))
+    const raw = parts.map((q, i) =>
+      sigmoid(logit(Math.min(0.999, Math.max(0.001, q.c.proportion))) + beta0 * (sizes[i]! - center) + (r.next() - 0.5) * 0.06),
+    )
     const tot = raw.reduce((a, b) => a + b, 0)
     const obs = raw.map((v) => v / tot)
     const scale = scaleOf(s.barcode)
     const pk: Peak[] = parts.map((q, i) => ({
-      ...makePeak({ index: 1000 + i * 30, size: sizes[i]!, height: Math.round(obs[i]! * scale), bin_id: q.bin.id, bin_label: q.bin.label, in_bin: true }),
+      ...makePeak({
+        index: 1000 + i * 30,
+        size: sizes[i]!,
+        height: Math.round(obs[i]! * scale),
+        bin_id: q.bin.id,
+        bin_label: q.bin.label,
+        in_bin: true,
+      }),
       true_proportion: q.c.proportion,
     }))
     // A stutter peak, which is not part of any control.
@@ -195,7 +219,9 @@ async function analyzeLocus(p: MockProject, locusId: number, position: number) {
   for (const [sid, group] of groupBy(points)) {
     void sid
     const center = group.reduce((a, q) => a + q.size, 0) / group.length
-    const raw = group.map((q) => (estimate ? sigmoid(logit(Math.min(0.9999, q.observed_proportion)) - estimate.beta * (q.size - center)) : q.observed_proportion))
+    const raw = group.map((q) =>
+      estimate ? sigmoid(logit(Math.min(0.9999, q.observed_proportion)) - estimate.beta * (q.size - center)) : q.observed_proportion,
+    )
     const sum = raw.reduce((a, v) => a + v, 0)
     group.forEach((q, i) => (q.corrected_proportion = raw[i]! / sum))
   }
@@ -225,7 +251,9 @@ registerMockAnalyzer('quant_bias_estimator', async (p, locus) => {
     locus_label: locus.label,
     run_count: mixOf(p.id).size,
     usable_runs: mixOf(p.id).size,
-    summary: est ? `β = ${est.beta.toFixed(4)} (SD ${est.sd.toFixed(3)}, R² ${est.r_squared.toFixed(2)}) from ${est.n_sets} control runs` : 'no estimate',
+    summary: est
+      ? `β = ${est.beta.toFixed(4)} (SD ${est.sd.toFixed(3)}, R² ${est.r_squared.toFixed(2)}) from ${est.n_sets} control runs`
+      : 'no estimate',
     warnings: est ? [] : [`No control run at ${locus.label} qualified for estimating β.`],
     ms: 12,
   }
@@ -243,7 +271,8 @@ async function seed() {
   if (!bins) return
   const byLabel = new Map([...mockControls.values()].map((c) => [c.label, c.id]))
   const defs: [string, string, string, number][] = []
-  for (const partner of ['DD2', 'HB3']) for (const share of [30, 50, 70, 90]) defs.push([`MIX-3D7-${partner}-${share}`, '3D7', partner, share / 100])
+  for (const partner of ['DD2', 'HB3'])
+    for (const share of [30, 50, 70, 90]) defs.push([`MIX-3D7-${partner}-${share}`, '3D7', partner, share / 100])
   defs.push(['MIX-3D7-DD2-50-HOT', '3D7', 'DD2', 0.5], ['MIX-3D7-HB3-60-WEAK', '3D7', 'HB3', 0.6])
   const p = createMockProject({
     kind: 'quant_bias_estimator',
@@ -317,7 +346,11 @@ function validate(p: MockProject, named: { name: string; sampleId: number; comps
   return problems
 }
 
-function apply(p: MockProject, named: { sampleId: number; name: string; comps: MixtureComponent[] }[], designation: Map<number, Sample['designation']>) {
+function apply(
+  p: MockProject,
+  named: { sampleId: number; name: string; comps: MixtureComponent[] }[],
+  designation: Map<number, Sample['designation']>,
+) {
   let added = 0
   let replaced = 0
   for (const { sampleId, name, comps } of named) {
@@ -338,7 +371,10 @@ function apply(p: MockProject, named: { sampleId: number; name: string; comps: M
 }
 
 const preview = (named: { name: string; comps: MixtureComponent[] }[]) =>
-  named.map((n) => ({ barcode: n.name, components: n.comps.map((c) => ({ control_id: c.control_id, label: labelOf(c.control_id) ?? c.label, proportion: c.proportion })) }))
+  named.map((n) => ({
+    barcode: n.name,
+    components: n.comps.map((c) => ({ control_id: c.control_id, label: labelOf(c.control_id) ?? c.label, proportion: c.proportion })),
+  }))
 
 async function samples(): Promise<Sample[]> {
   return (await dispatchMock('list_samples', null)) as Sample[]
@@ -352,7 +388,11 @@ const handlers: Record<string, MockHandler> = {
     const pid = (params as { id: number }).id
     const m = mixtures.get(pid)
     if (!m) return rows
-    return rows.map((r) => ({ ...r, run_count: r.run_count || 4, controls: (m.get(r.sample_id) ?? []).map((c) => ({ ...c, label: labelOf(c.control_id) })) }))
+    return rows.map((r) => ({
+      ...r,
+      run_count: r.run_count || 4,
+      controls: (m.get(r.sample_id) ?? []).map((c) => ({ ...c, label: labelOf(c.control_id) })),
+    }))
   },
   get_locus_quant_bias: async (params) => {
     const a = params as ProjectLocusParams
@@ -391,7 +431,9 @@ const handlers: Record<string, MockHandler> = {
     if (bi < 0) throw new RpcError('invalid', 'The controls CSV needs a Barcode column, then columns of CONTROL;PROPORTION.')
     const all = await samples()
     const byBarcode = new Map(all.map((s) => [s.barcode.toLowerCase(), s]))
-    const ctl = new Map([...mockControls.values()].filter((c) => c.bin_estimator_id === p.bin_estimator_id).map((c) => [c.label.toLowerCase(), c.id]))
+    const ctl = new Map(
+      [...mockControls.values()].filter((c) => c.bin_estimator_id === p.bin_estimator_id).map((c) => [c.label.toLowerCase(), c.id]),
+    )
     const problems: string[] = []
     const unknown: string[] = []
     const named: { name: string; sampleId: number; comps: MixtureComponent[] }[] = []
@@ -404,7 +446,8 @@ const handlers: Record<string, MockHandler> = {
         const parts = cell.split(';').map((x) => x.trim())
         if (parts.length !== 2 || !parts[0]) return void problems.push(`line ${k + 2}: "${cell}" should read CONTROL;PROPORTION`)
         const v = Number(parts[1])
-        if (!Number.isFinite(v) || parts[1] === '') return void problems.push(`line ${k + 2}: "${cell}": proportion "${parts[1]}" is not a number`)
+        if (!Number.isFinite(v) || parts[1] === '')
+          return void problems.push(`line ${k + 2}: "${cell}": proportion "${parts[1]}" is not a number`)
         const id = ctl.get(parts[0].toLowerCase())
         if (id == null) return void problems.push(`${barcode}: control "${parts[0]}" is not a control of this project's bin estimator`)
         comps.push({ control_id: id, label: parts[0], proportion: v })

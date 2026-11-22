@@ -74,7 +74,12 @@ function EstimatorsIndex() {
                   <Play size={12} /> Open bins
                 </Button>
               </div>
-              <LocusStatusList detail={detail.data} selected={null} onSelect={(l) => navigate(`${PATH}/${selected}?tab=bins&locus=${l}`)} className="min-h-0 flex-1" />
+              <LocusStatusList
+                detail={detail.data}
+                selected={null}
+                onSelect={(l) => navigate(`${PATH}/${selected}?tab=bins&locus=${l}`)}
+                className="min-h-0 flex-1"
+              />
             </div>
           )
         }
@@ -126,15 +131,27 @@ function EstimatorWorkspace({ projectId }: { projectId: number }) {
   }, [edits, project.data])
   useUnsavedChanges(dirtyLabels.length > 0, `bin edits at ${dirtyLabels.join(', ')}`)
 
-  if (project.isLoading) return <div className="grid h-full place-items-center text-muted"><Spinner /></div>
-  if (project.isError || !project.data) {
+  if (project.isLoading)
     return (
-      <NotFound what="bin estimator" error={project.error ?? undefined} back={{ to: PATH, label: 'All bin estimators' }} />
+      <div className="grid h-full place-items-center text-muted">
+        <Spinner />
+      </div>
     )
+  if (project.isError || !project.data) {
+    return <NotFound what="bin estimator" error={project.error ?? undefined} back={{ to: PATH, label: 'All bin estimators' }} />
   }
   const detail = project.data
   if (detail.project.kind !== 'bin_estimator') {
-    return <EmptyState title="Not a bin estimator" action={<Button asChild size="sm"><Link to={PATH}>All bin estimators</Link></Button>} />
+    return (
+      <EmptyState
+        title="Not a bin estimator"
+        action={
+          <Button asChild size="sm">
+            <Link to={PATH}>All bin estimators</Link>
+          </Button>
+        }
+      />
+    )
   }
   const p = detail.project
   return (
@@ -149,7 +166,14 @@ function EstimatorWorkspace({ projectId }: { projectId: number }) {
           </Button>
         }
         actions={
-          <Button size="sm" variant="ghost" onClick={() => void exp.run()} disabled={exp.busy} data-testid="export-bins" title={dirtyLabels.length ? 'Exports the saved bins; unsaved edits are not included' : 'Every bin of every locus as CSV'}>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => void exp.run()}
+            disabled={exp.busy}
+            data-testid="export-bins"
+            title={dirtyLabels.length ? 'Exports the saved bins; unsaved edits are not included' : 'Every bin of every locus as CSV'}
+          >
             {exp.busy ? <Spinner className="size-3" /> : <Download size={12} />} Export bins CSV
           </Button>
         }
@@ -168,7 +192,14 @@ function EstimatorWorkspace({ projectId }: { projectId: number }) {
           </TabsTrigger>
         </TabsList>
         <TabsContent value="bins" className="flex min-h-0 flex-col" forceMount hidden={tab !== 'bins'}>
-          <BinsTab detail={detail} locusId={locusId} onSelectLocus={onSelectLocus} edits={edits} setEdits={setEdits} active={tab === 'bins'} />
+          <BinsTab
+            detail={detail}
+            locusId={locusId}
+            onSelectLocus={onSelectLocus}
+            edits={edits}
+            setEdits={setEdits}
+            active={tab === 'bins'}
+          />
         </TabsContent>
         <TabsContent value="samples" className="flex min-h-0 flex-col">
           <SamplesTab detail={detail} />

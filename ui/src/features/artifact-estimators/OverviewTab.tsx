@@ -23,16 +23,17 @@ export function OverviewTab({ detail, onOpen }: { detail: ProjectDetail; onOpen:
   if (!detail.loci.length) return <EmptyState title="This project has no loci" />
   let flagged = 0
   let total = 0
-  for (const r of results) for (const e of r.data?.estimators ?? []) {
-    total++
-    if (e.equations.some((q) => fitWarnings(q).length)) flagged++
-  }
+  for (const r of results)
+    for (const e of r.data?.estimators ?? []) {
+      total++
+      if (e.equations.some((q) => fitWarnings(q).length)) flagged++
+    }
   return (
     <div className="min-h-0 flex-1 overflow-auto bg-bg" data-testid="artifact-overview">
       <p className="sticky top-0 z-[1] border-b border-line bg-surface px-3 py-1.5 text-xs text-muted">
         {countOf(total, 'class', 'classes')} at {countOf(detail.loci.length, 'locus', 'loci')}
-        {flagged > 0 && <span className="text-warn"> · {flagged} worth a look (amber)</span>}. Each tile: artifact height relative to the parent against parent size, the
-        fit with ±1 SD. Tiles of a locus share scales. Click one to open it.
+        {flagged > 0 && <span className="text-warn"> · {flagged} worth a look (amber)</span>}. Each tile: artifact height relative to the
+        parent against parent size, the fit with ±1 SD. Tiles of a locus share scales. Click one to open it.
       </p>
       <div className="flex flex-col gap-px">
         {detail.loci.map((l, i) => {
@@ -49,12 +50,18 @@ export function OverviewTab({ detail, onOpen }: { detail: ProjectDetail; onOpen:
                 <p className="num text-2xs text-faint">
                   {l.min_base_length}–{l.max_base_length} bp · {l.nucleotide_repeat_length} bp repeat
                 </p>
-                {r?.data?.mono_allelic_runs != null && <p className="text-2xs text-muted">{countOf(r.data.mono_allelic_runs, 'single-clone run')}</p>}
+                {r?.data?.mono_allelic_runs != null && (
+                  <p className="text-2xs text-muted">{countOf(r.data.mono_allelic_runs, 'single-clone run')}</p>
+                )}
                 <AnalysisBadge status={r?.data?.status ?? l.status} what={`${l.label} artifact classes`} className="mt-1" />
               </div>
               <div className="flex min-w-0 flex-1 flex-wrap gap-2">
                 {r?.isLoading && <Spinner />}
-                {r?.data && ests.length === 0 && <p className="self-center text-xs text-muted">{l.status.state === 'not_analyzed' ? 'Not analyzed.' : 'No classes: genotyping expects no stutter here.'}</p>}
+                {r?.data && ests.length === 0 && (
+                  <p className="self-center text-xs text-muted">
+                    {l.status.state === 'not_analyzed' ? 'Not analyzed.' : 'No classes: genotyping expects no stutter here.'}
+                  </p>
+                )}
                 {ests.map((e) => {
                   const n = className(e.artifact_distance, l.nucleotide_repeat_length)
                   const warnings = e.equations.flatMap(fitWarnings)
@@ -72,7 +79,13 @@ export function OverviewTab({ detail, onOpen }: { detail: ProjectDetail; onOpen:
                       data-testid="overview-tile"
                       data-class={n.label}
                     >
-                      <ArtifactThumb estimator={e} color={l.color} xDomain={[l.min_base_length, l.max_base_length]} yMax={n.global ? undefined : yMax} className="h-16 w-full" />
+                      <ArtifactThumb
+                        estimator={e}
+                        color={l.color}
+                        xDomain={[l.min_base_length, l.max_base_length]}
+                        yMax={n.global ? undefined : yMax}
+                        className="h-16 w-full"
+                      />
                       <span className="flex items-center gap-1 text-xs font-medium">
                         <span className="truncate">{n.label}</span>
                         {warnings.length > 0 && <AlertTriangle size={11} className="shrink-0 text-warn" aria-label="worth a look" />}

@@ -62,9 +62,7 @@ export function fitRepeatGrid(bins: readonly Bin[], repeat: number): RepeatGrid 
   // half-off bin does not tilt the grid. Twice, as bins may change index.
   for (let pass = 0; pass < 2; pass++) {
     const g: RepeatGrid = { origin, step, repeat }
-    const pts = bins
-      .map((b, i) => ({ ...gridPosition(g, b.base_size), x: b.base_size, w: w[i]! }))
-      .filter((p) => Math.abs(p.offset) <= tol)
+    const pts = bins.map((b, i) => ({ ...gridPosition(g, b.base_size), x: b.base_size, w: w[i]! })).filter((p) => Math.abs(p.offset) <= tol)
     if (new Set(pts.map((p) => p.k)).size < 3) break
     const slopes: number[] = []
     for (let i = 0; i < pts.length; i++)
@@ -72,7 +70,10 @@ export function fitRepeatGrid(bins: readonly Bin[], repeat: number): RepeatGrid 
         const dk = pts[j]!.k - pts[i]!.k
         if (dk !== 0) slopes.push((pts[j]!.x - pts[i]!.x) / dk)
       }
-    const s = weightedMedian(slopes, slopes.map(() => 1))
+    const s = weightedMedian(
+      slopes,
+      slopes.map(() => 1),
+    )
     // Mobility drift is small; a wild step means the bins are not on a grid.
     if (!(Math.abs(s - repeat) <= 0.05 * repeat)) break
     step = s
@@ -145,9 +146,15 @@ export function binIssues(bins: readonly Bin[], grid: RepeatGrid | null): Map<nu
   }
   for (const group of byLabel.values())
     if (group.length > 1)
-      for (const b of group) add(b.id, { kind: 'duplicate_label', message: `Label “${b.label.trim()}” is used by ${group.length} bins.`, others: group.filter((o) => o !== b).map((o) => o.id) })
+      for (const b of group)
+        add(b.id, {
+          kind: 'duplicate_label',
+          message: `Label “${b.label.trim()}” is used by ${group.length} bins.`,
+          others: group.filter((o) => o !== b).map((o) => o.id),
+        })
   for (const [a, b] of overlappingPairs(bins)) {
-    const amount = Math.min(a.base_size + a.bin_buffer, b.base_size + b.bin_buffer) - Math.max(a.base_size - a.bin_buffer, b.base_size - b.bin_buffer)
+    const amount =
+      Math.min(a.base_size + a.bin_buffer, b.base_size + b.bin_buffer) - Math.max(a.base_size - a.bin_buffer, b.base_size - b.bin_buffer)
     add(a.id, { kind: 'overlap', message: `Window overlaps bin ${b.label} by ${fmt(amount)} bp.`, others: [b.id] })
     add(b.id, { kind: 'overlap', message: `Window overlaps bin ${a.label} by ${fmt(amount)} bp.`, others: [a.id] })
   }

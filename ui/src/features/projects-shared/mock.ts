@@ -89,7 +89,13 @@ export function defaultParams(kind: ProjectKind): LocusParams {
       bootstrap_probability_threshold: 0.99,
     },
     bins: { min_peak_frequency: 10, default_bin_buffer: 0.75 },
-    artifact: { max_secondary_relative_peak_height: 0.4, min_artifact_peak_frequency: 10, min_artifact_run_fraction: 0.5, seed: 0, error_estimator: 'densest_half' },
+    artifact: {
+      max_secondary_relative_peak_height: 0.4,
+      min_artifact_peak_frequency: 10,
+      min_artifact_run_fraction: 0.5,
+      seed: 0,
+      error_estimator: 'densest_half',
+    },
     quant_bias: { min_peak_height: 1000, min_true_proportion: 0.25, offscale_threshold: 32000 },
   }
   ;(out as unknown as Record<string, unknown>)[sec] = kindDefaults[sec]
@@ -120,7 +126,7 @@ export async function projectLoci(p: MockProject): Promise<Locus[]> {
 /** What a locus result depends on; a different value means stale. */
 export function fingerprint(p: MockProject, locusId: number): Record<string, string> {
   const fp: Record<string, string> = { params: JSON.stringify(effectiveParams(p, locusId)) }
-  if (p.kind === 'genotyping' || p.kind === 'quant_bias_estimator') fp.samples = [...p.samples.keys()].sort().join(',')
+  if (p.kind === 'genotyping' || p.kind === 'quant_bias_estimator') fp.samples = [...p.samples.keys()].sort((a, b) => a - b).join(',')
   for (const id of [p.bin_estimator_id, p.artifact_estimator_id, p.quant_bias_estimator_id]) {
     if (id == null) continue
     const up = mockProjects.get(id)
@@ -152,11 +158,13 @@ export function probStatus(p: MockProject): AnalysisStatus | null {
   if (p.kind !== 'genotyping') return null
   if (!p.prob) return { state: 'not_analyzed', reasons: [], analyzed_at: null }
   const fp = probFingerprint(p)
-  return fp === p.prob.fp ? { state: 'current', reasons: [], analyzed_at: p.prob.at } : { state: 'stale', reasons: ['Loci were re-analyzed or samples changed since.'], analyzed_at: p.prob.at }
+  return fp === p.prob.fp
+    ? { state: 'current', reasons: [], analyzed_at: p.prob.at }
+    : { state: 'stale', reasons: ['Loci were re-analyzed or samples changed since.'], analyzed_at: p.prob.at }
 }
 
 export function probFingerprint(p: MockProject): string {
-  return JSON.stringify([[...p.analyzed.entries()].map(([k, v]) => [k, v.rev]), [...p.samples.keys()].sort()])
+  return JSON.stringify([[...p.analyzed.entries()].map(([k, v]) => [k, v.rev]), [...p.samples.keys()].sort((a, b) => a - b)])
 }
 
 function ref(id: number | null) {
@@ -199,7 +207,8 @@ export async function detailOf(p: MockProject): Promise<ProjectDetail> {
     if (!up) continue
     for (const l of ls) {
       const s = locusStatus(up, l.id)
-      if (s.state !== 'current') warnings.push(`${KINDS[up.kind].noun} “${up.title}” is ${s.state === 'stale' ? 'stale' : 'not analyzed'} at ${l.label}.`)
+      if (s.state !== 'current')
+        warnings.push(`${KINDS[up.kind].noun} “${up.title}” is ${s.state === 'stale' ? 'stale' : 'not analyzed'} at ${l.label}.`)
     }
   }
   return {
@@ -243,8 +252,19 @@ export function onMockProjectDeleted(fn: (id: number) => void): void {
   deleters.push(fn)
 }
 
-export function createMockProject(v: Omit<MockProject, 'id' | 'created_at' | 'updated_at' | 'params' | 'analyzed' | 'prob'> & Partial<Pick<MockProject, 'params' | 'analyzed' | 'prob'>>): MockProject {
-  const p: MockProject = { params: new Map(), analyzed: new Map(), prob: null, ...v, id: nextId++, created_at: nowIso(), updated_at: nowIso() }
+export function createMockProject(
+  v: Omit<MockProject, 'id' | 'created_at' | 'updated_at' | 'params' | 'analyzed' | 'prob'> &
+    Partial<Pick<MockProject, 'params' | 'analyzed' | 'prob'>>,
+): MockProject {
+  const p: MockProject = {
+    params: new Map(),
+    analyzed: new Map(),
+    prob: null,
+    ...v,
+    id: nextId++,
+    created_at: nowIso(),
+    updated_at: nowIso(),
+  }
   mockProjects.set(p.id, p)
   return p
 }
@@ -264,7 +284,11 @@ export function bumpRevision(p: MockProject, locusId: number): void {
   if (a) p.analyzed.set(locusId, { ...a, rev: rev++ })
 }
 
-async function checkLinks(kind: ProjectKind, locusSetId: number, links: Partial<Record<'bin_estimator_id' | 'artifact_estimator_id' | 'quant_bias_estimator_id', number | null | undefined>>) {
+async function checkLinks(
+  kind: ProjectKind,
+  locusSetId: number,
+  links: Partial<Record<'bin_estimator_id' | 'artifact_estimator_id' | 'quant_bias_estimator_id', number | null | undefined>>,
+) {
   const sets = await locusSets()
   const need = sets.find((s) => s.id === locusSetId)?.locus_ids ?? []
   for (const l of KINDS[kind].links) {
@@ -359,8 +383,14 @@ const handlers: Record<string, MockHandler> = {
   },
   delete_project: (params, ctx) => {
     const p = getProject((params as IdParams).id)
-    const deps = [...mockProjects.values()].filter((o) => [o.bin_estimator_id, o.artifact_estimator_id, o.quant_bias_estimator_id].includes(p.id))
-    if (deps.length) throw new RpcError('in_use', `${KINDS[p.kind].noun} “${p.title}” is used by ${deps.map((d) => `${KINDS[d.kind].noun.toLowerCase()} “${d.title}”`).join(', ')}. Unlink or delete those first.`)
+    const deps = [...mockProjects.values()].filter((o) =>
+      [o.bin_estimator_id, o.artifact_estimator_id, o.quant_bias_estimator_id].includes(p.id),
+    )
+    if (deps.length)
+      throw new RpcError(
+        'in_use',
+        `${KINDS[p.kind].noun} “${p.title}” is used by ${deps.map((d) => `${KINDS[d.kind].noun.toLowerCase()} “${d.title}”`).join(', ')}. Unlink or delete those first.`,
+      )
     mockProjects.delete(p.id)
     for (const f of deleters) f(p.id)
     ctx.changed('projects', null)
@@ -372,7 +402,14 @@ const handlers: Record<string, MockHandler> = {
     if (p.all_samples)
       return all
         .filter((s) => s.run_count > 0)
-        .map((s): ProjectSampleRow => ({ sample_id: s.id, barcode: s.barcode, designation: s.designation, run_count: s.run_count, moi: null, controls: [] }))
+        .map((s): ProjectSampleRow => ({
+          sample_id: s.id,
+          barcode: s.barcode,
+          designation: s.designation,
+          run_count: s.run_count,
+          moi: null,
+          controls: [],
+        }))
         .sort((a, b) => a.barcode.localeCompare(b.barcode, 'en', { numeric: true }))
     const ws = new Map(all.map((s) => [s.id, s]))
     const rows: ProjectSampleRow[] = [...p.samples.entries()].map(([id, s]) => ({
@@ -419,7 +456,11 @@ const handlers: Record<string, MockHandler> = {
   remove_project_samples: (params, ctx) => {
     const a = params as ProjectSamplesParams
     const p = getProject(a.id)
-    if (p.all_samples) throw new RpcError('invalid', 'This estimator uses every sample with runs. Add the samples to keep instead (that switches it to a list).')
+    if (p.all_samples)
+      throw new RpcError(
+        'invalid',
+        'This estimator uses every sample with runs. Add the samples to keep instead (that switches it to a list).',
+      )
     let n = 0
     for (const id of a.sample_ids) if (p.samples.delete(id)) n++
     sampleRemovers.get(p.kind)?.(p, a.sample_ids)
@@ -429,7 +470,11 @@ const handlers: Record<string, MockHandler> = {
   get_project_locus_params: async (params) => {
     const a = params as ProjectLocusParams
     const p = getProject(a.project_id)
-    const view: LocusParamsView = { locus_id: a.locus_id, params: effectiveParams(p, a.locus_id), is_default: !p.params.get(a.locus_id) || Object.keys(p.params.get(a.locus_id)!).length === 0 }
+    const view: LocusParamsView = {
+      locus_id: a.locus_id,
+      params: effectiveParams(p, a.locus_id),
+      is_default: !p.params.get(a.locus_id) || Object.keys(p.params.get(a.locus_id)!).length === 0,
+    }
     return view
   },
   update_project_locus_params: async (params, ctx) => {
@@ -469,7 +514,11 @@ const handlers: Record<string, MockHandler> = {
     const out: LocusAnalysis[] = []
     for (const l of ls) {
       const fn = analyzers.get(p.kind)
-      out.push(fn ? await fn(p, l) : { locus_id: l.id, locus_label: l.label, run_count: 0, usable_runs: 0, summary: 'analyzed', warnings: [], ms: 5 })
+      out.push(
+        fn
+          ? await fn(p, l)
+          : { locus_id: l.id, locus_label: l.label, run_count: 0, usable_runs: 0, summary: 'analyzed', warnings: [], ms: 5 },
+      )
       markAnalyzed(p, l.id)
     }
     touch(p, ctx)

@@ -107,17 +107,27 @@ describe('mixture editing', () => {
     const filled = fillRemainder(rows, rows[1]!.key)
     expect(mixtureSum(filled)).toBe(100)
     expect(filled[1]!.percent).toBe(70)
-    expect(describeMixture([{ control_id: 1, label: '3D7', proportion: 0.7 }, { control_id: 2, proportion: 0.30000000000000004 }], () => 'DD2')).toBe('3D7 70% · DD2 30%')
+    expect(
+      describeMixture(
+        [
+          { control_id: 1, label: '3D7', proportion: 0.7 },
+          { control_id: 2, proportion: 0.30000000000000004 },
+        ],
+        () => 'DD2',
+      ),
+    ).toBe('3D7 70% · DD2 30%')
   })
 })
 
 describe('control peaks and exclusion reasons', () => {
-  it('words the engine\'s reason with the fit\'s parameters', () => {
+  it("words the engine's reason with the fit's parameters", () => {
     expect(exclusionOf(pt({ used: true }), PARAMS)).toBeNull()
     const low = exclusionOf(pt({ true_proportion: 0.1, used: false, exclusion: 'below_min_true_proportion' }), PARAMS)!
     expect(low.label).toBe('share 10% below range')
     expect(low.text).toContain('25%–75%')
-    expect(exclusionOf(pt({ true_proportion: 0.9, used: false, exclusion: 'above_max_true_proportion' }), PARAMS)!.label).toBe('share 90% above range')
+    expect(exclusionOf(pt({ true_proportion: 0.9, used: false, exclusion: 'above_max_true_proportion' }), PARAMS)!.label).toBe(
+      'share 90% above range',
+    )
     expect(exclusionOf(pt({ height: 800, used: false, exclusion: 'below_min_height' }), PARAMS)!.text).toContain('800 RFU')
     expect(exclusionOf(pt({ used: false, exclusion: 'off_scale' }), PARAMS)!.text).toContain('32,000 RFU')
     expect(exclusionOf(pt({ used: false, exclusion: 'partner_excluded' }), null)!.code).toBe('partner_excluded')
@@ -128,24 +138,38 @@ describe('control peaks and exclusion reasons', () => {
     expect(missingText('bin_deleted')).toContain('deleted')
   })
   it('rows carry z-scores of used points and the allele label', () => {
-    const rows = buildPointRows([pt({ centered_size: -10, log_odds_error: 0.25, bin_id: 1, bin_label: '200', height: 4000 }), pt({ centered_size: 10, log_odds_error: -0.05, size: 220 })], PARAMS, {
-      beta: -0.005,
-      sd: 0.1,
-    })
+    const rows = buildPointRows(
+      [
+        pt({ centered_size: -10, log_odds_error: 0.25, bin_id: 1, bin_label: '200', height: 4000 }),
+        pt({ centered_size: 10, log_odds_error: -0.05, size: 220 }),
+      ],
+      PARAMS,
+      {
+        beta: -0.005,
+        sd: 0.1,
+      },
+    )
     expect(rows[0]!.height).toBe(4000)
     expect(rows[0]!.z).toBeCloseTo(2, 10)
     expect(rows[0]!.allele).toBe('200')
     expect(rows[1]!.allele).toBeNull()
   })
   it('correction accuracy compares observed and corrected shares with the truth', () => {
-    const acc = correctionAccuracy([pt({ observed_proportion: 0.55, corrected_proportion: 0.51 }), pt({ observed_proportion: 0.45, corrected_proportion: 0.49 })])
+    const acc = correctionAccuracy([
+      pt({ observed_proportion: 0.55, corrected_proportion: 0.51 }),
+      pt({ observed_proportion: 0.45, corrected_proportion: 0.49 }),
+    ])
     expect(acc!.before).toBeCloseTo(0.05)
     expect(acc!.after).toBeCloseTo(0.01)
   })
 })
 
 describe('plot geometry', () => {
-  const pts = [pt({ centered_size: -10, log_odds_error: 0.06 }), pt({ centered_size: 10, log_odds_error: -0.04 }), pt({ centered_size: 3, log_odds_error: null })]
+  const pts = [
+    pt({ centered_size: -10, log_odds_error: 0.06 }),
+    pt({ centered_size: 10, log_odds_error: -0.04 }),
+    pt({ centered_size: 3, log_odds_error: null }),
+  ]
   it('domains are symmetric around the origin and cover the line ± SD', () => {
     const d = regressionDomains(pts, -0.005, 0.01)
     expect(d.x[0]).toBeCloseTo(-d.x[1])
@@ -158,7 +182,13 @@ describe('plot geometry', () => {
     const d = regressionDomains(pts, -0.005, 0.01)
     const r = { x: 50, y: 10, w: 400, h: 200 }
     const s = plotScales(r, d.x, d.y)
-    const px = pixelPoints(pts, (p) => p.centered_size, (p) => p.log_odds_error, s.x, s.y)
+    const px = pixelPoints(
+      pts,
+      (p) => p.centered_size,
+      (p) => p.log_odds_error,
+      s.x,
+      s.y,
+    )
     expect(Number.isNaN(px[2]!.px)).toBe(true)
     expect(px[0]!.px).toBeLessThan(250)
     expect(px[0]!.py).toBeLessThan(110) // positive y is above the middle
@@ -210,7 +240,13 @@ describe('mixtures CSV preview', () => {
     const csv = 'Barcode,C1,C2\nMIX-01,3D7;0.7,DD2;0.2\nNOPE,3D7;0.5,DD2;0.5\nMIX-02,W2;0.5,DD2;0.5\nMIX-03,3D7;70,DD2 30\nMIX-01,3D7;1\n'
     const report: MixturesReport = {
       applied: false,
-      problems: ['MIX-01: proportions sum to 0.900, not 1', 'Unknown barcodes (1): NOPE', 'line 5: "DD2 30" should read CONTROL;PROPORTION', 'MIX-01 appears twice', 'Something else entirely'],
+      problems: [
+        'MIX-01: proportions sum to 0.900, not 1',
+        'Unknown barcodes (1): NOPE',
+        'line 5: "DD2 30" should read CONTROL;PROPORTION',
+        'MIX-01 appears twice',
+        'Something else entirely',
+      ],
       mixtures: [],
       added: 0,
       replaced: 0,
@@ -220,7 +256,7 @@ describe('mixtures CSV preview', () => {
     expect(p.rows.map((r) => r.problems)).toEqual([
       ['proportions sum to 0.9, not 1'],
       ['unknown barcode: no sample NOPE in the workspace'],
-      ['W2 is a control of “Other bins”, not of this project\'s bin estimator “Demo bins”'],
+      ["W2 is a control of “Other bins”, not of this project's bin estimator “Demo bins”"],
       ['3D7: proportion 70 must be above 0 and at most 1 (write 0.7, not 70)', '“DD2 30” should read CONTROL;PROPORTION'],
       ['listed twice (also line 2)'],
     ])
@@ -234,9 +270,22 @@ describe('mixtures CSV preview', () => {
     expect(p.canApply).toBe(false)
   })
   it('the template round-trips current mixtures or shows an example', () => {
-    expect(mixtureTemplate([], ['3D7', 'DD2'])).toBe('Barcode,Control 1,Control 2\nMIX-01,3D7;0.7,DD2;0.3\nMIX-02,3D7;0.5,DD2;0.5\nMIX-03,3D7;0.3,DD2;0.7\n')
-    expect(mixtureTemplate([{ barcode: 'A', controls: [{ label: '3D7', proportion: 0.30000000000000004 }, { label: 'DD2', proportion: 0.7 }] }], [])).toBe(
-      'Barcode,Control 1,Control 2\nA,3D7;0.3,DD2;0.7\n',
+    expect(mixtureTemplate([], ['3D7', 'DD2'])).toBe(
+      'Barcode,Control 1,Control 2\nMIX-01,3D7;0.7,DD2;0.3\nMIX-02,3D7;0.5,DD2;0.5\nMIX-03,3D7;0.3,DD2;0.7\n',
     )
+    expect(
+      mixtureTemplate(
+        [
+          {
+            barcode: 'A',
+            controls: [
+              { label: '3D7', proportion: 0.30000000000000004 },
+              { label: 'DD2', proportion: 0.7 },
+            ],
+          },
+        ],
+        [],
+      ),
+    ).toBe('Barcode,Control 1,Control 2\nA,3D7;0.3,DD2;0.7\n')
   })
 })

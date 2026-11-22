@@ -71,7 +71,9 @@ export function UnsavedChangesPrompt() {
   const dirty = Object.keys(sources).length > 0
   // Read the store when the navigation happens, not at render: a page may
   // resolve its edits and navigate in the same event handler.
-  const blocker = useBlocker(({ currentLocation, nextLocation }) => bypassing === 0 && hasUnsavedChanges() && currentLocation.pathname !== nextLocation.pathname)
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) => bypassing === 0 && hasUnsavedChanges() && currentLocation.pathname !== nextLocation.pathname,
+  )
 
   useEffect(() => {
     if (!dirty) return
@@ -103,8 +105,10 @@ export function UnsavedChangesPrompt() {
       title="Discard unsaved changes?"
       description={
         <span data-testid="unsaved-prompt">
-          {what.length === 1 ? `You have unsaved ${what[0]}.` : `You have unsaved ${what.slice(0, -1).join(', ')} and ${what[what.length - 1]}.`} Leaving this
-          page discards {what.length === 1 ? 'them' : 'all of them'}.
+          {what.length === 1
+            ? `You have unsaved ${what[0]}.`
+            : `You have unsaved ${what.slice(0, -1).join(', ')} and ${what[what.length - 1]}.`}{' '}
+          Leaving this page discards {what.length === 1 ? 'them' : 'all of them'}.
         </span>
       }
       cancelLabel="Keep editing"

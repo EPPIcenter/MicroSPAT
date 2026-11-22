@@ -13,7 +13,11 @@ import type { Rect } from '@/plot/axes'
  * centered and the sign of each point reads at a glance. Covers every point
  * and the fitted line ± SD at the x extremes.
  */
-export function regressionDomains(points: readonly Pick<QuantBiasPoint, 'centered_size' | 'log_odds_error'>[], beta: number | null, sd: number | null): { x: Domain; y: Domain } {
+export function regressionDomains(
+  points: readonly Pick<QuantBiasPoint, 'centered_size' | 'log_odds_error'>[],
+  beta: number | null,
+  sd: number | null,
+): { x: Domain; y: Domain } {
   let xm = 0
   let ym = 0
   for (const p of points) {
@@ -35,7 +39,13 @@ export function plotScales(r: Rect, x: Domain, y: Domain): { x: Scale; y: Scale 
 }
 
 /** Pixel position of every point (NaN for points that cannot be drawn). */
-export function pixelPoints<T>(items: readonly T[], fx: (t: T) => number | null, fy: (t: T) => number | null, sx: Scale, sy: Scale): PxPoint[] {
+export function pixelPoints<T>(
+  items: readonly T[],
+  fx: (t: T) => number | null,
+  fy: (t: T) => number | null,
+  sx: Scale,
+  sy: Scale,
+): PxPoint[] {
   return items.map((t) => {
     const x = fx(t)
     const y = fy(t)

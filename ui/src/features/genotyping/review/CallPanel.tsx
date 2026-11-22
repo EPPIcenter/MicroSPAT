@@ -95,9 +95,15 @@ export function CallPanel(props: CallPanelProps) {
   useEffect(() => onRows?.(rows), [rows, onRows])
 
   // Other runs as faded overlays.
-  const others = useMemo(() => (props.showRuns && view ? view.runs.filter((r) => r.run_id !== shown?.run_id) : []), [props.showRuns, view, shown])
+  const others = useMemo(
+    () => (props.showRuns && view ? view.runs.filter((r) => r.run_id !== shown?.run_id) : []),
+    [props.showRuns, view, shown],
+  )
   const otherTraces = useQueries({
-    queries: others.map((r) => ({ ...apiQuery(['plates', 'channel', r.channel_id], 'get_channel_trace', { id: r.channel_id }), meta: { silent: true } })),
+    queries: others.map((r) => ({
+      ...apiQuery(['plates', 'channel', r.channel_id], 'get_channel_trace', { id: r.channel_id }),
+      meta: { silent: true },
+    })),
   })
   const well = useWellTraces(props.showDyes && shown ? shown.plate_id : null, props.showDyes && shown ? shown.well_id : null)
 
@@ -105,16 +111,37 @@ export function CallPanel(props: CallPanelProps) {
   const series = useMemo<TraceSeries[]>(() => {
     if (!view || !mainTrace) return []
     const out: TraceSeries[] = [
-      { id: 'main', color: view.color, data: mainTrace.trace, baseSizes: mainTrace.base_sizes, label: `${view.barcode} · ${shown?.plate_label ?? ''} ${shown?.well_label ?? ''}` },
+      {
+        id: 'main',
+        color: view.color,
+        data: mainTrace.trace,
+        baseSizes: mainTrace.base_sizes,
+        label: `${view.barcode} · ${shown?.plate_label ?? ''} ${shown?.well_label ?? ''}`,
+      },
     ]
     others.forEach((r, i) => {
       const t = otherTraces[i]?.data
-      if (t) out.push({ id: `run-${r.run_id}`, color: view.color, data: t.trace, baseSizes: t.base_sizes, label: `${r.plate_label} ${r.well_label}`, overlay: true })
+      if (t)
+        out.push({
+          id: `run-${r.run_id}`,
+          color: view.color,
+          data: t.trace,
+          baseSizes: t.base_sizes,
+          label: `${r.plate_label} ${r.well_label}`,
+          overlay: true,
+        })
     })
     if (props.showDyes && well.data?.base_sizes) {
       for (const ch of well.data.channels) {
         if (ch.color === view.color || !ch.trace) continue
-        out.push({ id: `dye-${ch.color}`, color: ch.color, data: ch.trace, baseSizes: well.data.base_sizes, label: ch.dye_name ?? ch.color, overlay: true })
+        out.push({
+          id: `dye-${ch.color}`,
+          color: ch.color,
+          data: ch.trace,
+          baseSizes: well.data.base_sizes,
+          label: ch.dye_name ?? ch.color,
+          overlay: true,
+        })
       }
     }
     return out
@@ -133,20 +160,32 @@ export function CallPanel(props: CallPanelProps) {
         label: r.peak.bin_label,
         tag: r.n != null ? String(r.n) : undefined,
         selected: i === cursor,
-        expected: r.peak.artifact_contribution > 0 || r.peak.artifact_error > 0 ? { height: r.peak.artifact_contribution, error: r.peak.artifact_error } : null,
+        expected:
+          r.peak.artifact_contribution > 0 || r.peak.artifact_error > 0
+            ? { height: r.peak.artifact_contribution, error: r.peak.artifact_error }
+            : null,
         detail: [
           r.peak.bin_label ? `bin ${r.peak.bin_label}${r.peak.in_bin ? '' : ' (outside window)'}` : 'no bin',
           `rel. height ${fmtShare(r.peak.relative_height)}`,
           ...(r.peak.probability != null ? [`P(allele) ${fmtProbability(r.peak.probability)}`] : []),
           ...(r.narrow ? [`narrow miss: ${narrowMissText(r.narrow)}`] : []),
-          ...peakReasons(r.peak, ctx).filter((x) => !x.startsWith('Narrow miss')).slice(0, 2),
+          ...peakReasons(r.peak, ctx)
+            .filter((x) => !x.startsWith('Narrow miss'))
+            .slice(0, 2),
           ...(r.n != null ? [`press ${r.n} or click to toggle`] : []),
         ],
       })),
     [rows, cursor, ctx],
   )
   const bins = useMemo<TraceBin[]>(
-    () => (view?.bins ?? []).map((b) => ({ id: b.id, label: b.label, center: b.base_size, halfWidth: b.bin_buffer, highlighted: ctx.alleles.has(b.id) })),
+    () =>
+      (view?.bins ?? []).map((b) => ({
+        id: b.id,
+        label: b.label,
+        center: b.base_size,
+        halfWidth: b.bin_buffer,
+        highlighted: ctx.alleles.has(b.id),
+      })),
     [view?.bins, ctx],
   )
 
@@ -163,13 +202,22 @@ export function CallPanel(props: CallPanelProps) {
   const stale = view.status.state !== 'current'
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-surface" data-testid="call-panel" data-sample={view.barcode} data-locus={view.locus_label}>
+    <div
+      className="flex min-h-0 min-w-0 flex-1 flex-col bg-surface"
+      data-testid="call-panel"
+      data-sample={view.barcode}
+      data-locus={view.locus_label}
+    >
       <div className="flex min-h-9 shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b border-line px-2 py-1">
         <span className="text-sm font-semibold" data-testid="call-sample">
           {view.barcode}
         </span>
         <span className="text-xs text-muted">at {view.locus_label}</span>
-        {view.designation !== 'sample' && <span className="rounded bg-surface-3 px-1 text-2xs text-muted">{view.designation === 'negative_control' ? 'negative control' : 'positive control'}</span>}
+        {view.designation !== 'sample' && (
+          <span className="rounded bg-surface-3 px-1 text-2xs text-muted">
+            {view.designation === 'negative_control' ? 'negative control' : 'positive control'}
+          </span>
+        )}
         <span className="text-xs text-muted" data-testid="call-alleles" data-alleles={row.alleles.map((a) => a.label).join(';')}>
           {row.flags.failure ? (
             <span className="text-danger">failed</span>
@@ -182,10 +230,30 @@ export function CallPanel(props: CallPanelProps) {
             </>
           )}
         </span>
-        <MoiLine moi={sc ? sc.moi : row.moi} maxAlleles={sc?.max_alleles} maxLoci={sc?.max_alleles_loci} bootstrapThreshold={params?.bootstrap_probability_threshold} />
+        <MoiLine
+          moi={sc ? sc.moi : row.moi}
+          maxAlleles={sc?.max_alleles}
+          maxLoci={sc?.max_alleles_loci}
+          bootstrapThreshold={params?.bootstrap_probability_threshold}
+        />
         {narrow.length > 0 && (
-          <Tooltip content={<div className="space-y-0.5">{narrow.map((m) => <p key={m.bin_id}>{m.label} ({m.size.toFixed(2)} bp, {Math.round(m.height).toLocaleString('en-US')} RFU): {narrowMissText(m)}</p>)}</div>}>
-            <span tabIndex={-1} className="text-xs text-warn" data-testid="narrow-misses" data-narrow={narrow.map((m) => m.label).join(';')}>
+          <Tooltip
+            content={
+              <div className="space-y-0.5">
+                {narrow.map((m) => (
+                  <p key={m.bin_id}>
+                    {m.label} ({m.size.toFixed(2)} bp, {Math.round(m.height).toLocaleString('en-US')} RFU): {narrowMissText(m)}
+                  </p>
+                ))}
+              </div>
+            }
+          >
+            <span
+              tabIndex={-1}
+              className="text-xs text-warn"
+              data-testid="narrow-misses"
+              data-narrow={narrow.map((m) => m.label).join(';')}
+            >
               narrow miss{narrow.length > 1 ? 'es' : ''}: {narrow.map((m) => m.label).join(', ')}
             </span>
           </Tooltip>
@@ -193,18 +261,32 @@ export function CallPanel(props: CallPanelProps) {
         {row.flags.offscale && <span className="text-xs text-warn">off-scale</span>}
         {row.flags.spectral && <span className="text-xs text-warn">spectral breakdown</span>}
         {row.flags.manual_curation && (
-          <span className="inline-flex items-center gap-1 rounded bg-accent-soft px-1.5 text-2xs font-medium text-accent" data-testid="curated-marker">
+          <span
+            className="inline-flex items-center gap-1 rounded bg-accent-soft px-1.5 text-2xs font-medium text-accent"
+            data-testid="curated-marker"
+          >
             <Hand size={11} /> curated by hand
           </span>
         )}
         {stale && <AnalysisBadge status={view.status} what={`${view.locus_label} calls`} />}
         {props.placeholder && <Spinner className="size-3" />}
         <div className="ml-auto flex items-center gap-1">
-          <ReviewButton reviewed={props.reviewed} dropped={props.droppedReason} pending={!!props.reviewPending} onChange={props.onReviewed} />
+          <ReviewButton
+            reviewed={props.reviewed}
+            dropped={props.droppedReason}
+            pending={!!props.reviewPending}
+            onChange={props.onReviewed}
+          />
           <Button size="sm" variant="ghost" onClick={props.onUndo} disabled={!props.canUndo} title="Undo the last toggle (Z)">
             <Undo2 size={12} /> Undo
           </Button>
-          <ToggleChip on={props.showRuns} onChange={props.onShowRuns} disabled={view.runs.length < 2} label={`Other runs (${Math.max(0, view.runs.length - 1)})`} hint="R">
+          <ToggleChip
+            on={props.showRuns}
+            onChange={props.onShowRuns}
+            disabled={view.runs.length < 2}
+            label={`Other runs (${Math.max(0, view.runs.length - 1)})`}
+            hint="R"
+          >
             <Layers size={12} />
           </ToggleChip>
           <ToggleChip on={props.showDyes} onChange={props.onShowDyes} label="Other dyes" hint="D">
@@ -237,7 +319,11 @@ export function CallPanel(props: CallPanelProps) {
                   props.onCursor(i)
                   const p = rows[i]!.peak
                   if (p.bin_id != null) props.onToggle(p)
-                  else toast.info('This peak is outside every bin', 'Only bins can be called as alleles. Edit the bins in the bin estimator to add one.')
+                  else
+                    toast.info(
+                      'This peak is outside every bin',
+                      'Only bins can be called as alleles. Edit the bins in the bin estimator to add one.',
+                    )
                 }}
                 onBackgroundClick={(c) => {
                   if (c.bp == null) return
@@ -255,13 +341,24 @@ export function CallPanel(props: CallPanelProps) {
                   Overlays:
                   {series.slice(1).map((x) => (
                     <span key={x.id} className="inline-flex items-center gap-1 whitespace-nowrap">
-                      <span aria-hidden className="h-0.5 w-3 rounded" style={{ background: x.id.startsWith('dye-') ? `var(--dye-${x.color})` : 'var(--c-faint)' }} />
+                      <span
+                        aria-hidden
+                        className="h-0.5 w-3 rounded"
+                        style={{ background: x.id.startsWith('dye-') ? `var(--dye-${x.color})` : 'var(--c-faint)' }}
+                      />
                       {x.label}
                     </span>
                   ))}
                 </span>
               )}
-              {params && <span className="ml-auto text-2xs whitespace-nowrap text-faint" title="Dashed line: the minimum height above expected artifact">- - {params.absolute_peak_height_limit} RFU limit</span>}
+              {params && (
+                <span
+                  className="ml-auto text-2xs whitespace-nowrap text-faint"
+                  title="Dashed line: the minimum height above expected artifact"
+                >
+                  - - {params.absolute_peak_height_limit} RFU limit
+                </span>
+              )}
             </div>
           </div>
         }
@@ -284,7 +381,21 @@ export function CallPanel(props: CallPanelProps) {
   )
 }
 
-function ToggleChip({ on, onChange, disabled, label, hint, children }: { on: boolean; onChange: (v: boolean) => void; disabled?: boolean; label: string; hint: string; children: ReactNode }) {
+function ToggleChip({
+  on,
+  onChange,
+  disabled,
+  label,
+  hint,
+  children,
+}: {
+  on: boolean
+  onChange: (v: boolean) => void
+  disabled?: boolean
+  label: string
+  hint: string
+  children: ReactNode
+}) {
   return (
     <button
       type="button"
@@ -303,7 +414,15 @@ function ToggleChip({ on, onChange, disabled, label, hint, children }: { on: boo
   )
 }
 
-function CommentBox({ projectId, view, inputRef }: { projectId: number; view: SampleLocusCallView; inputRef: RefObject<HTMLTextAreaElement | null> }) {
+function CommentBox({
+  projectId,
+  view,
+  inputRef,
+}: {
+  projectId: number
+  view: SampleLocusCallView
+  inputRef: RefObject<HTMLTextAreaElement | null>
+}) {
   const saved = view.row.comment ?? ''
   const [text, setText] = useState(saved)
   const [prevSaved, setPrevSaved] = useState(saved)
@@ -313,7 +432,8 @@ function CommentBox({ projectId, view, inputRef }: { projectId: number; view: Sa
   }
   const qc = useQueryClient()
   const save = useMutation({
-    mutationFn: (c: string) => api.set_call_comment({ project_id: projectId, sample_id: view.sample_id, locus_id: view.locus_id, comment: c.trim() || null }),
+    mutationFn: (c: string) =>
+      api.set_call_comment({ project_id: projectId, sample_id: view.sample_id, locus_id: view.locus_id, comment: c.trim() || null }),
     meta: { errorTitle: 'Could not save the comment' },
     onSuccess: (row) => patchCallRow(qc, projectId, view.sample_id, view.locus_id, () => row),
   })
@@ -373,13 +493,19 @@ function RunsList({ view, shownId, onShow }: { view: SampleLocusCallView; shownI
             'flex items-center gap-1.5 rounded-[4px] border px-1.5 py-1 text-left text-xs',
             r.run_id === shownId ? 'border-accent bg-accent-soft' : 'border-line hover:bg-surface-2',
           )}
-          title={r.is_reference ? 'The run the call is based on' : 'Show this run instead (its peaks are annotated with the current parameters)'}
+          title={
+            r.is_reference ? 'The run the call is based on' : 'Show this run instead (its peaks are annotated with the current parameters)'
+          }
         >
           <span className="font-medium">
             {r.plate_label} {r.well_label}
           </span>
           {r.is_reference && <span className="rounded bg-surface-3 px-1 text-2xs text-muted">reference</span>}
-          <span className={cn('ml-auto text-2xs', r.sizing === 'good' ? 'text-muted' : r.sizing === 'flagged' ? 'text-warn' : 'text-danger')}>{r.sizing}</span>
+          <span
+            className={cn('ml-auto text-2xs', r.sizing === 'good' ? 'text-muted' : r.sizing === 'flagged' ? 'text-warn' : 'text-danger')}
+          >
+            {r.sizing}
+          </span>
           <span className="num text-2xs text-faint">{r.max_signal != null ? `${Math.round(r.max_signal)}` : ''}</span>
         </button>
       ))}
@@ -388,12 +514,31 @@ function RunsList({ view, shownId, onShow }: { view: SampleLocusCallView; shownI
 }
 
 /** Review mark of the call: a button that marks it reviewed or clears the mark; says why a mark was dropped. */
-function ReviewButton({ reviewed, dropped, pending, onChange }: { reviewed: boolean | null; dropped: string | null; pending: boolean; onChange: (v: boolean) => void }) {
+function ReviewButton({
+  reviewed,
+  dropped,
+  pending,
+  onChange,
+}: {
+  reviewed: boolean | null
+  dropped: string | null
+  pending: boolean
+  onChange: (v: boolean) => void
+}) {
   if (reviewed == null) return null
   if (reviewed)
     return (
       <Tooltip content="Reviewed: the mark stays while the alleles, flags and reference run stay the same. Click or press M to clear it.">
-        <Button size="sm" variant="ghost" className="text-ok" onClick={() => onChange(false)} disabled={pending} data-testid="review-state" data-reviewed="true" aria-pressed>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-ok"
+          onClick={() => onChange(false)}
+          disabled={pending}
+          data-testid="review-state"
+          data-reviewed="true"
+          aria-pressed
+        >
           <Check size={12} strokeWidth={2.5} /> Reviewed
         </Button>
       </Tooltip>
@@ -408,7 +553,15 @@ function ReviewButton({ reviewed, dropped, pending, onChange }: { reviewed: bool
         </Tooltip>
       )}
       <Tooltip content="Mark this call reviewed (M; Enter also moves to the next sample). The mark is dropped by itself if the call later changes.">
-        <Button size="sm" variant="secondary" onClick={() => onChange(true)} disabled={pending} data-testid="review-state" data-reviewed="false" aria-pressed={false}>
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => onChange(true)}
+          disabled={pending}
+          data-testid="review-state"
+          data-reviewed="false"
+          aria-pressed={false}
+        >
           <Check size={12} /> Mark reviewed
         </Button>
       </Tooltip>

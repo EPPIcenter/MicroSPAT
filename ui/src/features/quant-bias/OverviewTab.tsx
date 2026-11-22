@@ -68,13 +68,28 @@ export function OverviewTab({ detail, onOpenLocus }: { detail: ProjectDetail; on
   )
   const columns = useMemo<DataColumn<Row>[]>(
     () => [
-      { id: 'locus', header: 'Locus', value: (r) => r.locus.label, cell: (r) => <span className="font-medium">{r.locus.label}</span>, width: 90 },
-      { id: 'status', header: 'Status', value: (r) => r.locus.status.state, cell: (r) => <AnalysisBadge status={r.locus.status} what={`${r.locus.label} bias estimates`} />, width: 100, searchable: false },
+      {
+        id: 'locus',
+        header: 'Locus',
+        value: (r) => r.locus.label,
+        cell: (r) => <span className="font-medium">{r.locus.label}</span>,
+        width: 90,
+      },
+      {
+        id: 'status',
+        header: 'Status',
+        value: (r) => r.locus.status.state,
+        cell: (r) => <AnalysisBadge status={r.locus.status} what={`${r.locus.label} bias estimates`} />,
+        width: 100,
+        searchable: false,
+      },
       {
         id: 'beta',
         header: 'Beta /bp',
         value: (r) => r.beta,
-        cell: (r) => <span className={cn('num', r.issues.some((i) => i.level === 'danger') && 'font-semibold text-danger')}>{fmtBeta(r.beta)}</span>,
+        cell: (r) => (
+          <span className={cn('num', r.issues.some((i) => i.level === 'danger') && 'font-semibold text-danger')}>{fmtBeta(r.beta)}</span>
+        ),
         align: 'right',
         width: 80,
         searchable: false,
@@ -83,12 +98,28 @@ export function OverviewTab({ detail, onOpenLocus }: { detail: ProjectDetail; on
         id: 'ci',
         header: '95% interval',
         value: (r) => (r.lo == null ? null : r.hi! - r.lo),
-        cell: (r) => (r.lo == null ? <span className="text-faint">–</span> : <span className="num">{fmtBeta(r.lo)} … {fmtBeta(r.hi)}</span>),
+        cell: (r) =>
+          r.lo == null ? (
+            <span className="text-faint">–</span>
+          ) : (
+            <span className="num">
+              {fmtBeta(r.lo)} … {fmtBeta(r.hi)}
+            </span>
+          ),
         align: 'right',
         width: 176,
         searchable: false,
       },
-      { id: 'sd', header: 'SD', value: (r) => r.sd, cell: (r) => <span className="num">{fmtFixed(r.sd, 3)}</span>, align: 'right', width: 60, searchable: false, description: 'Residual SD of the log-ratio error (log-odds for two strains)' },
+      {
+        id: 'sd',
+        header: 'SD',
+        value: (r) => r.sd,
+        cell: (r) => <span className="num">{fmtFixed(r.sd, 3)}</span>,
+        align: 'right',
+        width: 60,
+        searchable: false,
+        description: 'Residual SD of the log-ratio error (log-odds for two strains)',
+      },
       {
         id: 'r2',
         header: 'R²',
@@ -105,7 +136,12 @@ export function OverviewTab({ detail, onOpenLocus }: { detail: ProjectDetail; on
         header: 'Shorter allele',
         description: 'How an allele with a true share of 50%, 10 bp shorter than its mixture’s center, appears at this β',
         value: (r) => (r.beta == null ? null : readBeta(r.beta).shortShare),
-        cell: (r) => (r.beta == null ? <span className="text-faint">–</span> : <span className="num">{(readBeta(r.beta).shortShare * 100).toFixed(1)}%</span>),
+        cell: (r) =>
+          r.beta == null ? (
+            <span className="text-faint">–</span>
+          ) : (
+            <span className="num">{(readBeta(r.beta).shortShare * 100).toFixed(1)}%</span>
+          ),
         align: 'right',
         width: 110,
         searchable: false,
@@ -116,7 +152,10 @@ export function OverviewTab({ detail, onOpenLocus }: { detail: ProjectDetail; on
         value: (r) => r.issues.map((i) => i.tag).join(', '),
         cell: (r) =>
           r.issues.length ? (
-            <span className={cn('truncate', r.issues.some((i) => i.level === 'danger') ? 'text-danger' : 'text-warn')} title={r.issues.map((i) => i.text).join('\n')}>
+            <span
+              className={cn('truncate', r.issues.some((i) => i.level === 'danger') ? 'text-danger' : 'text-warn')}
+              title={r.issues.map((i) => i.text).join('\n')}
+            >
               {r.issues.map((i) => i.tag).join(' · ')}
             </span>
           ) : r.loaded && r.locus.status.state !== 'not_analyzed' ? (
@@ -222,7 +261,14 @@ function ForestPlot({ rows, onOpen }: { rows: Row[]; onOpen: (id: number) => voi
           ctx.font = t.font
           if (row.beta == null) {
             ctx.textAlign = 'left'
-            haloText(ctx, row.loaded ? (row.locus.status.state === 'not_analyzed' ? 'not analyzed' : 'no estimate') : '…', x(0) + 6, cy, t.muted, t.bg)
+            haloText(
+              ctx,
+              row.loaded ? (row.locus.status.state === 'not_analyzed' ? 'not analyzed' : 'no estimate') : '…',
+              x(0) + 6,
+              cy,
+              t.muted,
+              t.bg,
+            )
             return
           }
           const col = danger ? t.danger : warn ? t.warn : t.select
@@ -269,7 +315,14 @@ function ForestPlot({ rows, onOpen }: { rows: Row[]; onOpen: (id: number) => voi
     return i >= 0 && i < rows.length ? i : null
   }
   return (
-    <div ref={boxRef} className="relative mt-1" style={{ height }} data-testid="forest-plot" role="img" aria-label={rows.map((r) => `${r.locus.label} β ${fmtBeta(r.beta)}`).join('; ')}>
+    <div
+      ref={boxRef}
+      className="relative mt-1"
+      style={{ height }}
+      data-testid="forest-plot"
+      role="img"
+      aria-label={rows.map((r) => `${r.locus.label} β ${fmtBeta(r.beta)}`).join('; ')}
+    >
       <canvas
         ref={canvasRef}
         className="absolute inset-0 h-full w-full cursor-pointer"

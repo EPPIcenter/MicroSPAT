@@ -6,11 +6,34 @@
  * with RMS or MAD error. Breakpoints, method changes, re-fits, deletions and
  * the equations CSV follow the engine's rules.
  */
-import type { ArtifactBreakpointParams, ArtifactParams, ArtifactEquation, ArtifactEstimatorView, ArtifactPoint, ErrorEstimator, IdParams, LocusArtifacts, ProjectLocusParams, RegressionMethod, Segment, SetArtifactErrorEstimatorParams, SetArtifactMethodParams } from '@/api/bindings'
+import type {
+  ArtifactBreakpointParams,
+  ArtifactParams,
+  ArtifactEquation,
+  ArtifactEstimatorView,
+  ArtifactPoint,
+  ErrorEstimator,
+  IdParams,
+  LocusArtifacts,
+  ProjectLocusParams,
+  RegressionMethod,
+  Segment,
+  SetArtifactErrorEstimatorParams,
+  SetArtifactMethodParams,
+} from '@/api/bindings'
 import { registerMocks, type MockHandler } from '@/api/mock/registry'
 import { RpcError } from '@/api/transport'
 import { rng } from '@/mock/data'
-import { bumpRevision, effectiveParams, fingerprint, getProject, locusStatus, projectLoci, registerMockAnalyzer, type MockProject } from '@/features/projects-shared/mock'
+import {
+  bumpRevision,
+  effectiveParams,
+  fingerprint,
+  getProject,
+  locusStatus,
+  projectLoci,
+  registerMockAnalyzer,
+  type MockProject,
+} from '@/features/projects-shared/mock'
 import { mockBinsOf, seedStudy } from '@/features/bin-estimators/mock'
 import { mockLocusRuns } from '@/features/bin-estimators/mockData'
 
@@ -98,7 +121,13 @@ function densestHalf(v: number[]): [number, number] {
 
 function fit(seg: Segment, x: number[], y: number[], seed: number) {
   const [slope, line] =
-    seg.method === 'least_squares' ? leastSquares(x, y) : seg.method === 'theil_sen' ? theilSen(x, y) : seg.method === 'ransac' ? ransac(x, y, seed) : [0, y.reduce((a, b) => a + b, 0) / y.length]
+    seg.method === 'least_squares'
+      ? leastSquares(x, y)
+      : seg.method === 'theil_sen'
+        ? theilSen(x, y)
+        : seg.method === 'ransac'
+          ? ransac(x, y, seed)
+          : [0, y.reduce((a, b) => a + b, 0) / y.length]
   const robust = seg.method !== 'least_squares'
   // Engine `densest_half_line`: the line moves to the middle of the shortest
   // band holding half the residuals, and the SD comes from that half.
@@ -108,7 +137,11 @@ function fit(seg: Segment, x: number[], y: number[], seed: number) {
   const my = y.reduce((a, b) => a + b, 0) / y.length
   const ssRes = res.reduce((a, b) => a + b * b, 0)
   const ssTot = y.reduce((a, b) => a + (b - my) ** 2, 0)
-  const sd = half ? 1.4826 * half[1] : robust && seg.error === 'mad' ? 1.4826 * median(res.map((v) => Math.abs(v))) : Math.sqrt(ssRes / y.length)
+  const sd = half
+    ? 1.4826 * half[1]
+    : robust && seg.error === 'mad'
+      ? 1.4826 * median(res.map((v) => Math.abs(v)))
+      : Math.sqrt(ssRes / y.length)
   return { slope, intercept, sd, r_squared: ssTot > 0 ? 1 - ssRes / ssTot : 0 }
 }
 
@@ -116,7 +149,9 @@ function refit(e: Est, segs: Segment[], seed: number) {
   const eqs: ArtifactEquation[] = []
   for (const [i, seg] of segs.entries()) {
     // Closed ranges; a point on a breakpoint belongs to the lower segment.
-    const pts = e.points.filter((p) => (i === 0 ? seg.start_size <= p.parent_size : seg.start_size < p.parent_size) && p.parent_size <= seg.end_size)
+    const pts = e.points.filter(
+      (p) => (i === 0 ? seg.start_size <= p.parent_size : seg.start_size < p.parent_size) && p.parent_size <= seg.end_size,
+    )
     if (!pts.length) continue
     eqs.push({
       segment: seg,
@@ -136,7 +171,13 @@ function refit(e: Est, segs: Segment[], seed: number) {
 
 function estimate(p: MockProject, locusId: number): LocusStore {
   const data = mockLocusRuns(locusId)
-  const prm: ArtifactParams = effectiveParams(p, locusId).artifact ?? { max_secondary_relative_peak_height: 0.4, min_artifact_peak_frequency: 10, min_artifact_run_fraction: 0.5, seed: 0, error_estimator: 'densest_half' }
+  const prm: ArtifactParams = effectiveParams(p, locusId).artifact ?? {
+    max_secondary_relative_peak_height: 0.4,
+    min_artifact_peak_frequency: 10,
+    min_artifact_run_fraction: 0.5,
+    seed: 0,
+    error_estimator: 'densest_half',
+  }
   const range: [number, number] = data?.range ?? [0, 500]
   if (!data) return { ests: [], mono: 0, range }
   const bins = p.bin_estimator_id != null ? mockBinsOf(p.bin_estimator_id, locusId) : []
@@ -149,7 +190,13 @@ function estimate(p: MockProject, locusId: number): LocusStore {
     if (main.length !== 1 || !inBin(main[0]!.size)) continue
     mono++
     const m = main[0]!
-    for (const pk of run) if (pk !== m) pool.push({ d: pk.size - m.size, pt: { parent_size: +m.size.toFixed(3), size: +pk.size.toFixed(3), relative_height: +(pk.height / m.height).toFixed(5) }, inBin: inBin(pk.size) })
+    for (const pk of run)
+      if (pk !== m)
+        pool.push({
+          d: pk.size - m.size,
+          pt: { parent_size: +m.size.toFixed(3), size: +pk.size.toFixed(3), relative_height: +(pk.height / m.height).toFixed(5) },
+          inBin: inBin(pk.size),
+        })
   }
   pool.sort((a, b) => a.d - b.d)
   const groups: (typeof pool)[] = []
@@ -173,7 +220,14 @@ function estimate(p: MockProject, locusId: number): LocusStore {
       continue
     }
     const sd = Math.sqrt(g.reduce((a, x) => a + (x.d - c) ** 2, 0) / g.length)
-    const e: Est = { id: estSeq++, label: c.toFixed(2), distance: +c.toFixed(3), buffer: +Math.max(0.5, 3 * sd).toFixed(3), points: g.map((x) => x.pt), equations: [] }
+    const e: Est = {
+      id: estSeq++,
+      label: c.toFixed(2),
+      distance: +c.toFixed(3),
+      buffer: +Math.max(0.5, 3 * sd).toFixed(3),
+      points: g.map((x) => x.pt),
+      equations: [],
+    }
     const xs = e.points.map((q) => q.parent_size)
     refit(e, [Math.max(...xs) - Math.min(...xs) < data.repeat ? { ...whole, method: 'no_slope' } : whole], prm.seed)
     ests.push(e)
@@ -199,7 +253,16 @@ function locusStore(p: MockProject, locusId: number): LocusStore {
 }
 
 function view(p: MockProject, locusId: number, e: Est): ArtifactEstimatorView {
-  return { id: e.id, project_id: p.id, locus_id: locusId, label: e.label, artifact_distance: e.distance, artifact_distance_buffer: e.buffer, points: e.points, equations: e.equations }
+  return {
+    id: e.id,
+    project_id: p.id,
+    locus_id: locusId,
+    label: e.label,
+    artifact_distance: e.distance,
+    artifact_distance_buffer: e.buffer,
+    points: e.points,
+    equations: e.equations,
+  }
 }
 
 function owner(id: number): { p: MockProject; lid: number; s: LocusStore; e: Est } {
@@ -244,9 +307,15 @@ const handlers: Record<string, MockHandler> = {
     const a = params as ProjectLocusParams
     const p = getProject(a.project_id)
     if (p.kind !== 'artifact_estimator') throw new RpcError('invalid', `Project ${p.title} is not an artifact estimator.`)
-    if (!(await projectLoci(p)).some((l) => l.id === a.locus_id)) throw new RpcError('not_found', `Locus ${a.locus_id} is not in this project.`)
+    if (!(await projectLoci(p)).some((l) => l.id === a.locus_id))
+      throw new RpcError('not_found', `Locus ${a.locus_id} is not in this project.`)
     const s = locusStore(p, a.locus_id)
-    return { locus_id: a.locus_id, estimators: s.ests.map((e) => view(p, a.locus_id, e)), mono_allelic_runs: p.analyzed.has(a.locus_id) ? s.mono : null, status: locusStatus(p, a.locus_id) }
+    return {
+      locus_id: a.locus_id,
+      estimators: s.ests.map((e) => view(p, a.locus_id, e)),
+      mono_allelic_runs: p.analyzed.has(a.locus_id) ? s.mono : null,
+      status: locusStatus(p, a.locus_id),
+    }
   },
   add_artifact_breakpoint: (params, ctx) => {
     const a = params as ArtifactBreakpointParams
@@ -337,7 +406,12 @@ const handlers: Record<string, MockHandler> = {
     }
     bumpRevision(p, a.locus_id)
     ctx.changed('projects', null)
-    const out: LocusArtifacts = { locus_id: a.locus_id, estimators: s.ests.map((e) => view(p, a.locus_id, e)), mono_allelic_runs: s.mono, status: locusStatus(p, a.locus_id) }
+    const out: LocusArtifacts = {
+      locus_id: a.locus_id,
+      estimators: s.ests.map((e) => view(p, a.locus_id, e)),
+      mono_allelic_runs: s.mono,
+      status: locusStatus(p, a.locus_id),
+    }
     return out
   },
   refit_artifact_estimator: (params, ctx) => edit((params as IdParams).id, (e, seed) => refit(e, segs(e), seed), ctx),
@@ -350,7 +424,22 @@ const handlers: Record<string, MockHandler> = {
   },
   export_artifact_equations: async (params) => {
     const p = getProject((params as IdParams).id)
-    const rows = [['Locus', 'Label', 'Artifact Distance', 'Distance Buffer', 'Start Size', 'End Size', 'Method', 'Slope', 'Intercept', 'SD', 'R Squared', 'Points']]
+    const rows = [
+      [
+        'Locus',
+        'Label',
+        'Artifact Distance',
+        'Distance Buffer',
+        'Start Size',
+        'End Size',
+        'Method',
+        'Slope',
+        'Intercept',
+        'SD',
+        'R Squared',
+        'Points',
+      ],
+    ]
     for (const l of await projectLoci(p))
       for (const e of locusStore(p, l.id).ests)
         for (const q of e.equations)

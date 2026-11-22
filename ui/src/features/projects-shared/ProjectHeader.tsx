@@ -12,7 +12,14 @@ import { AlertTriangle, ArrowRight, ChevronDown, Copy, MoreHorizontal, Pencil, P
 import { api } from '@/api/client'
 import type { AnalyzeProjectParams, AnalyzeProjectResult, ProjectDetail, ProjectKind } from '@/api/bindings'
 import { Button } from '@/components/ui/Button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/Menu'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/Menu'
 import { ProgressBar, Spinner } from '@/components/ui/ProgressBar'
 import { Tooltip } from '@/components/ui/Tooltip'
 import { cn } from '@/lib/cn'
@@ -88,7 +95,13 @@ export function AnalyzeButton({ detail, selectedLocusIds = [], size = 'sm' }: An
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button size={size} variant={needs.length ? 'primary' : 'secondary'} className="rounded-l-none border-l border-l-black/15 px-1.5" disabled={running} aria-label="More analyze options">
+            <Button
+              size={size}
+              variant={needs.length ? 'primary' : 'secondary'}
+              className="rounded-l-none border-l border-l-black/15 px-1.5"
+              disabled={running}
+              aria-label="More analyze options"
+            >
               <ChevronDown size={12} />
             </Button>
           </DropdownMenuTrigger>
@@ -103,7 +116,9 @@ export function AnalyzeButton({ detail, selectedLocusIds = [], size = 'sm' }: An
             {p.kind === 'genotyping' && (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuLabel className="normal-case tracking-normal font-normal text-muted">Re-analysis discards manual curation of those loci; comments are kept.</DropdownMenuLabel>
+                <DropdownMenuLabel className="normal-case tracking-normal font-normal text-muted">
+                  Re-analysis discards manual curation of those loci; comments are kept.
+                </DropdownMenuLabel>
               </>
             )}
           </DropdownMenuContent>
@@ -135,7 +150,10 @@ export function ProjectHeader({ detail, selectedLocusIds, actions, leading, onDu
   const [del, setDel] = useState(false)
   return (
     <>
-      <header className="flex min-h-11 shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-line bg-surface px-3 py-1.5" data-testid="project-header">
+      <header
+        className="flex min-h-11 shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-line bg-surface px-3 py-1.5"
+        data-testid="project-header"
+      >
         {leading}
         <div className="flex min-w-0 flex-col">
           <div className="flex min-w-0 items-baseline gap-2">
@@ -151,7 +169,11 @@ export function ProjectHeader({ detail, selectedLocusIds, actions, leading, onDu
                   overall.tone === 'ok' ? 'text-ok' : overall.tone === 'warn' ? 'text-warn' : 'text-muted',
                 )}
               >
-                <StatusIcon view={{ state: overall.tone === 'ok' ? 'current' : overall.tone === 'warn' ? 'stale' : 'not_analyzed' }} size={11} className="text-current" />
+                <StatusIcon
+                  view={{ state: overall.tone === 'ok' ? 'current' : overall.tone === 'warn' ? 'stale' : 'not_analyzed' }}
+                  size={11}
+                  className="text-current"
+                />
                 {overall.label}
               </span>
             </Tooltip>
@@ -168,7 +190,11 @@ export function ProjectHeader({ detail, selectedLocusIds, actions, leading, onDu
                   <span aria-hidden>·</span>
                   <ArrowRight size={10} className="rotate-180 text-faint" aria-hidden />
                   {ref ? (
-                    <Link to={projectPath(ref.kind, ref.id)} className="text-accent hover:underline" title={`${KINDS[ref.kind].noun}: ${l.purpose}`}>
+                    <Link
+                      to={projectPath(ref.kind, ref.id)}
+                      className="text-accent hover:underline"
+                      title={`${KINDS[ref.kind].noun}: ${l.purpose}`}
+                    >
                       {ref.title}
                     </Link>
                   ) : (
@@ -221,7 +247,11 @@ export function ProjectHeader({ detail, selectedLocusIds, actions, leading, onDu
         <DeleteDialog project={del ? p : null} onClose={() => setDel(false)} onDeleted={() => onDeleted?.()} />
       </header>
       {detail.upstream_warnings.length > 0 && (
-        <div className="flex shrink-0 gap-2 border-b border-warn/30 bg-warn-soft px-3 py-1.5 text-xs" role="status" data-testid="upstream-warnings">
+        <div
+          className="flex shrink-0 gap-2 border-b border-warn/30 bg-warn-soft px-3 py-1.5 text-xs"
+          role="status"
+          data-testid="upstream-warnings"
+        >
           <AlertTriangle size={13} className="mt-0.5 shrink-0 text-warn" />
           <div className="min-w-0 space-y-0.5">
             {detail.upstream_warnings.map((w) => (

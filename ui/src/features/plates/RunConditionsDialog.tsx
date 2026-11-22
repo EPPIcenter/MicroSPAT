@@ -15,7 +15,15 @@ const TRACES: { key: 'voltage' | 'current' | 'power' | 'temperature'; label: str
   { key: 'temperature', label: 'Temperature', unit: '°C', color: 'red' },
 ]
 
-export function RunConditionsDialog({ plate, open, onOpenChange }: { plate: PlateSummary; open: boolean; onOpenChange: (o: boolean) => void }) {
+export function RunConditionsDialog({
+  plate,
+  open,
+  onOpenChange,
+}: {
+  plate: PlateSummary
+  open: boolean
+  onOpenChange: (o: boolean) => void
+}) {
   const q = useRunTraces(plate.id, open)
   const stats = useMemo(() => {
     if (!q.data) return null

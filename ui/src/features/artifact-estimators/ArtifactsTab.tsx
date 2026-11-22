@@ -79,7 +79,9 @@ export function ArtifactsTab({ detail, locusId, classId, onSelect, active }: Art
       const deps = detail.dependents
       toast.success(
         `${locus?.label ?? 'Locus'}: errors estimated by ${ERROR_LABEL[v]}`,
-        deps.length ? `${deps.map((d) => d.title).join(', ')} ${deps.length === 1 ? 'is' : 'are'} now stale here until re-analyzed.` : undefined,
+        deps.length
+          ? `${deps.map((d) => d.title).join(', ')} ${deps.length === 1 ? 'is' : 'are'} now stale here until re-analyzed.`
+          : undefined,
       )
     },
   })
@@ -109,7 +111,9 @@ export function ArtifactsTab({ detail, locusId, classId, onSelect, active }: Art
 
   if (!locus || lid == null) return <EmptyState title="This project has no loci" />
   const status = view?.status ?? locus.status
-  const auto = current ? autoExample(current, locus) : { size: Math.round((locus.min_base_length + locus.max_base_length) / 2), height: 10000 }
+  const auto = current
+    ? autoExample(current, locus)
+    : { size: Math.round((locus.min_base_length + locus.max_base_length) / 2), height: 10000 }
   const example: Example = { size: examples[lid]?.size ?? auto.size, height: examples[lid]?.height ?? auto.height }
   const dependents = detail.dependents.map((d) => d.title)
 
@@ -124,14 +128,26 @@ export function ArtifactsTab({ detail, locusId, classId, onSelect, active }: Art
           </Button>
         }
       >
-        Analyzing bins every run with the linked bin estimator, keeps runs with a single dominant peak in a bin, groups their other peaks by distance from it,
-        and fits each frequent distance class against the main peak’s size. It runs in the background.
+        Analyzing bins every run with the linked bin estimator, keeps runs with a single dominant peak in a bin, groups their other peaks by
+        distance from it, and fits each frequent distance class against the main peak’s size. It runs in the background.
       </EmptyState>
     )
-  else if (data.isLoading && !view) main = <div className="grid flex-1 place-items-center text-muted"><Spinner /></div>
+  else if (data.isLoading && !view)
+    main = (
+      <div className="grid flex-1 place-items-center text-muted">
+        <Spinner />
+      </div>
+    )
   else if (data.isError && !view)
     main = (
-      <EmptyState title="Could not load the artifact classes" action={<Button size="sm" onClick={() => void data.refetch()}>Try again</Button>}>
+      <EmptyState
+        title="Could not load the artifact classes"
+        action={
+          <Button size="sm" onClick={() => void data.refetch()}>
+            Try again
+          </Button>
+        }
+      >
         {(data.error as Error).message}
       </EmptyState>
     )
@@ -165,8 +181,8 @@ export function ArtifactsTab({ detail, locusId, classId, onSelect, active }: Art
       />
     ) : (
       <EmptyState title={`No artifact classes at ${locus.label}`}>
-        No distance class had enough peaks in enough single-clone runs. Lower the minimum artifact peak frequency or run fraction in the parameters, or add
-        samples, and re-analyze. Without classes, genotyping expects no stutter at this locus.
+        No distance class had enough peaks in enough single-clone runs. Lower the minimum artifact peak frequency or run fraction in the
+        parameters, or add samples, and re-analyze. Without classes, genotyping expects no stutter at this locus.
       </EmptyState>
     )
     main = (
@@ -197,8 +213,21 @@ export function ArtifactsTab({ detail, locusId, classId, onSelect, active }: Art
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-testid="artifacts-tab">
       <div className="flex h-9 shrink-0 items-center gap-2 border-b border-line bg-surface px-2">
-        <LocusStatusList variant="strip" detail={detail} selected={lid} onSelect={(id) => onSelect({ locus: id, cls: null })} className="min-w-0 flex-1" />
-        <Button size="sm" variant={showParams ? 'secondary' : 'ghost'} aria-pressed={showParams} onClick={() => setShowParams((v) => !v)} data-testid="toggle-params" title="Parameters of this locus (P)">
+        <LocusStatusList
+          variant="strip"
+          detail={detail}
+          selected={lid}
+          onSelect={(id) => onSelect({ locus: id, cls: null })}
+          className="min-w-0 flex-1"
+        />
+        <Button
+          size="sm"
+          variant={showParams ? 'secondary' : 'ghost'}
+          aria-pressed={showParams}
+          onClick={() => setShowParams((v) => !v)}
+          data-testid="toggle-params"
+          title="Parameters of this locus (P)"
+        >
           <SlidersHorizontal size={12} /> Parameters <Kbd>P</Kbd>
         </Button>
       </div>
@@ -269,7 +298,13 @@ function ClassList({
           const warnings = c.equations.flatMap(fitWarnings)
           const active = c.id === selected
           const methods = [...new Set(c.equations.map((q) => METHOD_LABEL[q.segment.method]))].join(', ')
-          const meanSd = c.equations.length ? c.equations.reduce((a, q) => a + q.fit.sd * q.n_points, 0) / Math.max(1, c.equations.reduce((a, q) => a + q.n_points, 0)) : 0
+          const meanSd = c.equations.length
+            ? c.equations.reduce((a, q) => a + q.fit.sd * q.n_points, 0) /
+              Math.max(
+                1,
+                c.equations.reduce((a, q) => a + q.n_points, 0),
+              )
+            : 0
           return (
             <li
               key={c.id}
@@ -293,7 +328,14 @@ function ClassList({
                 active ? 'bg-accent-soft' : 'hover:bg-surface-3/60',
               )}
             >
-              <ArtifactThumb estimator={c} color={locus.color} xDomain={xDomain} yMax={n.global ? undefined : yMax} warn={warnings.length > 0} className="h-11 w-[76px] shrink-0" />
+              <ArtifactThumb
+                estimator={c}
+                color={locus.color}
+                xDomain={xDomain}
+                yMax={n.global ? undefined : yMax}
+                warn={warnings.length > 0}
+                className="h-11 w-[76px] shrink-0"
+              />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1">
                   <span className={cn('truncate text-[13px]', active && 'font-semibold')}>{n.label}</span>
@@ -305,8 +347,21 @@ function ClassList({
                     </Tooltip>
                   )}
                   {warnings.length > 0 && (
-                    <Tooltip content={<ul className="max-w-72 space-y-0.5">{warnings.map((w) => <li key={w.text}>{w.text}</li>)}</ul>}>
-                      <span tabIndex={0} className="text-warn outline-none" aria-label={warnings.map((w) => w.text).join(' ')} data-testid="class-warning">
+                    <Tooltip
+                      content={
+                        <ul className="max-w-72 space-y-0.5">
+                          {warnings.map((w) => (
+                            <li key={w.text}>{w.text}</li>
+                          ))}
+                        </ul>
+                      }
+                    >
+                      <span
+                        tabIndex={0}
+                        className="text-warn outline-none"
+                        aria-label={warnings.map((w) => w.text).join(' ')}
+                        data-testid="class-warning"
+                      >
                         <AlertTriangle size={11} />
                       </span>
                     </Tooltip>

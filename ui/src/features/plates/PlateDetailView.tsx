@@ -16,7 +16,14 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { NotFound } from '@/components/ui/EmptyState'
 import { Spinner } from '@/components/ui/ProgressBar'
 import { SplitView } from '@/components/ui/SplitView'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/Menu'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/Menu'
 import { usePreferencesStore } from '@/stores/preferences'
 import { useTaskStore } from '@/stores/tasks'
 import { toast } from '@/stores/toasts'
@@ -44,9 +51,7 @@ export function PlateDetailView({ plateId, ladders }: { plateId: number; ladders
     )
   }
   if (!q.data) {
-    return (
-      <NotFound what="plate" error={q.error ?? undefined} />
-    )
+    return <NotFound what="plate" error={q.error ?? undefined} />
   }
   return <Loaded detail={q.data} ladders={ladders} />
 }
@@ -92,10 +97,15 @@ function Loaded({ detail, ladders }: { detail: PlateDetail; ladders: readonly La
   const well = detail.wells.find((w) => w.label === wellLabel) ?? null
   const draftIds = useMemo(() => new Set(Object.keys(drafts).map(Number)), [drafts])
   const draftLabels = detail.wells.filter((w) => draftIds.has(w.id)).map((w) => w.label)
-  useUnsavedChanges(draftLabels.length > 0, `ladder edits on ${draftLabels.length === 1 ? `well ${draftLabels[0]}` : `${draftLabels.length} wells (${draftLabels.slice(0, 4).join(', ')}${draftLabels.length > 4 ? ', …' : ''})`} of ${plate.label}`)
+  useUnsavedChanges(
+    draftLabels.length > 0,
+    `ladder edits on ${draftLabels.length === 1 ? `well ${draftLabels[0]}` : `${draftLabels.length} wells (${draftLabels.slice(0, 4).join(', ')}${draftLabels.length > 4 ? ', …' : ''})`} of ${plate.label}`,
+  )
   const reasons = useMemo(() => stateReasons(detail.wells), [detail.wells])
   const health = plateHealth(plate)
-  const sizing = useTaskStore((s) => Object.values(s.tasks).some((t) => t.status === 'running' && t.kind === 'size_plate' && t.label.endsWith(plate.label)))
+  const sizing = useTaskStore((s) =>
+    Object.values(s.tasks).some((t) => t.status === 'running' && t.kind === 'size_plate' && t.label.endsWith(plate.label)),
+  )
   const manualCount = detail.wells.filter((w) => w.manual_ladder).length
 
   // Quality report of this plate (the query keeps the previous plate's while the next loads: ignore that).
@@ -188,7 +198,10 @@ function Loaded({ detail, ladders }: { detail: PlateDetail; ladders: readonly La
     meta: { errorTitle: `Could not re-size ${plate.label}` },
     onSuccess: (s) => {
       setDrafts({})
-      toast.success(`${s.label} re-sized with ${s.ladder_label}`, `${s.sizing.good} good, ${s.sizing.flagged} flagged, ${s.sizing.unusable} unusable, ${s.sizing.failed} failed`)
+      toast.success(
+        `${s.label} re-sized with ${s.ladder_label}`,
+        `${s.sizing.good} good, ${s.sizing.flagged} flagged, ${s.sizing.unusable} unusable, ${s.sizing.failed} failed`,
+      )
     },
   })
   const clear = useMutation({
@@ -202,7 +215,7 @@ function Loaded({ detail, ladders }: { detail: PlateDetail; ladders: readonly La
     onSuccess: () => {
       qc.removeQueries({ queryKey: plateKeys.detail(plate.id) })
       toast.success(`Deleted ${plate.label}`)
-      bypassUnsaved(() => navigate('/plates'))
+      void bypassUnsaved(() => navigate('/plates'))
     },
   })
   const exportMap = async () => {
@@ -273,7 +286,14 @@ function Loaded({ detail, ladders }: { detail: PlateDetail; ladders: readonly La
         {inspector}
       </TabsContent>
       <TabsContent value="quality" className="flex min-h-0 min-w-0 flex-col data-[state=active]:flex">
-        <QualityPanel view={qualityView ?? null} hasPlateMap={plate.has_plate_map} loading={qualityQ.isLoading || (qualityQ.isFetching && !qualityView)} selectedIssue={issueKeyOpen} onSelectIssue={showIssue} onOpenWell={openWell} />
+        <QualityPanel
+          view={qualityView ?? null}
+          hasPlateMap={plate.has_plate_map}
+          loading={qualityQ.isLoading || (qualityQ.isFetching && !qualityView)}
+          selectedIssue={issueKeyOpen}
+          onSelectIssue={showIssue}
+          onOpenWell={openWell}
+        />
       </TabsContent>
     </Tabs>
   )
@@ -299,7 +319,13 @@ function Loaded({ detail, ladders }: { detail: PlateDetail; ladders: readonly La
             </span>
           )}
           <div className="ml-auto flex shrink-0 items-center gap-1">
-            <Button size="sm" variant={plate.has_plate_map ? 'secondary' : 'primary'} onClick={() => setDialog('map')} title="Apply a plate-map CSV" data-tour="plate-map">
+            <Button
+              size="sm"
+              variant={plate.has_plate_map ? 'secondary' : 'primary'}
+              onClick={() => setDialog('map')}
+              title="Apply a plate-map CSV"
+              data-tour="plate-map"
+            >
               <MapIcon size={12} /> {plate.has_plate_map ? 'Plate map' : 'Apply plate map'}
             </Button>
             <DropdownMenu>
@@ -361,11 +387,15 @@ function Loaded({ detail, ladders }: { detail: PlateDetail; ladders: readonly La
           <Fact label="Run">{fmtRunDate(plate.run_date)}</Fact>
           <Fact label="Instrument">{[plate.instrument, plate.instrument_model].filter(Boolean).join(' · ') || '–'}</Fact>
           <Fact label="Ladder">
-            {ladder && <span className="mr-1 inline-block size-2 rounded-[2px]" style={{ background: `var(--dye-${ladder.spec.color})` }} />}
+            {ladder && (
+              <span className="mr-1 inline-block size-2 rounded-[2px]" style={{ background: `var(--dye-${ladder.spec.color})` }} />
+            )}
             {plate.ladder_label}
           </Fact>
           <Fact label="Wells">{plate.well_count}</Fact>
-          <Fact label="Plate map">{plate.has_plate_map ? `${plate.run_count.toLocaleString('en-US')} runs, ${detail.loci.length} loci` : 'none'}</Fact>
+          <Fact label="Plate map">
+            {plate.has_plate_map ? `${plate.run_count.toLocaleString('en-US')} runs, ${detail.loci.length} loci` : 'none'}
+          </Fact>
           <Fact label="Source" title={plate.source ?? undefined}>
             <span className="inline-block max-w-48 truncate align-bottom">{plate.source ?? '–'}</span>
           </Fact>
@@ -374,17 +404,27 @@ function Loaded({ detail, ladders }: { detail: PlateDetail; ladders: readonly La
         {plate.contaminated_loci.length > 0 && (
           <div className="mt-1.5 flex items-center gap-1.5 rounded-[5px] bg-danger-soft px-2 py-1 text-xs text-danger" role="alert">
             <TriangleAlert size={13} />
-            Negative controls show signal for {plate.contaminated_loci.join(', ')}. Treat these loci on this plate with suspicion; see Signal view.
+            Negative controls show signal for {plate.contaminated_loci.join(', ')}. Treat these loci on this plate with suspicion; see
+            Signal view.
           </div>
         )}
         {health.tone === 'danger' && plate.contaminated_loci.length === 0 && (
-          <div className="mt-1.5 text-xs text-danger">Many wells did not size ({health.text}). Check the ladder choice or ladder settings, then re-size.</div>
+          <div className="mt-1.5 text-xs text-danger">
+            Many wells did not size ({health.text}). Check the ladder choice or ladder settings, then re-size.
+          </div>
         )}
       </header>
 
       <div ref={bodyRef} className="flex min-h-0 min-w-0 flex-1">
         {bodySize.width === 0 ? null : wide ? (
-          <SplitView id="plates.wide" defaultSize={Math.round(Math.min(560, bodySize.width * 0.42))} minSize={360} minSecond={480} first={grid} second={side} />
+          <SplitView
+            id="plates.wide"
+            defaultSize={Math.round(Math.min(560, bodySize.width * 0.42))}
+            minSize={360}
+            minSecond={480}
+            first={grid}
+            second={side}
+          />
         ) : (
           <SplitView id="plates.narrow" direction="vertical" defaultSize={300} minSize={200} minSecond={260} first={grid} second={side} />
         )}
@@ -395,12 +435,24 @@ function Loaded({ detail, ladders }: { detail: PlateDetail; ladders: readonly La
       <ConfirmDialog
         open={confirm?.kind === 'resize'}
         onOpenChange={(o) => !o && setConfirm(null)}
-        title={confirm?.kind === 'resize' && confirm.ladder ? `Re-size ${plate.label} with ${confirm.ladder.label}?` : `Re-size every well of ${plate.label}?`}
+        title={
+          confirm?.kind === 'resize' && confirm.ladder
+            ? `Re-size ${plate.label} with ${confirm.ladder.label}?`
+            : `Re-size every well of ${plate.label}?`
+        }
         description={
           <>
             Fits the ladder of all {plate.well_count} wells again
-            {confirm?.kind === 'resize' && confirm.ladder ? ` using ${confirm.ladder.label} (${confirm.ladder.spec.color})` : ` with ${plate.ladder_label}`}.
-            {manualCount > 0 && <b className="text-fg"> The {manualCount} hand-edited ladder{manualCount === 1 ? '' : 's'} will be replaced by automatic fits.</b>}
+            {confirm?.kind === 'resize' && confirm.ladder
+              ? ` using ${confirm.ladder.label} (${confirm.ladder.spec.color})`
+              : ` with ${plate.ladder_label}`}
+            .
+            {manualCount > 0 && (
+              <b className="text-fg">
+                {' '}
+                The {manualCount} hand-edited ladder{manualCount === 1 ? '' : 's'} will be replaced by automatic fits.
+              </b>
+            )}
           </>
         }
         confirmLabel="Re-size"

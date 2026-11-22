@@ -97,7 +97,16 @@ export const filterParams: ParamSchema = {
           step: 50,
           help: 'Peaks lower than this are removed. Genotyping projects default to 0 and flag low peaks themselves; estimators default to 100 RFU so noise does not form bins.',
         },
-        { key: 'max_peak_height', kind: 'number', label: 'Max peak height', unit: 'RFU', default: 40000, min: 0, step: 500, help: 'Peaks taller than this are removed.' },
+        {
+          key: 'max_peak_height',
+          kind: 'number',
+          label: 'Max peak height',
+          unit: 'RFU',
+          default: 40000,
+          min: 0,
+          step: 500,
+          help: 'Peaks taller than this are removed.',
+        },
         {
           key: 'min_peak_height_ratio',
           kind: 'number',
@@ -115,7 +124,7 @@ export const filterParams: ParamSchema = {
           default: 10,
           min: 0,
           step: 0.5,
-          help: 'Bleedthrough ratio: strongest signal in another dye of the same well over this peak. Peaks at or above this are removed before calling. Estimators also drop peaks below this ratio when they fit the plate\'s measured pull-up.',
+          help: "Bleedthrough ratio: strongest signal in another dye of the same well over this peak. Peaks at or above this are removed before calling. Estimators also drop peaks below this ratio when they fit the plate's measured pull-up.",
         },
         {
           key: 'max_crosstalk',
@@ -163,8 +172,7 @@ export const ladderParams: ParamSchema = {
           default: 1,
           min: 0.01,
           step: 0.1,
-          help:
-            "Sizing quality is the largest leave-one-out error of the ladder fit: each ladder peak is left out in turn, the curve is rebuilt from the others, and the error at the left-out peak is measured. When a well's fit disagrees with its plate, the quality is at least how far a peak lies from where the plate's other wells put it. A clean ladder scores well under 0.5 bp; a mis-assigned peak scores about its displacement.\n\nWells above this limit are flagged for review.",
+          help: "Sizing quality is the largest leave-one-out error of the ladder fit: each ladder peak is left out in turn, the curve is rebuilt from the others, and the error at the left-out peak is measured. When a well's fit disagrees with its plate, the quality is at least how far a peak lies from where the plate's other wells put it. A clean ladder scores well under 0.5 bp; a mis-assigned peak scores about its displacement.\n\nWells above this limit are flagged for review.",
         },
         {
           key: 'sq_unusable_limit',
@@ -238,7 +246,9 @@ export const ladderParams: ParamSchema = {
           step: 500,
           help: 'Peaks at or above this raw height are ignored (bleedthrough from strong signal in other dyes).',
           validate: (v, all) =>
-            typeof v === 'number' && typeof all.min_peak_height === 'number' && v <= all.min_peak_height ? 'Must be above the min peak height' : null,
+            typeof v === 'number' && typeof all.min_peak_height === 'number' && v <= all.min_peak_height
+              ? 'Must be above the min peak height'
+              : null,
         },
         {
           key: 'index_overlap',
@@ -447,7 +457,7 @@ export const quantBiasParams: ParamSchema = {
   id: 'quant-bias',
   title: 'Quantification bias',
   description:
-    'β is fitted per locus from the control mixtures: for every usable control peak, observed-minus-true log-odds of its share against its size offset from the mixture\'s center, by least squares through the origin. These limits decide which peaks are usable.',
+    "β is fitted per locus from the control mixtures: for every usable control peak, observed-minus-true log-odds of its share against its size offset from the mixture's center, by least squares through the origin. These limits decide which peaks are usable.",
   sections: [
     {
       fields: [
@@ -460,7 +470,7 @@ export const quantBiasParams: ParamSchema = {
           min: 0,
           integer: true,
           step: 100,
-          help: 'Control peaks at or below this height are not used: low peaks give noisy shares. A mixture needs at least two control peaks above it (and its usable peaks must account for the whole mixture), or it is left out.\nThis is separate from the peak filter\'s minimum height, which removes peaks before anything else.',
+          help: "Control peaks at or below this height are not used: low peaks give noisy shares. A mixture needs at least two control peaks above it (and its usable peaks must account for the whole mixture), or it is left out.\nThis is separate from the peak filter's minimum height, which removes peaks before anything else.",
         },
         {
           key: 'min_true_proportion',
@@ -551,7 +561,7 @@ export const genotypingParams: ParamSchema = {
           kind: 'boolean',
           label: 'Use measured plate pull-up',
           default: true,
-          help: 'Test each peak against the pull-up measured from its plate\'s quality report for each dye pair. When on, positive pull-up is flagged within the SD limit below while clean plates keep true minor alleles under tall other-dye peaks; falls back to the fixed bleedthrough limit for unmeasured dye pairs, unchecked plates, and capillaries with unseparated dyes.',
+          help: "Test each peak against the pull-up measured from its plate's quality report for each dye pair. When on, positive pull-up is flagged within the SD limit below while clean plates keep true minor alleles under tall other-dye peaks; falls back to the fixed bleedthrough limit for unmeasured dye pairs, unchecked plates, and capillaries with unseparated dyes.",
         },
         {
           key: 'pullup_sd_limit',
@@ -561,7 +571,7 @@ export const genotypingParams: ParamSchema = {
           default: 4,
           min: 0,
           step: 0.5,
-          help: 'Standard deviations of the plate\'s measured pull-up spread added to the expected pull-up height when flagging a peak. Higher values reject more peaks sitting under tall peaks of other dyes.',
+          help: "Standard deviations of the plate's measured pull-up spread added to the expected pull-up height when flagging a peak. Higher values reject more peaks sitting under tall peaks of other dyes.",
         },
         {
           key: 'bleedthrough_filter_limit',
@@ -570,7 +580,7 @@ export const genotypingParams: ParamSchema = {
           default: 5,
           min: 0,
           step: 0.1,
-          help: 'Fallback bleedthrough ratio limit used when measured plate pull-up is turned off, a plate has no quality report, a dye pair was not measured on the plate, or a capillary\'s dyes are not separated. Pull-up is typically 1 to 4% of the other dye\'s peak and reaches 14% on some instruments.',
+          help: "Fallback bleedthrough ratio limit used when measured plate pull-up is turned off, a plate has no quality report, a dye pair was not measured on the plate, or a capillary's dyes are not separated. Pull-up is typically 1 to 4% of the other dye's peak and reaches 14% on some instruments.",
         },
         {
           key: 'crosstalk_filter_limit',
@@ -579,14 +589,14 @@ export const genotypingParams: ParamSchema = {
           default: 30,
           min: 0,
           step: 0.1,
-          help: 'A peak is flagged as crosstalk when the same dye in a neighboring capillary is more than this many times its height. Crosstalk leaks about 1% of a neighbor\'s signal and 2.5 to 3% next to a saturated peak, so a low limit flags true alleles shared with a neighbor.',
+          help: "A peak is flagged as crosstalk when the same dye in a neighboring capillary is more than this many times its height. Crosstalk leaks about 1% of a neighbor's signal and 2.5 to 3% next to a saturated peak, so a low limit flags true alleles shared with a neighbor.",
         },
         {
           key: 'reject_spectral_breakdown',
           kind: 'boolean',
           label: 'Reject at spectral breakdown',
           default: false,
-          help: 'Where another dye reads far below its baseline under a peak (more than a quarter of the signal there), the capillary\'s dyes were not separated: a fragment\'s signal shows in two dyes and either may be the true one. Such calls are always flagged; turn this on to also reject those peaks, which removes the copies and as many true alleles.',
+          help: "Where another dye reads far below its baseline under a peak (more than a quarter of the signal there), the capillary's dyes were not separated: a fragment's signal shows in two dyes and either may be the true one. Such calls are always flagged; turn this on to also reject those peaks, which removes the copies and as many true alleles.",
         },
       ],
     },
@@ -601,7 +611,7 @@ export const genotypingParams: ParamSchema = {
           default: 0,
           min: 0,
           step: 0.5,
-          help: 'Artifact errors subtracted from a peak\'s height before the min-height test. Higher values reject more peaks that sit on stutter positions.',
+          help: "Artifact errors subtracted from a peak's height before the min-height test. Higher values reject more peaks that sit on stutter positions.",
         },
         {
           key: 'soft_artifact_sd_limit',
@@ -636,7 +646,7 @@ export const genotypingParams: ParamSchema = {
           min: 0,
           max: 1,
           step: 0.01,
-          help: 'Peaks below this probability are left out while estimating allele prevalence and each sample\'s MOI. A called allele below it does not count toward MOI.',
+          help: "Peaks below this probability are left out while estimating allele prevalence and each sample's MOI. A called allele below it does not count toward MOI.",
         },
       ],
     },

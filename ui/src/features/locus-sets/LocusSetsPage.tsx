@@ -37,7 +37,7 @@ export default function LocusSetsPage() {
   const selected = sets.data?.find((s) => s.id === selectedId) ?? null
   // Open the first set when none is chosen.
   useEffect(() => {
-    if (!id && sets.data?.length) navigate(`/locus-sets/${sets.data[0]!.id}`, { replace: true })
+    if (!id && sets.data?.length) void navigate(`/locus-sets/${sets.data[0]!.id}`, { replace: true })
   }, [id, sets.data, navigate])
   const lociById = useMemo(() => new Map((loci.data ?? []).map((l) => [l.id, l])), [loci.data])
 
@@ -71,8 +71,12 @@ export default function LocusSetsPage() {
       </div>
     )
   else if (sets.isError) detail = <EmptyState title="Could not load locus sets">{errorText(sets.error)}</EmptyState>
-  else if (isNew) detail = <SetEditor key="new" loci={loci.data ?? []} initialIds={preset} onDone={(s) => navigate(s ? `/locus-sets/${s.id}` : '/locus-sets')} />
-  else if (selected) detail = <SetDetailView key={selected.id} id={selected.id} loci={loci.data ?? []} onDeleted={() => navigate('/locus-sets')} />
+  else if (isNew)
+    detail = (
+      <SetEditor key="new" loci={loci.data ?? []} initialIds={preset} onDone={(s) => navigate(s ? `/locus-sets/${s.id}` : '/locus-sets')} />
+    )
+  else if (selected)
+    detail = <SetDetailView key={selected.id} id={selected.id} loci={loci.data ?? []} onDeleted={() => navigate('/locus-sets')} />
   else if (selectedId != null) detail = <NotFound what="locus set" />
   else
     detail = (
@@ -156,11 +160,23 @@ function SetDetailView({ id, loci, onDeleted }: { id: number; loci: Locus[]; onD
 }
 
 /** Rename, change members, delete; or create when `set` is absent. */
-function SetEditor({ set, loci, initialIds, onDone }: { set?: LocusSetDetail; loci: Locus[]; initialIds?: string[]; onDone: (s: LocusSetDetail | null) => void }) {
+function SetEditor({
+  set,
+  loci,
+  initialIds,
+  onDone,
+}: {
+  set?: LocusSetDetail
+  loci: Locus[]
+  initialIds?: string[]
+  onDone: (s: LocusSetDetail | null) => void
+}) {
   const qc = useQueryClient()
   const savedIds = useMemo(() => (set?.loci ?? []).map((l) => String(l.id)), [set])
   const [label, setLabel] = useState(set?.label ?? '')
-  const [members, setMembers] = useState<string[]>(() => (set ? savedIds : (initialIds ?? []).filter((i) => loci.some((l) => String(l.id) === i))))
+  const [members, setMembers] = useState<string[]>(() =>
+    set ? savedIds : (initialIds ?? []).filter((i) => loci.some((l) => String(l.id) === i)),
+  )
   const [dyes, setDyes] = useState<Color[]>([])
   const [err, setErr] = useState<{ field: 'label' | 'members'; message: string } | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -202,7 +218,9 @@ function SetEditor({ set, loci, initialIds, onDone }: { set?: LocusSetDetail; lo
       value: (l) => (memberSet.has(String(l.id)) ? 1 : 0),
       cell: (l) => (
         <span aria-label={memberSet.has(String(l.id)) ? 'In set' : 'Not in set'} className="grid place-items-center">
-          <span className={memberSet.has(String(l.id)) ? 'size-3 rounded-[3px] bg-accent' : 'size-3 rounded-[3px] border border-line-strong'} />
+          <span
+            className={memberSet.has(String(l.id)) ? 'size-3 rounded-[3px] bg-accent' : 'size-3 rounded-[3px] border border-line-strong'}
+          />
         </span>
       ),
       width: 56,
@@ -216,13 +234,23 @@ function SetEditor({ set, loci, initialIds, onDone }: { set?: LocusSetDetail; lo
       cell: (l) => (
         <span className="flex items-center gap-1.5">
           {l.label}
-          {flagged.has(l.id) && <AlertTriangle size={12} className="text-danger" aria-label={`Overlaps ${flagged.get(l.id)!.join(', ')}`} />}
+          {flagged.has(l.id) && (
+            <AlertTriangle size={12} className="text-danger" aria-label={`Overlaps ${flagged.get(l.id)!.join(', ')}`} />
+          )}
         </span>
       ),
       width: 130,
     },
     { id: 'color', header: 'Dye', value: (l) => l.color, cell: (l) => <DyeChip color={l.color} />, width: 80 },
-    { id: 'range', header: 'Range (bp)', value: (l) => l.min_base_length, cell: (l) => `${l.min_base_length}–${l.max_base_length}`, align: 'right', width: 96, searchable: false },
+    {
+      id: 'range',
+      header: 'Range (bp)',
+      value: (l) => l.min_base_length,
+      cell: (l) => `${l.min_base_length}–${l.max_base_length}`,
+      align: 'right',
+      width: 96,
+      searchable: false,
+    },
     { id: 'repeat', header: 'Repeat', value: (l) => l.nucleotide_repeat_length, align: 'right', width: 64, searchable: false },
     { id: 'runs', header: 'Runs', value: (l) => l.run_count, align: 'right', width: 64, searchable: false },
   ]
@@ -294,7 +322,11 @@ function SetEditor({ set, loci, initialIds, onDone }: { set?: LocusSetDetail; lo
         <div className="pr-4">
           <LocusLayout loci={memberLoci} emptyText="Pick loci below to add them to the set." />
         </div>
-        {err?.field === 'members' && <Banner tone="danger" className="mt-2">{err.message}</Banner>}
+        {err?.field === 'members' && (
+          <Banner tone="danger" className="mt-2">
+            {err.message}
+          </Banner>
+        )}
       </section>
       <div className="flex h-8 shrink-0 items-center gap-2 bg-surface-2 px-3 text-xs text-muted">
         Click a locus to add or remove it; Shift-click adds a range; Cmd/Ctrl+A adds every locus shown.

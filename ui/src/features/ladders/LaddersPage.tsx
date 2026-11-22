@@ -45,7 +45,15 @@ const columns: DataColumn<Ladder>[] = [
     width: 104,
     searchable: false,
   },
-  { id: 'plates', header: 'Plates', value: (l) => l.plate_count, align: 'right', width: 60, searchable: false, description: 'Plates sized with this ladder' },
+  {
+    id: 'plates',
+    header: 'Plates',
+    value: (l) => l.plate_count,
+    align: 'right',
+    width: 60,
+    searchable: false,
+    description: 'Plates sized with this ladder',
+  },
 ]
 
 export default function LaddersPage() {
@@ -58,7 +66,7 @@ export default function LaddersPage() {
 
   // Open the first ladder when nothing is selected.
   useEffect(() => {
-    if (!id && ladders.data?.length) navigate(`/ladders/${ladders.data[0]!.id}`, { replace: true })
+    if (!id && ladders.data?.length) void navigate(`/ladders/${ladders.data[0]!.id}`, { replace: true })
   }, [id, ladders.data, navigate])
 
   const labels = useMemo(() => (ladders.data ?? []).map((l) => l.label), [ladders.data])
@@ -66,14 +74,27 @@ export default function LaddersPage() {
   let detail
   // The editor calls this after saving, cancelling or deleting: nothing is left to lose.
   const done = (l: Ladder | null) => bypassUnsaved(() => navigate(l ? `/ladders/${l.id}` : '/ladders'))
-  if (ladders.isPending) detail = <Centered><Spinner /></Centered>
+  if (ladders.isPending)
+    detail = (
+      <Centered>
+        <Spinner />
+      </Centered>
+    )
   else if (ladders.isError) detail = <EmptyState title="Could not load ladders">{errorText(ladders.error)}</EmptyState>
   else if (isNew) detail = <LadderEditor key="new" labels={labels} onDone={done} />
   else if (selected) detail = <LadderEditor key={selected.id} ladder={selected} labels={labels} onDone={done} />
   else if (selectedId != null) detail = <NotFound what="ladder" />
   else
     detail = (
-      <EmptyState icon={<Ruler />} title="No ladders" action={<Button onClick={() => navigate('/ladders/new')}><Plus size={13} /> New ladder</Button>}>
+      <EmptyState
+        icon={<Ruler />}
+        title="No ladders"
+        action={
+          <Button onClick={() => navigate('/ladders/new')}>
+            <Plus size={13} /> New ladder
+          </Button>
+        }
+      >
         A ladder (size standard) maps each well's time axis to base pairs. New workspaces start with the common standards.
       </EmptyState>
     )
@@ -145,12 +166,16 @@ function LadderEditor({ ladder, labels, onDone }: { ladder?: Ladder; labels: str
   const dirtyCount = form.dirty.length + Number(sizesDirty && !!ladder) + Number(labelDirty && !!ladder) + Number(colorDirty)
   const isDirty = !ladder || dirtyCount > 0
   const missingTooMany =
-    check.sizes && typeof form.values.maximum_missing_peak_count === 'number' && form.values.maximum_missing_peak_count >= check.sizes.length
+    check.sizes &&
+    typeof form.values.maximum_missing_peak_count === 'number' &&
+    form.values.maximum_missing_peak_count >= check.sizes.length
       ? `Max missing peaks must be fewer than the ${check.sizes.length} sizes.`
       : null
   const labelError = label.trim() === '' ? 'Required' : null
   // A new ladder is "dirty" (it can be created) from the start; only real edits need guarding.
-  const edited = ladder ? dirtyCount > 0 : label.trim() !== '' || form.dirty.length > 0 || sizesDirtyFrom(entries, DEFAULT_SPEC) || colorDirty
+  const edited = ladder
+    ? dirtyCount > 0
+    : label.trim() !== '' || form.dirty.length > 0 || sizesDirtyFrom(entries, DEFAULT_SPEC) || colorDirty
   useUnsavedChanges(edited, ladder ? `changes to ladder ${ladder.label}` : 'new ladder')
   const valid = form.isValid && !!check.sizes && !missingTooMany && !labelError
 
@@ -176,7 +201,8 @@ function LadderEditor({ ladder, labels, onDone }: { ladder?: Ladder; labels: str
     onError: (e) => {
       const code = errorCode(e)
       const message = errorText(e)
-      const field = code === 'conflict' || /label/i.test(message) ? 'label' : code === 'in_use' ? 'color' : /size/i.test(message) ? 'sizes' : 'form'
+      const field =
+        code === 'conflict' || /label/i.test(message) ? 'label' : code === 'in_use' ? 'color' : /size/i.test(message) ? 'sizes' : 'form'
       setServerError({ field, message })
     },
   })
@@ -186,7 +212,7 @@ function LadderEditor({ ladder, labels, onDone }: { ladder?: Ladder; labels: str
     meta: { errorTitle: 'Could not duplicate ladder' },
     onSuccess: (l) => {
       toast.success('Ladder duplicated', l.label)
-      navigate(`/ladders/${l.id}`)
+      void navigate(`/ladders/${l.id}`)
     },
   })
 
@@ -269,8 +295,9 @@ function LadderEditor({ ladder, labels, onDone }: { ladder?: Ladder; labels: str
                 {usedBy.length > 6 && ', …'})
               </>
             )}
-            . Sizing-quality limits apply at once. Changes to sizes, detection or matching settings reach {plural(ladder.plate_count, 'that plate', 'those plates')} only
-            after {plural(ladder.plate_count, 'it is', 'they are')} re-sized on the Plates page. The dye cannot change while plates use the ladder.
+            . Sizing-quality limits apply at once. Changes to sizes, detection or matching settings reach{' '}
+            {plural(ladder.plate_count, 'that plate', 'those plates')} only after {plural(ladder.plate_count, 'it is', 'they are')} re-sized
+            on the Plates page. The dye cannot change while plates use the ladder.
           </Banner>
         )}
         <fieldset className="grid min-w-0 grid-cols-[minmax(160px,1fr)_minmax(120px,160px)] gap-x-4 gap-y-3" disabled={busy}>
@@ -297,7 +324,13 @@ function LadderEditor({ ladder, labels, onDone }: { ladder?: Ladder; labels: str
             help="Dye channel that carries the ladder."
           />
           <div className="col-span-2">
-            <BaseSizesEditor entries={entries} onChange={setEntries} check={check} disabled={busy} serverError={serverError?.field === 'sizes' ? serverError.message : null} />
+            <BaseSizesEditor
+              entries={entries}
+              onChange={setEntries}
+              check={check}
+              disabled={busy}
+              serverError={serverError?.field === 'sizes' ? serverError.message : null}
+            />
           </div>
         </fieldset>
         <ParameterSections schema={ladderParams} form={form} disabled={busy} columnWidth={180} />
@@ -316,7 +349,13 @@ function LadderEditor({ ladder, labels, onDone }: { ladder?: Ladder; labels: str
                 : 'Default parameters'}
         </span>
         <div className="ml-auto flex items-center gap-1.5">
-          <Button size="sm" variant="ghost" onClick={form.resetToDefaults} disabled={busy || nonDefault.length === 0} title="Set fitting parameters to their defaults (then Save)">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={form.resetToDefaults}
+            disabled={busy || nonDefault.length === 0}
+            title="Set fitting parameters to their defaults (then Save)"
+          >
             <RotateCcw size={12} /> Defaults
           </Button>
           {ladder ? (

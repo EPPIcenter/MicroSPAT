@@ -397,10 +397,8 @@ export function onNativeFileDrop(
       .onDragDropEvent((ev) => {
         const p = ev.payload
         const scale = isWindows ? window.devicePixelRatio || 1 : 1
-        if (p.type === 'enter' || p.type === 'over')
-          handler({ type: 'over', paths: [], x: p.position.x / scale, y: p.position.y / scale })
-        else if (p.type === 'drop')
-          handler({ type: 'drop', paths: p.paths, x: p.position.x / scale, y: p.position.y / scale })
+        if (p.type === 'enter' || p.type === 'over') handler({ type: 'over', paths: [], x: p.position.x / scale, y: p.position.y / scale })
+        else if (p.type === 'drop') handler({ type: 'drop', paths: p.paths, x: p.position.x / scale, y: p.position.y / scale })
         else handler({ type: 'leave', paths: [], x: 0, y: 0 })
       })
       .then((fn) => {

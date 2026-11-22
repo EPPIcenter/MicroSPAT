@@ -66,7 +66,13 @@ export function BaseSizesEditor({
         </span>
         <div className="ml-auto flex items-center gap-1">
           {unordered && !textMode && (
-            <Button size="sm" variant="ghost" onClick={() => onChange(sortEntries(entries))} disabled={disabled} title="Sort and remove duplicates">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => onChange(sortEntries(entries))}
+              disabled={disabled}
+              title="Sort and remove duplicates"
+            >
               <ArrowDownUp size={12} /> Sort
             </Button>
           )}
@@ -215,7 +221,9 @@ export function BaseSizesEditor({
         </div>
       )}
       {!check.listError && junk.length === 0 && !serverError && (
-        <p className="text-2xs text-faint">Expected fragment sizes, increasing. Paste a list (commas or spaces) into any box; Enter adds a size.</p>
+        <p className="text-2xs text-faint">
+          Expected fragment sizes, increasing. Paste a list (commas or spaces) into any box; Enter adds a size.
+        </p>
       )}
     </div>
   )

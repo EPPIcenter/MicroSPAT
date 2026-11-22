@@ -45,7 +45,11 @@ export interface CallContext {
   platePullUp?: readonly LeakEstimate[]
 }
 
-export function callContext(row: Pick<CallRow, 'alleles' | 'flags' | 'narrow_misses'>, params?: GenotypingParams | null, platePullUp?: readonly LeakEstimate[]): CallContext {
+export function callContext(
+  row: Pick<CallRow, 'alleles' | 'flags' | 'narrow_misses'>,
+  params?: GenotypingParams | null,
+  platePullUp?: readonly LeakEstimate[],
+): CallContext {
   return {
     alleles: new Set(row.alleles.map((a) => a.bin_id)),
     failed: row.flags.failure,
@@ -131,10 +135,13 @@ function pullUpReason(p: Peak, g: GenotypingParams | null | undefined, platePull
     const sd = g?.pullup_sd_limit ?? 4
     const bound = p.pullup_contribution + sd * p.pullup_error
     const positiveRates = (platePullUp ?? []).filter((l) => l.fraction != null && l.fraction > 0)
-    const rateNote = positiveRates.length ? `; plate leak: ${positiveRates.map((l) => `${l.source} ${fmtFraction(l.fraction)}`).join(', ')}` : ''
+    const rateNote = positiveRates.length
+      ? `; plate leak: ${positiveRates.map((l) => `${l.source} ${fmtFraction(l.fraction)}`).join(', ')}`
+      : ''
     if (g != null && p.height - p.artifact_contribution > bound)
       return `Pull-up: ${rfu(p.height)} − ${rfu(p.pullup_contribution)} expected pull-up${rateNote} leaves ${rfu(p.height - p.pullup_contribution)} RFU, below ${rfu(g.absolute_peak_height_limit)}.`
-    const afterArt = p.artifact_contribution > 0 && g != null && p.height - p.artifact_contribution >= g.absolute_peak_height_limit && p.height > bound
+    const afterArt =
+      p.artifact_contribution > 0 && g != null && p.height - p.artifact_contribution >= g.absolute_peak_height_limit && p.height > bound
     const shown = afterArt ? `${rfu(p.height - p.artifact_contribution)} RFU after artifact` : `${rfu(p.height)} RFU`
     return `Pull-up: ${shown} sits within ${sd} SD of expected pull-up (${rfu(p.pullup_contribution)} ± ${rfu(p.pullup_error)} RFU${rateNote}; bound ${rfu(bound)} RFU).`
   }
@@ -148,12 +155,17 @@ export function peakReasons(p: Peak, ctx: CallContext): string[] {
   const state = classifyPeak(p, ctx)
   if (state === 'manual-on') out.push('Called by hand (the automatic call left it out).')
   if (state === 'manual-off') out.push('Removed by hand (the automatic call included it).')
-  if (ctx.failed) out.push(`The run failed at this locus: no peak above ${g ? rfu(g.failure_threshold) + ' RFU' : 'the failure threshold'}.`)
+  if (ctx.failed)
+    out.push(`The run failed at this locus: no peak above ${g ? rfu(g.failure_threshold) + ' RFU' : 'the failure threshold'}.`)
   if (p.flags.bleedthrough) out.push(pullUpReason(p, g, ctx.platePullUp))
   if (p.flags.crosstalk)
-    out.push(`Crosstalk: a neighboring capillary is ${p.crosstalk_ratio.toFixed(2)}× this peak’s height${g ? ` (limit ${g.crosstalk_filter_limit})` : ''}.`)
+    out.push(
+      `Crosstalk: a neighboring capillary is ${p.crosstalk_ratio.toFixed(2)}× this peak’s height${g ? ` (limit ${g.crosstalk_filter_limit})` : ''}.`,
+    )
   if (p.flags.spectral)
-    out.push(`Spectral breakdown: another dye reads ${p.spectral_dip_ratio.toFixed(2)}× this peak’s signal below its baseline here, so the dyes were not separated.`)
+    out.push(
+      `Spectral breakdown: another dye reads ${p.spectral_dip_ratio.toFixed(2)}× this peak’s signal below its baseline here, so the dyes were not separated.`,
+    )
   if (p.flags.below_relative_threshold)
     out.push(`Only ${pct(p.relative_height)} of the tallest peak${g ? ` (needs ${pct(g.relative_peak_height_limit)})` : ''}.`)
   if (p.flags.artifact) {
@@ -177,7 +189,9 @@ export function peakReasons(p: Peak, ctx: CallContext): string[] {
           : `${sds.toFixed(1)} SD above expected artifact (> ${g.soft_artifact_sd_limit}), called whatever its probability.`,
       )
     } else if (!isCalled(p, ctx) && state !== 'manual-off') {
-      out.push(`Probability ${fmtProbability(p.probability)} below ${g.probability_threshold}, and only ${sds.toFixed(1)} SD above expected artifact.`)
+      out.push(
+        `Probability ${fmtProbability(p.probability)} below ${g.probability_threshold}, and only ${sds.toFixed(1)} SD above expected artifact.`,
+      )
     }
   }
   if (isCalled(p, ctx) && p.probability != null && g && p.probability < g.bootstrap_probability_threshold)

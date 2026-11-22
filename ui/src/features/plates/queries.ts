@@ -58,7 +58,11 @@ export function useRunTraces(id: number, enabled: boolean) {
 
 /** The plate's quality report (null report: imported before quality checks). */
 export function usePlateQuality(id: number) {
-  return useQuery({ ...apiQuery(plateKeys.quality(id), 'get_plate_quality', { id }), placeholderData: keepPreviousData, meta: { silent: true } })
+  return useQuery({
+    ...apiQuery(plateKeys.quality(id), 'get_plate_quality', { id }),
+    placeholderData: keepPreviousData,
+    meta: { silent: true },
+  })
 }
 
 export function useLadders() {

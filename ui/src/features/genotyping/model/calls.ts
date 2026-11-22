@@ -126,7 +126,8 @@ const rfu = (v: number) => Math.round(v).toLocaleString('en-US')
  * 0.90".
  */
 export function narrowMissText(m: NarrowMiss): string {
-  if (m.reason === 'artifact') return `${rfu(Math.max(0, m.limit - m.value))} RFU below the calling limit after expected stutter (${rfu(m.value)} of ${rfu(m.limit)} RFU)`
+  if (m.reason === 'artifact')
+    return `${rfu(Math.max(0, m.limit - m.value))} RFU below the calling limit after expected stutter (${rfu(m.value)} of ${rfu(m.limit)} RFU)`
   return `probability ${fmtProbability(m.value)}, threshold ${m.limit}`
 }
 
@@ -137,7 +138,18 @@ export function narrowMissShort(m: NarrowMiss): string {
 
 // ------------------------------------------------------------------ filters
 
-export type CallFilterKey = 'attention' | 'unreviewed' | 'failed' | 'curated' | 'commented' | 'low-prob' | 'narrow' | 'offscale' | 'spectral' | 'multi-run' | 'controls'
+export type CallFilterKey =
+  | 'attention'
+  | 'unreviewed'
+  | 'failed'
+  | 'curated'
+  | 'commented'
+  | 'low-prob'
+  | 'narrow'
+  | 'offscale'
+  | 'spectral'
+  | 'multi-run'
+  | 'controls'
 
 export const FILTER_LABEL: Record<CallFilterKey, string> = {
   attention: 'Needs attention',
@@ -154,15 +166,18 @@ export const FILTER_LABEL: Record<CallFilterKey, string> = {
 }
 
 export const FILTER_HELP: Record<CallFilterKey, string> = {
-  attention: 'Not reviewed yet, and failed or no usable run, a negative control with alleles, off-scale, a spectral breakdown, a low-probability call, or a narrow miss.',
+  attention:
+    'Not reviewed yet, and failed or no usable run, a negative control with alleles, off-scale, a spectral breakdown, a low-probability call, or a narrow miss.',
   unreviewed: 'Calls nobody has marked reviewed, or whose mark was dropped because the call changed.',
   failed: 'No peak above the failure threshold, or no run with usable sizing.',
   curated: 'Calls edited by hand.',
   commented: 'Calls with a comment.',
   'low-prob': 'A called allele whose probability is below the bootstrap threshold: it does not count toward MOI.',
-  narrow: 'A peak in a bin that one calling rule rejected by a small margin: as stutter, just under the height limit; or a probability just under the threshold.',
+  narrow:
+    'A peak in a bin that one calling rule rejected by a small margin: as stutter, just under the height limit; or a probability just under the threshold.',
   offscale: 'Saturated signal; proportions are unreliable.',
-  spectral: 'Under a peak in a bin, another dye reads far below its baseline: the capillary\'s dyes were not separated, so a peak may be another dye\'s signal and this dye\'s alleles may show elsewhere.',
+  spectral:
+    "Under a peak in a bin, another dye reads far below its baseline: the capillary's dyes were not separated, so a peak may be another dye's signal and this dye's alleles may show elsewhere.",
   'multi-run': 'The sample has more than one run at this locus (R overlays them).',
   controls: 'Negative and positive controls.',
 }
@@ -234,7 +249,14 @@ export function filterCalls(rows: readonly CallView[], f: CallFilters): CallView
 /** The active filters in words, for the bulk-review confirmation. */
 export function describeFilters(f: CallFilters): string {
   const parts: string[] = f.flags.map((k) => FILTER_LABEL[k].toLowerCase())
-  if (f.alleles !== 'any') parts.push(f.alleles === '0' ? 'no allele' : f.alleles.endsWith('+') ? `${f.alleles.slice(0, -1)} or more alleles` : `${f.alleles} allele${f.alleles === '1' ? '' : 's'}`)
+  if (f.alleles !== 'any')
+    parts.push(
+      f.alleles === '0'
+        ? 'no allele'
+        : f.alleles.endsWith('+')
+          ? `${f.alleles.slice(0, -1)} or more alleles`
+          : `${f.alleles} allele${f.alleles === '1' ? '' : 's'}`,
+    )
   if (f.text.trim()) parts.push(`matching “${f.text.trim()}”`)
   return parts.join(', ')
 }
@@ -311,6 +333,7 @@ export function addProgress(a: ReviewProgress, b: ReviewProgress): ReviewProgres
  */
 export function dropReason(row: CallRow): string | null {
   if (!row.review_dropped) return null
-  if (row.flags.manual_curation) return 'Its alleles were changed by hand after it was reviewed. Confirm it again (Enter or M) once it looks right.'
+  if (row.flags.manual_curation)
+    return 'Its alleles were changed by hand after it was reviewed. Confirm it again (Enter or M) once it looks right.'
   return 'The call changed since it was reviewed (its alleles, flags or reference run, after re-analysis or the probabilistic pass), so the mark no longer holds. Review it again.'
 }

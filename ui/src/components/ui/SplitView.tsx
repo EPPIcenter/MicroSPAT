@@ -127,10 +127,7 @@ export function SplitView({
         onPointerDown={onPointerDown}
         onKeyDown={onKeyDown}
         onDoubleClick={reset}
-        className={cn(
-          'group relative z-10 shrink-0 bg-line outline-none',
-          horiz ? 'w-px cursor-col-resize' : 'h-px cursor-row-resize',
-        )}
+        className={cn('group relative z-10 shrink-0 bg-line outline-none', horiz ? 'w-px cursor-col-resize' : 'h-px cursor-row-resize')}
       >
         <div
           className={cn(

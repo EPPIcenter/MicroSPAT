@@ -53,9 +53,12 @@ export function ControlEditor({ control, binEstimators, onSaved, onCancelNew, on
   const [base, setBase] = useState(control)
   const be = useProject(beId)
   const loci = useMemo(() => (be.data && be.data.project.id === beId ? be.data.loci : []), [be.data, beId])
-  const bins = useBinsByLocus(beId, loci.map((l) => l.locus_id))
+  const bins = useBinsByLocus(
+    beId,
+    loci.map((l) => l.locus_id),
+  )
   const changes = useMemo(() => changedAlleles(draft, base), [draft, base])
-  const dirty = (isNew ? label.trim() !== '' || changes.length > 0 : label !== base!.label || changes.length > 0)
+  const dirty = isNew ? label.trim() !== '' || changes.length > 0 : label !== base!.label || changes.length > 0
   if (control !== base && !dirty) {
     setBase(control)
     setLabel(control?.label ?? '')
@@ -87,7 +90,11 @@ export function ControlEditor({ control, binEstimators, onSaved, onCancelNew, on
     // The submitted label and alleles travel with the mutation, so edits typed while it runs are kept.
     mutationFn: async (v: { label: string; draft: Map<number, number | null>; changes: typeof changes }) => {
       if (isNew) return api.create_control({ bin_estimator_id: beId!, label: v.label.trim(), alleles: v.changes })
-      return api.update_control({ id: control.id, ...(v.label !== control.label ? { label: v.label } : {}), ...(v.changes.length ? { alleles: v.changes } : {}) })
+      return api.update_control({
+        id: control.id,
+        ...(v.label !== control.label ? { label: v.label } : {}),
+        ...(v.changes.length ? { alleles: v.changes } : {}),
+      })
     },
     meta: { silent: true },
     onSuccess: (c, v) => {
@@ -97,7 +104,9 @@ export function ControlEditor({ control, binEstimators, onSaved, onCancelNew, on
       setDraft((d) => (d === v.draft ? draftOf(c) : d))
       toast.success(
         isNew ? `Created control ${c.label}` : `Saved ${c.label}`,
-        mixtures && v.changes.length ? `Quantification-bias estimators with its ${countOf(mixtures, 'mixture')} are now stale at the changed loci.` : undefined,
+        mixtures && v.changes.length
+          ? `Quantification-bias estimators with its ${countOf(mixtures, 'mixture')} are now stale at the changed loci.`
+          : undefined,
       )
       onSaved?.(c)
     },
@@ -136,7 +145,13 @@ export function ControlEditor({ control, binEstimators, onSaved, onCancelNew, on
         <div className="ml-auto flex items-center gap-1">
           {!isNew && (
             <>
-              <Button size="sm" variant="ghost" onClick={onDuplicate} disabled={dirty} title={dirty ? 'Save or revert first' : 'Duplicate this control'}>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={onDuplicate}
+                disabled={dirty}
+                title={dirty ? 'Save or revert first' : 'Duplicate this control'}
+              >
                 <Copy size={12} /> Duplicate
               </Button>
               <Button size="sm" variant="danger-ghost" onClick={onDelete} data-testid="control-delete">
@@ -147,7 +162,12 @@ export function ControlEditor({ control, binEstimators, onSaved, onCancelNew, on
         </div>
       </div>
       <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3 border-b border-line px-3 py-2.5">
-        <Field label="Name (barcode)" htmlFor="control-label" error={error} hint="The strain's name as used in mixture CSVs, e.g. 3D7. Unique per bin estimator.">
+        <Field
+          label="Name (barcode)"
+          htmlFor="control-label"
+          error={error}
+          hint="The strain's name as used in mixture CSVs, e.g. 3D7. Unique per bin estimator."
+        >
           <TextInput
             id="control-label"
             value={label}
@@ -213,7 +233,12 @@ export function ControlEditor({ control, binEstimators, onSaved, onCancelNew, on
             <BinsNotice be={be.data!.project.title} beId={beId} issues={issues} analyzedAt={loci.map((l) => l.status.analyzed_at)} />
           )}
           <div className="min-h-0 flex-1 overflow-auto p-3">
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(270px,1fr))] gap-x-4 gap-y-1" role="group" aria-label="Alleles by locus" data-testid="allele-grid">
+            <div
+              className="grid grid-cols-[repeat(auto-fill,minmax(270px,1fr))] gap-x-4 gap-y-1"
+              role="group"
+              aria-label="Alleles by locus"
+              data-testid="allele-grid"
+            >
               {loci.map((l, i) => {
                 const its = issuesBy.get(l.locus_id) ?? []
                 const v = statusView(l.status, `${l.label} bins`)
@@ -243,8 +268,20 @@ export function ControlEditor({ control, binEstimators, onSaved, onCancelNew, on
                     />
                     <span className="flex w-4 shrink-0 justify-center">
                       {its.length > 0 ? (
-                        <Tooltip content={<ul className="space-y-0.5">{its.map((x) => <li key={x.text}>{x.text}</li>)}</ul>}>
-                          <span tabIndex={-1} aria-label={its.map((x) => x.text).join(' ')} className={its.some((x) => x.level === 'danger') ? 'text-danger' : 'text-warn'}>
+                        <Tooltip
+                          content={
+                            <ul className="space-y-0.5">
+                              {its.map((x) => (
+                                <li key={x.text}>{x.text}</li>
+                              ))}
+                            </ul>
+                          }
+                        >
+                          <span
+                            tabIndex={-1}
+                            aria-label={its.map((x) => x.text).join(' ')}
+                            className={its.some((x) => x.level === 'danger') ? 'text-danger' : 'text-warn'}
+                          >
                             <CircleAlert size={13} />
                           </span>
                         </Tooltip>
@@ -270,7 +307,9 @@ export function ControlEditor({ control, binEstimators, onSaved, onCancelNew, on
           </Button>
         )}
         {!isNew && changes.length > 0 && mixtures > 0 && (
-          <span className="text-2xs text-muted">Saving makes the quantification-bias estimators with its {countOf(mixtures, 'mixture')} stale.</span>
+          <span className="text-2xs text-muted">
+            Saving makes the quantification-bias estimators with its {countOf(mixtures, 'mixture')} stale.
+          </span>
         )}
         <Button size="sm" variant="primary" className="ml-auto" disabled={!canSave} onClick={submit} data-testid="control-save">
           {save.isPending ? <Spinner className="size-3" /> : <Save size={12} />} {isNew ? 'Create control' : 'Save'}
@@ -280,25 +319,55 @@ export function ControlEditor({ control, binEstimators, onSaved, onCancelNew, on
   )
 }
 
-function BinsNotice({ be, beId, issues, analyzedAt }: { be: string; beId: number; issues: ReturnType<typeof alleleIssues>; analyzedAt: (string | null)[] }) {
+function BinsNotice({
+  be,
+  beId,
+  issues,
+  analyzedAt,
+}: {
+  be: string
+  beId: number
+  issues: ReturnType<typeof alleleIssues>
+  analyzedAt: (string | null)[]
+}) {
   const missing = issues.filter((i) => i.kind === 'missing').length
   const stale = issues.filter((i) => i.kind === 'stale' || i.kind === 'no_bins').length
   const gone = issues.filter((i) => i.kind === 'gone' || i.kind === 'deleted').length
-  const latest = analyzedAt.filter(Boolean).sort().pop()
+  const latest = analyzedAt
+    .filter((v): v is string => Boolean(v))
+    .sort((a, b) => a.localeCompare(b))
+    .pop()
   return (
-    <div role="status" className={cn('flex shrink-0 items-start gap-2 border-b px-3 py-1.5 text-xs', gone ? 'border-danger/30 bg-danger-soft' : 'border-warn/30 bg-warn-soft')} data-testid="bins-notice">
+    <div
+      role="status"
+      className={cn(
+        'flex shrink-0 items-start gap-2 border-b px-3 py-1.5 text-xs',
+        gone ? 'border-danger/30 bg-danger-soft' : 'border-warn/30 bg-warn-soft',
+      )}
+      data-testid="bins-notice"
+    >
       <AlertTriangle size={14} className={cn('mt-px shrink-0', gone ? 'text-danger' : 'text-warn')} />
       <p className="min-w-0">
         {gone > 0 && (
           <>
-            {gone} allele{gone === 1 ? "'s bin was" : "s' bins were"} deleted from the bin estimator{latest ? ` (bins last estimated ${formatWhen(latest)})` : ''}; pick{' '}
-            {gone === 1 ? 'it' : 'them'} again. Mixtures with this control leave its share out there.{' '}
+            {gone} allele{gone === 1 ? "'s bin was" : "s' bins were"} deleted from the bin estimator
+            {latest ? ` (bins last estimated ${formatWhen(latest)})` : ''}; pick {gone === 1 ? 'it' : 'them'} again. Mixtures with this
+            control leave its share out there.{' '}
           </>
         )}
-        {stale > 0 && <>{stale} {stale === 1 ? 'locus has' : 'loci have'} bins that are not current in <Link className="underline" to={`/bin-estimators/${beId}`}>{be}</Link>; re-estimating them can remove or rename bins. </>}
+        {stale > 0 && (
+          <>
+            {stale} {stale === 1 ? 'locus has' : 'loci have'} bins that are not current in{' '}
+            <Link className="underline" to={`/bin-estimators/${beId}`}>
+              {be}
+            </Link>
+            ; re-estimating them can remove or rename bins.{' '}
+          </>
+        )}
         {missing > 0 && (
           <>
-            {missing} {missing === 1 ? 'locus has' : 'loci have'} no allele set. Mixtures with this control leave its share out at those loci.
+            {missing} {missing === 1 ? 'locus has' : 'loci have'} no allele set. Mixtures with this control leave its share out at those
+            loci.
           </>
         )}
       </p>

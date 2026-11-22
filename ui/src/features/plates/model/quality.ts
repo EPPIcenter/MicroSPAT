@@ -163,7 +163,9 @@ export function crosstalkLevel(x: Pick<CrosstalkEstimate, 'fraction' | 'saturate
 }
 
 /** Crosstalk rows by distance, with the off-scale sources' estimate beside it when there is one. */
-export function crosstalkRows(q: Pick<PlateQuality, 'crosstalk'>): { distance: number; normal: CrosstalkEstimate | null; saturated: CrosstalkEstimate | null }[] {
+export function crosstalkRows(
+  q: Pick<PlateQuality, 'crosstalk'>,
+): { distance: number; normal: CrosstalkEstimate | null; saturated: CrosstalkEstimate | null }[] {
   const ds = [...new Set(q.crosstalk.map((x) => x.distance))].sort((a, b) => a - b)
   return ds.map((d) => ({
     distance: d,
@@ -222,7 +224,10 @@ export const QUALITY_MEASURES: readonly { value: QualityMeasure; label: string }
 ]
 
 /** The per-well limits the grid scales use (they come with every report, `report.limits`). */
-export type WellLimits = Pick<QualityLimits, 'low_ladder_fraction' | 'weak_signal_rfu' | 'noisy_factor' | 'unseparated_min_peaks' | 'spectral_deviation_limit'>
+export type WellLimits = Pick<
+  QualityLimits,
+  'low_ladder_fraction' | 'weak_signal_rfu' | 'noisy_factor' | 'unseparated_min_peaks' | 'spectral_deviation_limit'
+>
 
 /** The engine's defaults, for callers without a report (mocks, tests). */
 export const DEFAULT_WELL_LIMITS: WellLimits = {
@@ -285,7 +290,10 @@ export function noiseBadness(noise: number | null, typical: number | null, L: We
  * pattern) or its ladder pull-up differing from the plate's typical
  * capillary (normal up to half the limit, bad at the limit).
  */
-export function separationBadness(w: Pick<WellQuality, 'breakdowns' | 'spectral_deviation' | 'tall_peaks'>, L: WellLimits = DEFAULT_WELL_LIMITS): number | null {
+export function separationBadness(
+  w: Pick<WellQuality, 'breakdowns' | 'spectral_deviation' | 'tall_peaks'>,
+  L: WellLimits = DEFAULT_WELL_LIMITS,
+): number | null {
   if (w.spectral_deviation == null && w.tall_peaks === 0) return null
   const fromPeaks = clamp01(w.breakdowns / L.unseparated_min_peaks)
   const lim = L.spectral_deviation_limit
@@ -306,7 +314,10 @@ export function measureScale(measure: QualityMeasure, report: Pick<PlateQuality,
         m == null
           ? 'Median height of each well’s ladder peaks.'
           : `Median height of each well’s ladder peaks. The plate’s median is ${fmtRfu(m)} RFU; a well under ${fmtLimit(L.low_ladder_fraction)} of it (${fmtRfu(m * L.low_ladder_fraction)} RFU) has a weak ladder.`,
-      short: m == null ? 'Median height of the ladder peaks' : `Plate median ${fmtRfu(m)} RFU; weak under ${fmtLimit(L.low_ladder_fraction)} of it`,
+      short:
+        m == null
+          ? 'Median height of the ladder peaks'
+          : `Plate median ${fmtRfu(m)} RFU; weak under ${fmtLimit(L.low_ladder_fraction)} of it`,
       gradient: ramp,
       from: m == null ? 'plate median' : `${fmtRfu(m)} or more`,
       to: m == null ? `${fmtLimit(L.low_ladder_fraction)} of it` : `${fmtRfu(m * L.low_ladder_fraction)} or less`,
@@ -327,7 +338,8 @@ export function measureScale(measure: QualityMeasure, report: Pick<PlateQuality,
         typical == null
           ? 'The largest noise of each well’s dyes (standard deviation of the baseline).'
           : `The largest noise of each well’s dyes (standard deviation of the baseline). Typical on this plate: ${fmtNumber(typical, 1)} RFU; ${L.noisy_factor} times that (${fmtNumber(typical * L.noisy_factor, 1)} RFU) is noisy.`,
-      short: typical == null ? 'Largest noise of the well’s dyes' : `Largest noise of the well’s dyes; typical ${fmtNumber(typical, 1)} RFU`,
+      short:
+        typical == null ? 'Largest noise of the well’s dyes' : `Largest noise of the well’s dyes; typical ${fmtNumber(typical, 1)} RFU`,
       gradient: ramp,
       from: typical == null ? 'typical' : `${fmtNumber(typical * (L.noisy_factor / 2), 1)} or less`,
       to: typical == null ? `${L.noisy_factor}× typical` : `${fmtNumber(typical * L.noisy_factor, 1)} or more`,

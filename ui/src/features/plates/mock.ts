@@ -60,7 +60,12 @@ function spec(color: Color, sizes: number[]): LadderSpec {
 
 const LADDERS: Ladder[] = [
   { id: 1, label: 'GeneScan 500 LIZ', spec: spec('orange', LIZ500), plate_count: 0 },
-  { id: 2, label: 'HD ROX 400', spec: spec('red', [50, 60, 90, 100, 120, 150, 160, 180, 190, 200, 220, 240, 260, 280, 290, 300, 320, 340, 360, 380, 400]), plate_count: 0 },
+  {
+    id: 2,
+    label: 'HD ROX 400',
+    spec: spec('red', [50, 60, 90, 100, 120, 150, 160, 180, 190, 200, 220, 240, 260, 280, 290, 300, 320, 340, 360, 380, 400]),
+    plate_count: 0,
+  },
 ]
 
 const LOCI: Locus[] = DEMO_LOCI.map((l, i) => ({
@@ -138,7 +143,10 @@ function mockFit(w: MockWellState, req: { peak_indices?: number[] | null; peaks?
     peaks = [...req.peaks].sort((a, b) => a.index - b.index)
     for (const p of peaks) if (!LADDER_SIZES.includes(p.size)) return fail(`${p.size} bp is not a size of this ladder.`)
     for (let k = 1; k < peaks.length; k++)
-      if (peaks[k]!.size <= peaks[k - 1]!.size) return fail(`Sizes must increase with the peak index and each ladder size be used once (peak ${peaks[k]!.index}: ${peaks[k]!.size} bp).`)
+      if (peaks[k]!.size <= peaks[k - 1]!.size)
+        return fail(
+          `Sizes must increase with the peak index and each ladder size be used once (peak ${peaks[k]!.index}: ${peaks[k]!.size} bp).`,
+        )
   } else {
     const idx = [...new Set(req.peak_indices ?? [])].sort((a, b) => a - b)
     peaks = idx.map((i) => {
@@ -156,9 +164,26 @@ function mockFit(w: MockWellState, req: { peak_indices?: number[] | null; peaks?
   const quality = Math.round((0.04 + err) * 1000) / 1000
   const need = LADDER_SIZES.length - MAX_MISSING
   if (peaks.length < need)
-    return { sizing: 'unusable', sizing_quality: quality, peaks, reason: `Only ${peaks.length} of the ladder's ${LADDER_SIZES.length} peaks are assigned; at least ${need} are needed (at most ${MAX_MISSING} may be missing).` }
-  if (quality > 3) return { sizing: 'unusable', sizing_quality: quality, peaks, reason: `Largest leave-one-out sizing error is ${quality.toFixed(2)} bp, above the unusable limit of 3 bp.` }
-  if (quality > 1) return { sizing: 'flagged', sizing_quality: quality, peaks, reason: `Largest leave-one-out sizing error is ${quality.toFixed(2)} bp, above the flag limit of 1 bp.` }
+    return {
+      sizing: 'unusable',
+      sizing_quality: quality,
+      peaks,
+      reason: `Only ${peaks.length} of the ladder's ${LADDER_SIZES.length} peaks are assigned; at least ${need} are needed (at most ${MAX_MISSING} may be missing).`,
+    }
+  if (quality > 3)
+    return {
+      sizing: 'unusable',
+      sizing_quality: quality,
+      peaks,
+      reason: `Largest leave-one-out sizing error is ${quality.toFixed(2)} bp, above the unusable limit of 3 bp.`,
+    }
+  if (quality > 1)
+    return {
+      sizing: 'flagged',
+      sizing_quality: quality,
+      peaks,
+      reason: `Largest leave-one-out sizing error is ${quality.toFixed(2)} bp, above the flag limit of 1 bp.`,
+    }
   return { sizing: 'good', sizing_quality: quality, peaks, reason: null }
 }
 
@@ -180,7 +205,12 @@ function makePlate(label: string, seed: number, mapped: boolean, qualityOptions:
     const quality = u < 0.04 ? null : u < 0.07 ? 3 + r.next() * 3 : u < 0.13 ? 1 + r.next() * 1.5 : 0.04 + r.next() * 0.25
     const col = i % 12
     const colFactor = 1 - (col / 12) * 0.55
-    const sig = (base: number) => (quality == null ? null : r.next() < 0.03 ? Math.round(40 + r.next() * 40) : Math.round(Math.min(32000, Math.exp(Math.log(base * colFactor) + r.gauss() * 0.7))))
+    const sig = (base: number) =>
+      quality == null
+        ? null
+        : r.next() < 0.03
+          ? Math.round(40 + r.next() * 40)
+          : Math.round(Math.min(32000, Math.exp(Math.log(base * colFactor) + r.gauss() * 0.7)))
     const ntc = wl === 'H12' || wl === 'H11'
     const barcode = ntc ? `NTC-${label}-${wl}` : `${label}-S${String(i + 1).padStart(3, '0')}`
     if (mapped) samples.set(barcode, ntc ? 'negative_control' : 'sample')
@@ -190,7 +220,12 @@ function makePlate(label: string, seed: number, mapped: boolean, qualityOptions:
       yellow: ntc ? 20 : sig(2200),
       red: ntc ? 22 : sig(3000),
     }
-    const error = quality == null ? (r.next() < 0.5 ? 'only 7 usable ladder peaks, need 11' : 'ladder signal too low: tallest peak after min_time is 96 RFU, need more than 200') : null
+    const error =
+      quality == null
+        ? r.next() < 0.5
+          ? 'only 7 usable ladder peaks, need 11'
+          : 'ladder signal too low: tallest peak after min_time is 96 RFU, need more than 200'
+        : null
     return {
       id: nextWell++,
       label: wl,
@@ -233,7 +268,16 @@ function ensure() {
       pullUp: { 'blue>green': 0.14 },
       controls: [
         { well: 'H12', locus: 'PfPK2', sample: 'NTC-MOCK-1-H12', color: 'blue', size: 171.4, height: 1800, peaks: 2, explained_by: null },
-        { well: 'H11', locus: 'TA81', sample: 'NTC-MOCK-1-H11', color: 'green', size: 122.1, height: 240, peaks: 1, explained_by: 'crosstalk' },
+        {
+          well: 'H11',
+          locus: 'TA81',
+          sample: 'NTC-MOCK-1-H11',
+          color: 'green',
+          size: 122.1,
+          height: 240,
+          peaks: 1,
+          explained_by: 'crosstalk',
+        },
       ],
     }),
     // No issues.
@@ -343,7 +387,11 @@ function wellDetail(p: MockPlate, w: MockWellState, traces: boolean): WellDetail
   const gen = makeWell(w.seed % 997)
   const ladder = LADDERS.find((l) => l.id === p.summary.ladder_id) as Ladder
   const auto = ladderIndices(w.seed % 997)
-  const ladderPeaks: LadderPeak[] = w.sizing === 'failed' ? [] : (w.peaks ?? auto.map((i, k) => ({ index: i, size: ladder.spec.base_sizes[Math.min(k, ladder.spec.base_sizes.length - 1)] as number })))
+  const ladderPeaks: LadderPeak[] =
+    w.sizing === 'failed'
+      ? []
+      : (w.peaks ??
+        auto.map((i, k) => ({ index: i, size: ladder.spec.base_sizes[Math.min(k, ladder.spec.base_sizes.length - 1)] as number })))
   const ws = wellSummary(p, w)
   // A failed well's ladder is weak; it stays weak when its peaks are picked by hand.
   const scale = w.auto.quality == null ? 0.12 : 1
@@ -361,7 +409,9 @@ function wellDetail(p: MockPlate, w: MockWellState, traces: boolean): WellDetail
     manual_ladder: w.manual,
     ladder_peaks: ladderPeaks,
     // A failed mock well's ladder stops after seven peaks (like the engine's demo).
-    ladder_candidates: traces ? (w.auto.quality == null ? auto.slice(0, 7) : auto).map((i) => ({ index: i, height: Math.round(1000 * scale) })) : null,
+    ladder_candidates: traces
+      ? (w.auto.quality == null ? auto.slice(0, 7) : auto).map((i) => ({ index: i, height: Math.round(1000 * scale) }))
+      : null,
     offscale_indices: [],
     trace_len: gen.baseSizes.length,
     base_sizes: traces && w.sizing !== 'failed' ? Array.from(gen.baseSizes) : null,
@@ -381,10 +431,22 @@ function wellDetail(p: MockPlate, w: MockWellState, traces: boolean): WellDetail
   }
 }
 
-function report(p: MockPlate, params: ApplyPlateMapParams): { report: PlateMapReport; cells: { well: string; locus: number; sample: string }[] } {
+function report(
+  p: MockPlate,
+  params: ApplyPlateMapParams,
+): { report: PlateMapReport; cells: { well: string; locus: number; sample: string }[] } {
   const text = params.content ?? ''
   const parsed = parsePlateMap(text)
-  const r: PlateMapReport = { applied: false, problems: [], unknown_samples: [], unknown_loci: [], created_samples: [], run_count: 0, runs_kept: 0, runs_removed: 0 }
+  const r: PlateMapReport = {
+    applied: false,
+    problems: [],
+    unknown_samples: [],
+    unknown_loci: [],
+    created_samples: [],
+    run_count: 0,
+    runs_kept: 0,
+    runs_removed: 0,
+  }
   if (params.path && !params.content) r.problems.push('Mock transport cannot read files by path; paste the CSV instead.')
   if (parsed.error) r.problems.push(parsed.error)
   const cols = parsed.loci.map((h) => LOCI.find((l) => l.label.toLowerCase() === h.toLowerCase()) ?? null)
@@ -405,8 +467,12 @@ function report(p: MockPlate, params: ApplyPlateMapParams): { report: PlateMapRe
   if (missing.length) r.problems.push(`Wells not on this plate: ${missing.join(', ')}`)
   const unknown = [...new Set(cells.map((c) => c.sample).filter((s) => !samples.has(s)))]
   r.unknown_samples = unknown
-  if (params.create_samples) r.created_samples = unknown.map((b) => ({ barcode: b, designation: /ntc/i.test(b) ? 'negative_control' : 'sample' }))
-  else if (unknown.length) r.problems.push(`Unknown samples (${unknown.length}): ${unknown.slice(0, 10).join(', ')}. Turn on "create missing samples" to add them.`)
+  if (params.create_samples)
+    r.created_samples = unknown.map((b) => ({ barcode: b, designation: /ntc/i.test(b) ? 'negative_control' : 'sample' }))
+  else if (unknown.length)
+    r.problems.push(
+      `Unknown samples (${unknown.length}): ${unknown.slice(0, 10).join(', ')}. Turn on "create missing samples" to add them.`,
+    )
   r.run_count = cells.length
   const existing = p.wells.flatMap((w) => w.runs.map((x) => `${w.label}|${x.locus}|${x.sample}`))
   const wanted = new Set(cells.map((c) => `${c.well}|${c.locus}|${c.sample}`))
@@ -470,7 +536,8 @@ const handlers: Record<string, MockHandler> = {
     const p = plateById((params as IdParams).id)
     const r = rng(p.summary.id)
     const n = 400
-    const series = (base: number, sd: number) => Array.from({ length: n }, (_, i) => Math.round(base + r.gauss() * sd + (i < 20 ? -base * (1 - i / 20) * 0.5 : 0)))
+    const series = (base: number, sd: number) =>
+      Array.from({ length: n }, (_, i) => Math.round(base + r.gauss() * sd + (i < 20 ? -base * (1 - i / 20) * 0.5 : 0)))
     return { voltage: series(1500, 2), current: series(220, 3), power: series(330, 4), temperature: series(60, 0.2) }
   },
   get_well: (params) => {
@@ -547,15 +614,44 @@ const handlers: Record<string, MockHandler> = {
     await ctx.runTask('import_plates', `Importing ${p.paths.length} item${p.paths.length === 1 ? '' : 's'}`, 1500 + 300 * p.paths.length)
     const outcomes: PlateImportOutcome[] = p.paths.map((path, i) => {
       const name = (path.split('/').pop() ?? path).replace(/\.(zip|fsa)$/i, '')
-      if (/fail/i.test(name)) return { label: name, source: path, status: 'failed', plate_id: null, well_count: 0, sizing: null, message: 'not an FSA file (bad ABIF header)', quality: null }
-      if (plates.some((x) => x.summary.label === name)) return { label: name, source: path, status: 'duplicate', plate_id: null, well_count: 96, sizing: null, message: `already imported as ${name}`, quality: null }
+      if (/fail/i.test(name))
+        return {
+          label: name,
+          source: path,
+          status: 'failed',
+          plate_id: null,
+          well_count: 0,
+          sizing: null,
+          message: 'not an FSA file (bad ABIF header)',
+          quality: null,
+        }
+      if (plates.some((x) => x.summary.label === name))
+        return {
+          label: name,
+          source: path,
+          status: 'duplicate',
+          plate_id: null,
+          well_count: 96,
+          sizing: null,
+          message: `already imported as ${name}`,
+          quality: null,
+        }
       // A file name with "spectral" gives a plate whose dyes are not separated in two capillaries.
       const plate = makePlate(name, 10 + plates.length + i, false, /spectral/i.test(name) ? { unseparated: ['B03', 'B04'] } : {})
       plate.summary.ladder_id = p.ladder_id
       plates.push(plate)
       ctx.changed('plates', [plate.summary.id])
       const s = summary(plate)
-      return { label: name, source: path, status: 'imported', plate_id: plate.summary.id, well_count: 96, sizing: s.sizing, message: null, quality: s.quality }
+      return {
+        label: name,
+        source: path,
+        status: 'imported',
+        plate_id: plate.summary.id,
+        well_count: 96,
+        sizing: s.sizing,
+        message: null,
+        quality: s.quality,
+      }
     })
     ctx.changed('workspace')
     return { plates: outcomes }
@@ -599,21 +695,57 @@ const handlers: Record<string, MockHandler> = {
     ensure()
     const ids = (params as ComputePlateQualityParams | null)?.ids
     const todo = ids ? ids.map(plateById) : plates.filter((p) => !p.qualityOptions)
-    await ctx.runTask('compute_plate_quality', `Checking quality of ${todo.length} plate${todo.length === 1 ? '' : 's'}`, 600 + 300 * todo.length)
+    await ctx.runTask(
+      'compute_plate_quality',
+      `Checking quality of ${todo.length} plate${todo.length === 1 ? '' : 's'}`,
+      600 + 300 * todo.length,
+    )
     for (const p of todo) {
       p.qualityOptions ??= {}
       p.computedAt = new Date().toISOString().slice(0, 19) + 'Z'
     }
-    if (todo.length) ctx.changed('plates', todo.map((p) => p.summary.id))
+    if (todo.length)
+      ctx.changed(
+        'plates',
+        todo.map((p) => p.summary.id),
+      )
     return { plate_ids: todo.map((p) => p.summary.id) }
   },
   export_plate_quality: (params) => {
     const p = plateById((params as IdParams).id)
     const q = qualityReport(p)
     if (!q) throw new RpcError('invalid', `${p.summary.label} has no quality report yet: check its quality first.`)
-    const head = ['plate', 'well', 'capillary', 'ladder_height', 'ladder_fade', 'plate_error', 'signal', 'max_noise_sd', 'tall_peaks', 'breakdowns', 'spectral_deviation', 'offscale_points', 'flags']
+    const head = [
+      'plate',
+      'well',
+      'capillary',
+      'ladder_height',
+      'ladder_fade',
+      'plate_error',
+      'signal',
+      'max_noise_sd',
+      'tall_peaks',
+      'breakdowns',
+      'spectral_deviation',
+      'offscale_points',
+      'flags',
+    ]
     const rows = q.wells.map((w) =>
-      [p.summary.label, w.well, w.capillary ?? '', w.ladder_height?.toFixed(0) ?? '', w.ladder_fade?.toFixed(3) ?? '', w.plate_error?.toFixed(3) ?? '', w.signal?.toFixed(0) ?? '', Math.max(...w.dyes.map((d) => d.noise_sd)).toFixed(2), w.tall_peaks, w.breakdowns, w.spectral_deviation?.toFixed(4) ?? '', w.offscale_points, w.flags.join(' ')].join(','),
+      [
+        p.summary.label,
+        w.well,
+        w.capillary ?? '',
+        w.ladder_height?.toFixed(0) ?? '',
+        w.ladder_fade?.toFixed(3) ?? '',
+        w.plate_error?.toFixed(3) ?? '',
+        w.signal?.toFixed(0) ?? '',
+        Math.max(...w.dyes.map((d) => d.noise_sd)).toFixed(2),
+        w.tall_peaks,
+        w.breakdowns,
+        w.spectral_deviation?.toFixed(4) ?? '',
+        w.offscale_points,
+        w.flags.join(' '),
+      ].join(','),
     )
     return { filename: `${p.summary.label}_quality.csv`, content: `${[head.join(','), ...rows].join('\n')}\n` }
   },

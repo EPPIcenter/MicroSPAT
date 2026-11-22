@@ -43,8 +43,16 @@ export interface KindInfo {
 }
 
 const BIN: Omit<UpstreamLink, 'required' | 'purpose'> = { field: 'bin_estimator_id', prop: 'bin_estimator', kind: 'bin_estimator' }
-const ART: Omit<UpstreamLink, 'required' | 'purpose'> = { field: 'artifact_estimator_id', prop: 'artifact_estimator', kind: 'artifact_estimator' }
-const QB: Omit<UpstreamLink, 'required' | 'purpose'> = { field: 'quant_bias_estimator_id', prop: 'quant_bias_estimator', kind: 'quant_bias_estimator' }
+const ART: Omit<UpstreamLink, 'required' | 'purpose'> = {
+  field: 'artifact_estimator_id',
+  prop: 'artifact_estimator',
+  kind: 'artifact_estimator',
+}
+const QB: Omit<UpstreamLink, 'required' | 'purpose'> = {
+  field: 'quant_bias_estimator_id',
+  prop: 'quant_bias_estimator',
+  kind: 'quant_bias_estimator',
+}
 
 export const KINDS: Record<ProjectKind, KindInfo> = {
   bin_estimator: {
@@ -89,7 +97,8 @@ export const KINDS: Record<ProjectKind, KindInfo> = {
       {
         ...ART,
         required: false,
-        purpose: 'Tells a true minor allele from stutter of a larger allele by its expected height. Without it, every peak in a bin above the height limits is called.',
+        purpose:
+          'Tells a true minor allele from stutter of a larger allele by its expected height. Without it, every peak in a bin above the height limits is called.',
       },
       { ...QB, required: false, purpose: 'Corrects within-sample allele proportions for size-dependent amplification bias.' },
     ],

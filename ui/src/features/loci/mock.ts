@@ -52,7 +52,8 @@ function check(label: string, min: number, max: number, repeat: number, except: 
   if (!t) throw new RpcError('invalid', 'Locus label cannot be empty.')
   if (!(min >= 0 && min < max)) throw new RpcError('invalid', `Locus ${t}: the size range must satisfy 0 ≤ min < max (got ${min}–${max}).`)
   if (!(repeat > 0 && repeat <= 100)) throw new RpcError('invalid', `Locus ${t}: the repeat length must be a positive number of bases.`)
-  if (loci.some((l) => l.id !== except && l.label.toLowerCase() === t.toLowerCase())) throw new RpcError('conflict', `A locus named "${t}" already exists.`)
+  if (loci.some((l) => l.id !== except && l.label.toLowerCase() === t.toLowerCase()))
+    throw new RpcError('conflict', `A locus named "${t}" already exists.`)
   return t
 }
 
@@ -66,7 +67,8 @@ async function setDetail(id: number): Promise<LocusSetDetail> {
 function checkSet(label: string, ids: number[], except: number) {
   const t = label.trim()
   if (!t) throw new RpcError('invalid', 'Locus set label cannot be empty.')
-  if (sets.some((s) => s.id !== except && s.label.toLowerCase() === t.toLowerCase())) throw new RpcError('conflict', `A locus set named "${t}" already exists.`)
+  if (sets.some((s) => s.id !== except && s.label.toLowerCase() === t.toLowerCase()))
+    throw new RpcError('conflict', `A locus set named "${t}" already exists.`)
   if (ids.length === 0) throw new RpcError('invalid', 'A locus set needs at least one locus.')
   ids.forEach(find)
   return t
@@ -95,7 +97,10 @@ const handlers: Record<string, MockHandler> = {
     next.label = check(next.label, next.min_base_length, next.max_base_length, next.nucleotide_repeat_length, cur.id)
     const runs = counts.get(cur.id) ?? 0
     if (next.color !== cur.color && runs > 0)
-      throw new RpcError('in_use', `Locus ${cur.label} has ${runs} runs on the ${cur.color} dye; clear those plate maps before changing its dye.`)
+      throw new RpcError(
+        'in_use',
+        `Locus ${cur.label} has ${runs} runs on the ${cur.color} dye; clear those plate maps before changing its dye.`,
+      )
     Object.assign(cur, next)
     ctx.changed('loci', [cur.id])
     return full(cur, counts)
@@ -103,9 +108,14 @@ const handlers: Record<string, MockHandler> = {
   delete_locus: async (params, ctx) => {
     const l = find((params as IdParams).id)
     const runs = (await runCounts()).get(l.id) ?? 0
-    if (runs > 0) throw new RpcError('in_use', `Locus ${l.label} has ${runs} runs on plate(s) in this workspace. Clear those plate maps first.`)
+    if (runs > 0)
+      throw new RpcError('in_use', `Locus ${l.label} has ${runs} runs on plate(s) in this workspace. Clear those plate maps first.`)
     const inSets = sets.filter((s) => s.locus_ids.includes(l.id))
-    if (inSets.length) throw new RpcError('in_use', `Locus ${l.label} is in locus set(s) ${inSets.map((s) => s.label).join(', ')}. Remove it from them first.`)
+    if (inSets.length)
+      throw new RpcError(
+        'in_use',
+        `Locus ${l.label} is in locus set(s) ${inSets.map((s) => s.label).join(', ')}. Remove it from them first.`,
+      )
     loci = loci.filter((x) => x.id !== l.id)
     ctx.changed('loci', [l.id])
     ctx.changed('workspace')
@@ -113,7 +123,10 @@ const handlers: Record<string, MockHandler> = {
   },
   import_loci_csv: async (params, ctx) => {
     const p = params as CsvSource
-    const preview = previewLociCsv(p.content ?? '', loci.map((l) => l.label))
+    const preview = previewLociCsv(
+      p.content ?? '',
+      loci.map((l) => l.label),
+    )
     if (preview.headerError) throw new RpcError('invalid', preview.headerError)
     if (preview.rejected) throw new RpcError('invalid', `The loci CSV has ${preview.rejected} problem(s). Nothing was imported.`)
     const counts = await runCounts()
@@ -122,7 +135,10 @@ const handlers: Record<string, MockHandler> = {
       loci.push(l)
       return full(l, counts)
     })
-    ctx.changed('loci', created.map((l) => l.id))
+    ctx.changed(
+      'loci',
+      created.map((l) => l.id),
+    )
     ctx.changed('workspace')
     return { created }
   },

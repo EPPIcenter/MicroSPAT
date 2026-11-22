@@ -29,7 +29,8 @@ export interface TourStep {
   when?: (c: TourContext) => boolean
 }
 
-const review = (c: TourContext) => `/projects/${c.genotypingId}?tab=review${c.showcaseSampleId != null ? `&sample=${c.showcaseSampleId}` : ''}`
+const review = (c: TourContext) =>
+  `/projects/${c.genotypingId}?tab=review${c.showcaseSampleId != null ? `&sample=${c.showcaseSampleId}` : ''}`
 const plate = (c: TourContext) => `/plates/${c.plateId}?tab=well${c.failedWell != null ? `&well=${c.failedWell}` : ''}`
 
 // A card sits beside the screen it explains, so it says what the screen does

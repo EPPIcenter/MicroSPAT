@@ -68,7 +68,8 @@ export function estimate(p: MockProject, locusId: number): Stored {
     const peaks: number[] = []
     for (let i = 0; i < n; i++) {
       let top = true
-      for (let j = Math.max(0, i - 6); j <= Math.min(n - 1, i + 6) && top; j++) if (win[j]! > win[i]! || (win[j] === win[i] && j < i)) top = false
+      for (let j = Math.max(0, i - 6); j <= Math.min(n - 1, i + 6) && top; j++)
+        if (win[j]! > win[i]! || (win[j] === win[i] && j < i)) top = false
       if (top && win[i]! >= params.min_peak_frequency) peaks.push(lo + i * 0.1)
     }
     const sorted = [...sizes].sort((a, b) => a - b)
@@ -87,7 +88,13 @@ export function estimate(p: MockProject, locusId: number): Stored {
     const sd = Math.sqrt(g.reduce((a, b) => a + (b - mean) ** 2, 0) / g.length)
     // Like the engine, a re-estimated bin keeps the id of a bin with its label.
     const id = old.find((b) => b.label === label)?.id ?? binSeq++
-    bins.push({ id, label, base_size: c, bin_buffer: params.default_bin_buffer > 0 ? params.default_bin_buffer : +Math.max(0.05, sd).toFixed(3), peak_count: g.length })
+    bins.push({
+      id,
+      label,
+      base_size: c,
+      bin_buffer: params.default_bin_buffer > 0 ? params.default_bin_buffer : +Math.max(0.05, sd).toFixed(3),
+      peak_count: g.length,
+    })
   }
   return { bins, sizes, heights }
 }
@@ -138,7 +145,8 @@ function checkBin(b: Bin): string {
   const label = b.label.trim()
   if (!label || label.length > 50) throw new RpcError('invalid', 'A bin label must be 1–50 characters.')
   if (!(Number.isFinite(b.base_size) && b.base_size > 0)) throw new RpcError('invalid', `Bin ${label}: the center must be a positive size.`)
-  if (!(Number.isFinite(b.bin_buffer) && b.bin_buffer > 0 && b.bin_buffer < 50)) throw new RpcError('invalid', `Bin ${label}: the buffer must be between 0 and 50 bp.`)
+  if (!(Number.isFinite(b.bin_buffer) && b.bin_buffer > 0 && b.bin_buffer < 50))
+    throw new RpcError('invalid', `Bin ${label}: the buffer must be between 0 and 50 bp.`)
   return label
 }
 
@@ -150,7 +158,11 @@ const handlers: Record<string, MockHandler> = {
     // No locus check here: other mocks read bins in loops while seeding, and
     // each dispatch costs a simulated round trip.
     const p = binEstimator(a.project_id)
-    return { locus_id: a.locus_id, bins: [...stored(p, a.locus_id).bins].sort((x, y) => x.base_size - y.base_size), status: locusStatus(p, a.locus_id) }
+    return {
+      locus_id: a.locus_id,
+      bins: [...stored(p, a.locus_id).bins].sort((x, y) => x.base_size - y.base_size),
+      status: locusStatus(p, a.locus_id),
+    }
   },
   get_bin_estimator_peaks: async (params) => {
     const a = params as ProjectLocusParams
@@ -198,7 +210,9 @@ const handlers: Record<string, MockHandler> = {
   export_bins: async (params) => {
     const p = binEstimator((params as IdParams).id)
     const rows = [['Locus', 'Label', 'Base Size', 'Bin Buffer', 'Peak Count']]
-    for (const l of await projectLoci(p)) for (const b of stored(p, l.id).bins) rows.push([l.label, b.label, b.base_size.toFixed(3), b.bin_buffer.toFixed(3), String(b.peak_count)])
+    for (const l of await projectLoci(p))
+      for (const b of stored(p, l.id).bins)
+        rows.push([l.label, b.label, b.base_size.toFixed(3), b.bin_buffer.toFixed(3), String(b.peak_count)])
     return { filename: `${p.title.replace(/\W+/g, '_')}_bins.csv`, content: rows.map((r) => r.join(',')).join('\n') + '\n' }
   },
 }

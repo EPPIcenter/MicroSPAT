@@ -11,7 +11,15 @@ import { cn } from '@/lib/cn'
 import { toast } from '@/stores/toasts'
 import { usePlotTheme } from '@/plot/theme'
 import { prepareCanvas } from '@/plot/canvas'
-import { TraceViewer, drawPeakMarker, PEAK_STATE_LABEL, type LadderMarker, type PeakState, type TraceClick, type TracePeak } from '@/components/TraceViewer'
+import {
+  TraceViewer,
+  drawPeakMarker,
+  PEAK_STATE_LABEL,
+  type LadderMarker,
+  type PeakState,
+  type TraceClick,
+  type TracePeak,
+} from '@/components/TraceViewer'
 import { allWells, PlateGrid } from '@/components/PlateGrid'
 import { BinPlot } from '@/components/BinPlot'
 import { ArtifactPlot } from '@/components/ArtifactPlot'
@@ -53,7 +61,15 @@ import {
   rng,
   type MockSampleRow,
 } from '@/mock/data'
-import { CrosstalkTable, ControlsTable, IssueList, issueKey, LimitsLegend, PullUpMatrix, QualityIndicator } from '@/features/plates/QualityPanel'
+import {
+  CrosstalkTable,
+  ControlsTable,
+  IssueList,
+  issueKey,
+  LimitsLegend,
+  PullUpMatrix,
+  QualityIndicator,
+} from '@/features/plates/QualityPanel'
 import { mockQualityReport } from '@/features/plates/mockQuality'
 import { measureScale, qualityWells, QUALITY_MEASURES, type QualityMeasure } from '@/features/plates/model/quality'
 
@@ -131,7 +147,10 @@ export default function Gallery() {
 function EventLog({ events }: { events: LoggedEvent[] }) {
   const [open, setOpen] = useState(false)
   return (
-    <div className="fixed right-3 bottom-3 z-30 w-80 rounded-lg border border-line bg-surface/95 shadow-xl backdrop-blur" data-testid="event-log">
+    <div
+      className="fixed right-3 bottom-3 z-30 w-80 rounded-lg border border-line bg-surface/95 shadow-xl backdrop-blur"
+      data-testid="event-log"
+    >
       <button type="button" onClick={() => setOpen((o) => !o)} className="flex h-8 w-full items-center gap-2 px-3 text-xs font-semibold">
         Callback log <span className="num font-normal text-muted">{events.length}</span>
         <ChevronDown size={13} className={cn('ml-auto transition-transform', !open && 'rotate-180')} />
@@ -242,7 +261,11 @@ function TraceSection({ log }: { log: Log }) {
         .map((p) => {
           const m = manual[String(p.id)]
           if (!m) return p
-          return { ...p, state: m === 'on' ? 'manual-on' : 'manual-off', label: m === 'on' ? (p.label ?? `${Math.round(p.size)}`) : p.label }
+          return {
+            ...p,
+            state: m === 'on' ? 'manual-on' : 'manual-off',
+            label: m === 'on' ? (p.label ?? `${Math.round(p.size)}`) : p.label,
+          }
         }),
     [well, allDyes, manual],
   )
@@ -254,14 +277,21 @@ function TraceSection({ log }: { log: Log }) {
       description={
         <>
           PfPK2 (blue) carries four alleles at unequal heights; 170 sits on the −1 stutter of 174 and is still called. Faded traces are the
-          same locus in other wells. Wheel zooms, drag pans, <Kbd>Shift</Kbd>-drag box-zooms, double-click resets, click a peak to toggle its
-          call. Keys when focused: <Kbd>←</Kbd> <Kbd>→</Kbd> pan, <Kbd>+</Kbd> <Kbd>−</Kbd> zoom, <Kbd>↑</Kbd> <Kbd>↓</Kbd> y-scale,{' '}
+          same locus in other wells. Wheel zooms, drag pans, <Kbd>Shift</Kbd>-drag box-zooms, double-click resets, click a peak to toggle
+          its call. Keys when focused: <Kbd>←</Kbd> <Kbd>→</Kbd> pan, <Kbd>+</Kbd> <Kbd>−</Kbd> zoom, <Kbd>↑</Kbd> <Kbd>↓</Kbd> y-scale,{' '}
           <Kbd>a</Kbd> auto y, <Kbd>0</Kbd> reset. <Kbd>Alt</Kbd>+wheel scales y.
         </>
       }
     >
       <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
-        <SegToggle value={mode} onChange={setMode} options={[['bp', 'Base pairs'], ['index', 'Data points']]} />
+        <SegToggle
+          value={mode}
+          onChange={setMode}
+          options={[
+            ['bp', 'Base pairs'],
+            ['index', 'Data points'],
+          ]}
+        />
         <label className="flex items-center gap-1.5">
           <input type="checkbox" checked={showOverlays} onChange={(e) => setShowOverlays(e.target.checked)} /> Overlays
         </label>
@@ -337,7 +367,9 @@ function LadderSection({ log }: { log: Log }) {
           setLadder((cur) => {
             const hit = cur.find((m) => Math.abs(m.index - e.snapIndex) <= 3)
             if (hit) return cur.filter((m) => m !== hit)
-            return [...cur, { index: e.snapIndex, size: null, seriesId: 'orange', status: 'unassigned' as const }].sort((a, b) => a.index - b.index)
+            return [...cur, { index: e.snapIndex, size: null, seriesId: 'orange', status: 'unassigned' as const }].sort(
+              (a, b) => a.index - b.index,
+            )
           })
         }}
       />
@@ -373,10 +405,7 @@ function PlateSection({ log }: { log: Log }) {
   const [sel2, setSel2] = useState<string[]>([])
   const [sel3, setSel3] = useState<string[]>([])
   const splitWells = useMemo(() => plate96, [plate96])
-  const singleDye = useMemo(
-    () => Object.fromEntries(Object.entries(plate384).map(([k, v]) => [k, { ...v, dyes: undefined }])),
-    [plate384],
-  )
+  const singleDye = useMemo(() => Object.fromEntries(Object.entries(plate384).map(([k, v]) => [k, { ...v, dyes: undefined }])), [plate384])
   return (
     <Section
       id="plate"
@@ -442,7 +471,14 @@ function QualitySection({ log }: { log: Log }) {
     const r = rng(5)
     const wells = allWells(96).map((label) => {
       const failed = r.next() < 0.03
-      return { label, sized: !failed, sizingQuality: failed ? null : 0.1, signal: failed ? { blue: 60, green: 50, yellow: 40 } : { blue: 3000 + r.next() * 9000, green: 1500 + r.next() * 4000, yellow: 800 + r.next() * 3000 } }
+      return {
+        label,
+        sized: !failed,
+        sizingQuality: failed ? null : 0.1,
+        signal: failed
+          ? { blue: 60, green: 50, yellow: 40 }
+          : { blue: 3000 + r.next() * 9000, green: 1500 + r.next() * 4000, yellow: 800 + r.next() * 3000 },
+      }
     })
     return mockQualityReport(wells, {
       seed: 5,
@@ -466,7 +502,12 @@ function QualitySection({ log }: { log: Log }) {
       description="Issues worst first (select one to outline its wells), the grid colored by a quality measure, pull-up and crosstalk against the default limits, and negative-control peaks."
     >
       <div className="mb-2 flex flex-wrap gap-4">
-        {[null, { problems: 0, warnings: 0, infos: 0, worst: null, outdated: false }, { problems: 2, warnings: 1, infos: 1, worst: 'problem' as const, outdated: false }, { problems: 0, warnings: 1, infos: 0, worst: 'warning' as const, outdated: true }].map((q, i) => (
+        {[
+          null,
+          { problems: 0, warnings: 0, infos: 0, worst: null, outdated: false },
+          { problems: 2, warnings: 1, infos: 1, worst: 'problem' as const, outdated: false },
+          { problems: 0, warnings: 1, infos: 0, worst: 'warning' as const, outdated: true },
+        ].map((q, i) => (
           <QualityIndicator key={i} summary={q} />
         ))}
       </div>
@@ -481,14 +522,29 @@ function QualitySection({ log }: { log: Log }) {
           onOpenWell={(w) => log('quality.well', w)}
         />
         <div className="flex flex-col gap-2">
-          <select aria-label="Quality measure" className="h-6 w-48 rounded border border-line bg-surface text-xs" value={measure} onChange={(e) => setMeasure(e.target.value as QualityMeasure)}>
+          <select
+            aria-label="Quality measure"
+            className="h-6 w-48 rounded border border-line bg-surface text-xs"
+            value={measure}
+            onChange={(e) => setMeasure(e.target.value as QualityMeasure)}
+          >
             {QUALITY_MEASURES.map((m) => (
               <option key={m.value} value={m.value}>
                 {m.label}
               </option>
             ))}
           </select>
-          <PlateGrid className="h-[260px]" format={96} wells={wells} mode="status" selected={[]} onSelectionChange={() => {}} showLegend={false} highlighted={issue?.wells} ariaLabel="Quality plate" />
+          <PlateGrid
+            className="h-[260px]"
+            format={96}
+            wells={wells}
+            mode="status"
+            selected={[]}
+            onSelectionChange={() => {}}
+            showLegend={false}
+            highlighted={issue?.wells}
+            ariaLabel="Quality plate"
+          />
           <p className="text-2xs text-muted">
             <b className="text-fg">{scale.title}</b> {scale.from} → {scale.to}. {scale.explanation}
           </p>
@@ -515,9 +571,9 @@ function BinSection({ log }: { log: Log }) {
       title="BinPlot"
       description={
         <>
-          PfPK2 across 700 runs. Low points left of each cluster are −1 stutter. Drag a bin to move it, drag its edge to resize, double-click empty
-          space or right-click to add, <Kbd>Del</Kbd> deletes, <Kbd>←</Kbd> <Kbd>→</Kbd> nudge, <Kbd>[</Kbd> <Kbd>]</Kbd> width, <Kbd>Tab</Kbd>{' '}
-          next bin.
+          PfPK2 across 700 runs. Low points left of each cluster are −1 stutter. Drag a bin to move it, drag its edge to resize,
+          double-click empty space or right-click to add, <Kbd>Del</Kbd> deletes, <Kbd>←</Kbd> <Kbd>→</Kbd> nudge, <Kbd>[</Kbd> <Kbd>]</Kbd>{' '}
+          width, <Kbd>Tab</Kbd> next bin.
         </>
       }
     >
@@ -545,7 +601,12 @@ function BinSection({ log }: { log: Log }) {
         }}
         onBinsChange={(next, change) => {
           setBins(next)
-          log(`bins.${change.type}`, { id: change.bin.id, label: change.bin.label, base: change.bin.base_size, buffer: change.bin.bin_buffer })
+          log(`bins.${change.type}`, {
+            id: change.bin.id,
+            label: change.bin.label,
+            base: change.bin.base_size,
+            buffer: change.bin.bin_buffer,
+          })
         }}
         locusRange={DEMO_LOCI[0]!.range}
         color="blue"
@@ -584,7 +645,14 @@ const SAMPLE_COLUMNS: DataColumn<MockSampleRow>[] = [
   { id: 'barcode', header: 'Barcode', value: (r) => r.barcode, width: 130 },
   { id: 'plate', header: 'Plate', value: (r) => r.plate, width: 90 },
   { id: 'well', header: 'Well', value: (r) => r.well, width: 60 },
-  { id: 'moi', header: 'MOI', value: (r) => r.moi, width: 60, align: 'right', description: 'Multiplicity of infection: most alleles at any locus' },
+  {
+    id: 'moi',
+    header: 'MOI',
+    value: (r) => r.moi,
+    width: 60,
+    align: 'right',
+    description: 'Multiplicity of infection: most alleles at any locus',
+  },
   { id: 'loci', header: 'Loci', value: (r) => r.loci, width: 60, align: 'right' },
   {
     id: 'status',
@@ -620,7 +688,11 @@ function TableSection({ log }: { log: Log }) {
           filterPlaceholder="Filter samples…"
           ariaLabel="Samples"
           toolbar={
-            <Button size="sm" variant="ghost" onClick={() => void saveTextFile('samples.csv', 'barcode\n' + rows.map((r) => r.barcode).join('\n'))}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => void saveTextFile('samples.csv', 'barcode\n' + rows.map((r) => r.barcode).join('\n'))}
+            >
               <FileText size={12} /> Export
             </Button>
           }
@@ -671,13 +743,27 @@ function FormsSection({ log }: { log: Log }) {
               <ParameterForm className="h-full" schema={scanningParams} values={scan} onSave={(v) => setScan(v)} />
             </TabsContent>
             <TabsContent value="ladder" className="h-[430px]">
-              <ParameterForm className="h-full" schema={ladderParams} values={{ label: 'LIZ500', base_sizes: '35, 50, 75, 100' }} onSave={() => {}} />
+              <ParameterForm
+                className="h-full"
+                schema={ladderParams}
+                values={{ label: 'LIZ500', base_sizes: '35, 50, 75, 100' }}
+                onSave={() => {}}
+              />
             </TabsContent>
           </Tabs>
         </div>
         <div className="flex flex-col gap-3 rounded-md p-3 ring-1 ring-line">
           <div className="text-2xs font-semibold tracking-wide text-faint uppercase">Single fields</div>
-          <NumberField label="Default bin buffer" unit="bp" value={n} onChange={setN} min={0.05} step={0.05} help="Half-width of new bins." error={n != null && n < 0.05 ? 'Must be ≥ 0.05' : null} />
+          <NumberField
+            label="Default bin buffer"
+            unit="bp"
+            value={n}
+            onChange={setN}
+            min={0.05}
+            step={0.05}
+            help="Half-width of new bins."
+            error={n != null && n < 0.05 ? 'Must be ≥ 0.05' : null}
+          />
           <TextField label="Locus label" value={txt} onChange={setTxt} error={txt.trim() ? null : 'Required'} />
           <SelectField
             label="Dye"
@@ -685,7 +771,12 @@ function FormsSection({ log }: { log: Log }) {
             onChange={setColor}
             options={(['blue', 'green', 'yellow', 'red', 'orange'] as Color[]).map((c) => ({ value: c, label: <DyeChip color={c} /> }))}
           />
-          <CheckboxField label="Create missing samples" value={chk} onChange={setChk} help="Samples named in the plate map but not in the workspace are created." />
+          <CheckboxField
+            label="Create missing samples"
+            value={chk}
+            onChange={setChk}
+            help="Samples named in the plate map but not in the workspace are created."
+          />
           <ToggleField label="Probabilistic calling" value={sw} onChange={setSw} />
         </div>
       </div>
@@ -746,7 +837,11 @@ function PrimitivesSection({ log }: { log: Log }) {
             <FileDropZone extensions={['csv']} onFiles={(f) => log('dialog.files', f)} hint="96_well_plate_map.csv" />
           </Dialog>
           <ConfirmDialog
-            trigger={<Button size="sm" variant="danger-ghost">Confirm…</Button>}
+            trigger={
+              <Button size="sm" variant="danger-ghost">
+                Confirm…
+              </Button>
+            }
             title="Delete plate 2024-03-11?"
             description="All wells, runs and genotypes from this plate are removed. This cannot be undone."
             confirmLabel="Delete"
@@ -799,17 +894,39 @@ function PrimitivesSection({ log }: { log: Log }) {
             <ProgressBar value={progress} label="demo" />
             <ProgressBar value={null} label="indeterminate" />
             <div className="flex items-center gap-2">
-              <input type="range" min={0} max={1} step={0.01} value={progress} onChange={(e) => setProgress(+e.target.value)} aria-label="progress" />
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={progress}
+                onChange={(e) => setProgress(+e.target.value)}
+                aria-label="progress"
+              />
               <Spinner />
             </div>
           </div>
         </Group>
         <Group title="File drop zone">
-          <FileDropZone multiple extensions={['fsa', 'zip']} title="Drop FSA files or a plate zip" hint="Tauri gives paths; the browser uploads to the dev server" onFiles={(f) => log('files', f)} />
+          <FileDropZone
+            multiple
+            extensions={['fsa', 'zip']}
+            title="Drop FSA files or a plate zip"
+            hint="Tauri gives paths; the browser uploads to the dev server"
+            onFiles={(f) => log('files', f)}
+          />
         </Group>
         <Group title="Empty state">
           <div className="w-full rounded-md ring-1 ring-line">
-            <EmptyState icon={<Inbox />} title="No plates yet" action={<Button size="sm" variant="primary">Import plate</Button>}>
+            <EmptyState
+              icon={<Inbox />}
+              title="No plates yet"
+              action={
+                <Button size="sm" variant="primary">
+                  Import plate
+                </Button>
+              }
+            >
               Import a zip of FSA files from one CE run.
             </EmptyState>
           </div>
@@ -847,14 +964,26 @@ function LayoutsSection() {
   const rows = useMemo(() => makeSampleRows(40), [])
   const [sel, setSel] = useState<string[]>(['3'])
   return (
-    <Section id="layouts" title="Page layouts" description="ListDetailLayout + TabbedDetail, and PlotWorkspace, as feature pages will use them.">
+    <Section
+      id="layouts"
+      title="Page layouts"
+      description="ListDetailLayout + TabbedDetail, and PlotWorkspace, as feature pages will use them."
+    >
       <div className="flex h-[360px] overflow-hidden rounded-md ring-1 ring-line">
         <ListDetailLayout
           id="gallery-demo"
           listWidth={260}
           list={
             <Pane title="Samples" fill>
-              <DataTable data={rows} columns={SAMPLE_COLUMNS.slice(0, 3)} getRowId={(r) => r.id} selectionMode="single" selected={sel} onSelectionChange={setSel} hideToolbar />
+              <DataTable
+                data={rows}
+                columns={SAMPLE_COLUMNS.slice(0, 3)}
+                getRowId={(r) => r.id}
+                selectionMode="single"
+                selected={sel}
+                onSelectionChange={setSel}
+                hideToolbar
+              />
             </Pane>
           }
           detail={
@@ -875,7 +1004,16 @@ function LayoutsSection() {
                   content: (
                     <PlotWorkspace
                       toolbar={<span className="text-xs text-muted">PfPK2 · blue</span>}
-                      plot={<TraceViewer className="h-full w-full" series={blue} peaks={well.peaks.filter((p) => p.seriesId === 'blue')} bins={DEMO_BINS.PfPK2} locusRange={DEMO_LOCI[0]!.range} showControls={false} />}
+                      plot={
+                        <TraceViewer
+                          className="h-full w-full"
+                          series={blue}
+                          peaks={well.peaks.filter((p) => p.seriesId === 'blue')}
+                          bins={DEMO_BINS.PfPK2}
+                          locusRange={DEMO_LOCI[0]!.range}
+                          showControls={false}
+                        />
+                      }
                       side={<div className="p-3 text-xs text-muted">Side panel: selected peak details, parameters…</div>}
                       sideWidth={180}
                     />

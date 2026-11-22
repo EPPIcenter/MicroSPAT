@@ -5,7 +5,10 @@ import type { Control, LocusQuantBias, ProjectDetail, ProjectSummary } from '@/a
 
 describe('mock backend', () => {
   it('serves controls and a quantification-bias estimator', async () => {
-    const controls = (await Promise.race([dispatchMock('list_controls', {}), new Promise((_, rej) => setTimeout(() => rej(new Error("list_controls hangs")), 15000))])) as Control[]
+    const controls = (await Promise.race([
+      dispatchMock('list_controls', {}),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('list_controls hangs')), 15000)),
+    ])) as Control[]
     console.log(JSON.stringify(controls.map((c) => [c.label, c.alleles.map((a) => a.bin_label)])))
     expect(controls.map((c) => c.label)).toEqual(['3D7', 'DD2', 'HB3', 'W2'])
     const qb = ((await dispatchMock('list_projects', { kind: 'quant_bias_estimator' })) as ProjectSummary[])[0]!

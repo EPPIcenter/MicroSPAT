@@ -37,7 +37,13 @@ describe('csv', () => {
 })
 
 describe('plate map dry run', () => {
-  const as = (well: string, locus: string, barcode: string, change: PlateMapAssignment['change'], o: Partial<PlateMapAssignment> = {}): PlateMapAssignment => ({
+  const as = (
+    well: string,
+    locus: string,
+    barcode: string,
+    change: PlateMapAssignment['change'],
+    o: Partial<PlateMapAssignment> = {},
+  ): PlateMapAssignment => ({
     well,
     locus_id: locus === 'PfB1' ? 1 : 2,
     locus_label: locus,
@@ -53,7 +59,11 @@ describe('plate map dry run', () => {
       report({
         run_count: 3,
         created_samples: [{ barcode: 'NTC-1', designation: 'negative_control' }],
-        assignments: [as('A01', 'PfB1', 'S1', 'new'), as('A01', 'PfG1', 'S1', 'new'), as('A02', 'PfB1', 'NTC-1', 'new', { sample_id: null, creates_sample: true })],
+        assignments: [
+          as('A01', 'PfB1', 'S1', 'new'),
+          as('A01', 'PfG1', 'S1', 'new'),
+          as('A02', 'PfB1', 'NTC-1', 'new', { sample_id: null, creates_sample: true }),
+        ],
       }),
     )
     expect(p.status).toBe('ready')
@@ -83,7 +93,13 @@ describe('plate map dry run', () => {
   })
 
   it('separates unknown samples from other problems', () => {
-    const p = presentPlateMap(report({ run_count: 2, unknown_samples: ['NTC-1'], problems: ['Unknown samples (1): NTC-1. Turn on "create missing samples" to add them.'] }))
+    const p = presentPlateMap(
+      report({
+        run_count: 2,
+        unknown_samples: ['NTC-1'],
+        problems: ['Unknown samples (1): NTC-1. Turn on "create missing samples" to add them.'],
+      }),
+    )
     expect(p.status).toBe('samples')
     expect(p.problems).toEqual([])
     expect(p.unknownSamples).toEqual(['NTC-1'])
@@ -113,7 +129,12 @@ describe('plate map dry run', () => {
 })
 
 describe('import', () => {
-  const o = (label: string, status: 'imported' | 'duplicate' | 'failed', failed = 0, quality: QualitySummary | null = null): PlateImportOutcome => ({
+  const o = (
+    label: string,
+    status: 'imported' | 'duplicate' | 'failed',
+    failed = 0,
+    quality: QualitySummary | null = null,
+  ): PlateImportOutcome => ({
     label,
     source: `${label}.zip`,
     status,
@@ -132,18 +153,29 @@ describe('import', () => {
   })
 
   it('lists quality findings of imported plates, worst first', () => {
-    const q = (problems: number, infos: number): QualitySummary => ({ problems, warnings: 0, infos, worst: problems ? 'problem' : infos ? 'info' : null, outdated: false })
-    const f = qualityFindings([o('P1', 'imported', 0, q(0, 2)), o('P2', 'imported', 0, q(1, 1)), o('P3', 'imported', 0, q(0, 0)), o('P4', 'imported'), o('P5', 'duplicate', 0, q(1, 0))])
+    const q = (problems: number, infos: number): QualitySummary => ({
+      problems,
+      warnings: 0,
+      infos,
+      worst: problems ? 'problem' : infos ? 'info' : null,
+      outdated: false,
+    })
+    const f = qualityFindings([
+      o('P1', 'imported', 0, q(0, 2)),
+      o('P2', 'imported', 0, q(1, 1)),
+      o('P3', 'imported', 0, q(0, 0)),
+      o('P4', 'imported'),
+      o('P5', 'duplicate', 0, q(1, 0)),
+    ])
     expect(f.map((x) => x.text)).toEqual(['P2: 1 problem, 1 note in the quality check', 'P1: 2 notes in the quality check'])
   })
 
   it('sorts failures first', () => {
-    expect(sortOutcomes([o('P2', 'imported'), o('P10', 'failed'), o('P1', 'duplicate'), o('P1', 'imported')]).map((x) => `${x.status}:${x.label}`)).toEqual([
-      'failed:P10',
-      'duplicate:P1',
-      'imported:P1',
-      'imported:P2',
-    ])
+    expect(
+      sortOutcomes([o('P2', 'imported'), o('P10', 'failed'), o('P1', 'duplicate'), o('P1', 'imported')]).map(
+        (x) => `${x.status}:${x.label}`,
+      ),
+    ).toEqual(['failed:P10', 'duplicate:P1', 'imported:P1', 'imported:P2'])
   })
 
   it('merges and groups chosen files', () => {

@@ -141,7 +141,9 @@
   }
   body {
     @apply bg-bg text-fg font-sans antialiased;
-    font-feature-settings: 'tnum' 1, 'cv11' 1;
+    font-feature-settings:
+      'tnum' 1,
+      'cv11' 1;
     overflow: hidden;
   }
   :focus-visible {

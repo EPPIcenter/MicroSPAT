@@ -69,7 +69,8 @@ export function previewSamplesCsv(text: string, existingBarcodes: ReadonlySet<st
       bi = 0
       body = all
       firstLine = 1
-    } else return { headerError: 'The CSV needs a Barcode column (and optionally Designation).', rows: [], create: 0, existing: 0, invalid: 0 }
+    } else
+      return { headerError: 'The CSV needs a Barcode column (and optionally Designation).', rows: [], create: 0, existing: 0, invalid: 0 }
   }
   const seen = new Map<string, number>()
   const rows: SamplePreviewRow[] = []
@@ -110,5 +111,8 @@ export function previewSamplesCsv(text: string, existingBarcodes: ReadonlySet<st
 
 /** CSV of the rows to create, in the engine's format. */
 export function rowsToCreateCsv(p: SamplesPreview): string {
-  return toCsvText([['Barcode', 'Designation'], ...p.rows.filter((r) => r.status === 'create').map((r) => [r.barcode, r.designation ?? 'sample'])])
+  return toCsvText([
+    ['Barcode', 'Designation'],
+    ...p.rows.filter((r) => r.status === 'create').map((r) => [r.barcode, r.designation ?? 'sample']),
+  ])
 }

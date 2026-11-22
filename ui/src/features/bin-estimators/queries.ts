@@ -25,7 +25,10 @@ export function useLocusBins(pid: number, locusId: number | null) {
 export function useBinScatter(pid: number, locus: ProjectLocus | null) {
   const lid = locus?.locus_id ?? -1
   return useQuery({
-    ...apiQuery(binKeys.scatter(pid, lid, locus?.status.analyzed_at ?? null), 'get_bin_estimator_peaks', { project_id: pid, locus_id: lid }),
+    ...apiQuery(binKeys.scatter(pid, lid, locus?.status.analyzed_at ?? null), 'get_bin_estimator_peaks', {
+      project_id: pid,
+      locus_id: lid,
+    }),
     enabled: !!locus && locus.status.state !== 'not_analyzed',
     staleTime: Infinity,
     gcTime: 5 * 60_000,

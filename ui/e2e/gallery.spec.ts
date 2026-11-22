@@ -76,7 +76,11 @@ test('TraceViewer: wheel zoom, drag pan, peak click, reset', async ({ page }) =>
   let clicked = false
   for (let y = box.y + 30; y < box.y + box.height - 40; y += 4) {
     await page.mouse.move(x, y)
-    const tip = await tv.locator('div.pointer-events-none').first().innerText().catch(() => '')
+    const tip = await tv
+      .locator('div.pointer-events-none')
+      .first()
+      .innerText()
+      .catch(() => '')
     if (tip.includes('Called allele')) {
       await page.mouse.click(x, y)
       clicked = true
@@ -137,7 +141,9 @@ test('Plate quality: issues outline their wells, tables mark the limits', async 
   await expect(cell).toHaveAttribute('data-level', 'warning')
   await expect(cell).toContainText('14.0%')
   await expect(cell).toContainText('above the warning limit')
-  await expect(sec.getByTestId('limits-legend')).toContainText('measured pull-up automatically; pull-up above 8% is unusual for a 3730 and above 20%')
+  await expect(sec.getByTestId('limits-legend')).toContainText(
+    'measured pull-up automatically; pull-up above 8% is unusual for a 3730 and above 20%',
+  )
   await expect(sec.getByTestId('controls-table')).toContainText('Not explained')
   await expect(sec.getByTestId('quality-indicator')).toHaveCount(4)
 })
@@ -177,7 +183,8 @@ test('BinPlot: select, drag move, edge resize, add, delete', async ({ page }) =>
   await page.evaluate(
     ({ x0, y }) => {
       const c = document.querySelector('[data-testid=bin-plot] canvas')!
-      const ev = (type: string, x: number) => c.dispatchEvent(new PointerEvent(type, { clientX: x, clientY: y, button: 0, buttons: 1, pointerId: 1, bubbles: true }))
+      const ev = (type: string, x: number) =>
+        c.dispatchEvent(new PointerEvent(type, { clientX: x, clientY: y, button: 0, buttons: 1, pointerId: 1, bubbles: true }))
       ev('pointerdown', x0)
       for (let i = 1; i <= 6; i++) ev('pointermove', x0 + 4 * i)
       ev('pointerup', x0 + 24)

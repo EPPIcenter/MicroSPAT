@@ -92,7 +92,11 @@ export function PlatePanel({
           options={[
             { value: 'ladder', label: 'Ladder', title: 'Sizing status and quality per well (L)' },
             { value: 'signal', label: 'Signal', title: 'Signal strength per dye in the loci’s size ranges (S)' },
-            { value: 'quality', label: 'Quality', title: 'Color wells by a quality measure: ladder height, signal, noise or spectral separation (Q)' },
+            {
+              value: 'quality',
+              label: 'Quality',
+              title: 'Color wells by a quality measure: ladder height, signal, noise or spectral separation (Q)',
+            },
           ]}
         />
         {mode === 'quality' && (
@@ -112,7 +116,10 @@ export function PlatePanel({
             onChange={(v) => onLocusChange(v === 'all' ? null : Number(v))}
             options={[
               { value: 'all', label: 'All loci, per dye' },
-              ...detail.loci.map((l) => ({ value: String(l.locus_id), label: `${l.label} (${l.color})${l.contaminated ? ' · contaminated' : ''}` })),
+              ...detail.loci.map((l) => ({
+                value: String(l.locus_id),
+                label: `${l.label} (${l.color})${l.contaminated ? ' · contaminated' : ''}`,
+              })),
             ]}
           />
         )}
@@ -128,19 +135,19 @@ export function PlatePanel({
       </div>
       <div ref={bodyRef} className="flex min-h-0 flex-1 flex-col gap-1.5 px-3 pt-2 pb-2">
         <div className="flex shrink-0 flex-col" style={{ height: gridH }}>
-        <PlateGrid
-          className="min-h-0 flex-1"
-          format={format}
-          wells={wells}
-          mode={mode === 'signal' ? 'signal' : 'status'}
-          selected={sel}
-          selectionMode="single"
-          onSelectionChange={(w) => w[0] && onSelect(w[0])}
-          showLegend={false}
-          highlighted={highlighted}
-          highlightLabel="named by the selected quality issue"
-          ariaLabel={`Plate ${detail.plate.label}, ${mode} view`}
-        />
+          <PlateGrid
+            className="min-h-0 flex-1"
+            format={format}
+            wells={wells}
+            mode={mode === 'signal' ? 'signal' : 'status'}
+            selected={sel}
+            selectionMode="single"
+            onSelectionChange={(w) => w[0] && onSelect(w[0])}
+            showLegend={false}
+            highlighted={highlighted}
+            highlightLabel="named by the selected quality issue"
+            ariaLabel={`Plate ${detail.plate.label}, ${mode} view`}
+          />
         </div>
         {mode === 'ladder' ? (
           <SizingLegend counts={counts} manual={manual} drafts={drafts.size} />
@@ -176,7 +183,11 @@ function QualityLegend({ plateId, scale, loading }: { plateId: number; scale: Me
   const { check, busy } = useCheckQuality()
   if (!scale) {
     return (
-      <div className="flex flex-wrap items-center justify-center gap-2 text-2xs text-muted" data-testid="quality-legend" data-measure="none">
+      <div
+        className="flex flex-wrap items-center justify-center gap-2 text-2xs text-muted"
+        data-testid="quality-legend"
+        data-measure="none"
+      >
         {loading ? (
           <Spinner className="size-3" />
         ) : (
@@ -196,17 +207,32 @@ function QualityLegend({ plateId, scale, loading }: { plateId: number; scale: Me
         <span className="inline-flex items-center gap-1 font-medium text-fg">
           {scale.title}
           <Tooltip content={<span className="block max-w-72">{scale.explanation}</span>}>
-            <button type="button" className="rounded text-faint outline-none hover:text-fg focus-visible:ring-2 focus-visible:ring-accent/40" aria-label={`About this measure: ${scale.explanation}`}>
+            <button
+              type="button"
+              className="rounded text-faint outline-none hover:text-fg focus-visible:ring-2 focus-visible:ring-accent/40"
+              aria-label={`About this measure: ${scale.explanation}`}
+            >
               <Info size={11} />
             </button>
           </Tooltip>
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span className="num">{scale.from}</span>
-          <span aria-hidden className="h-2 w-24 rounded-full" style={{ background: `linear-gradient(to right, ${scale.gradient.join(', ')})` }} />
+          <span
+            aria-hidden
+            className="h-2 w-24 rounded-full"
+            style={{ background: `linear-gradient(to right, ${scale.gradient.join(', ')})` }}
+          />
           <span className="num">{scale.to}</span>
         </span>
-        <LegendItem swatch={<span className="grid size-2.5 place-items-center rounded-[2px] bg-[var(--scale-none)] text-[8px] leading-none font-bold text-white">!</span>} label="flagged by the quality check" />
+        <LegendItem
+          swatch={
+            <span className="grid size-2.5 place-items-center rounded-[2px] bg-[var(--scale-none)] text-[8px] leading-none font-bold text-white">
+              !
+            </span>
+          }
+          label="flagged by the quality check"
+        />
         <LegendItem swatch={<span className="inline-block size-2.5 rounded-[2px] bg-surface-3" />} label="no data" />
       </div>
       <p className="max-w-full truncate text-center" data-testid="quality-legend-note">
@@ -225,7 +251,10 @@ function SignalLegend({ detail, ladderColor, locusId }: { detail: PlateDetail; l
     <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-2xs text-muted">
       <span className="inline-flex items-center gap-1.5">
         none
-        <span className="h-2 w-28 rounded-full" style={{ background: `linear-gradient(to right, ${stops.map((v) => signalColor(v, s)).join(', ')})` }} />
+        <span
+          className="h-2 w-28 rounded-full"
+          style={{ background: `linear-gradient(to right, ${stops.map((v) => signalColor(v, s)).join(', ')})` }}
+        />
         off-scale
         <span className="text-faint">
           (good {fmtRfu(s.good)}–{fmtRfu(s.strong)} RFU)
@@ -250,17 +279,33 @@ function SignalLegend({ detail, ladderColor, locusId }: { detail: PlateDetail; l
   )
 }
 
-function LocusTable({ stats, selected, onSelect }: { stats: ReturnType<typeof locusStats>; selected: number | null; onSelect: (id: number) => void }) {
+function LocusTable({
+  stats,
+  selected,
+  onSelect,
+}: {
+  stats: ReturnType<typeof locusStats>
+  selected: number | null
+  onSelect: (id: number) => void
+}) {
   return (
     <div className="mt-2 min-h-0 flex-1 overflow-auto border-t border-line pt-2">
       <table className="w-full text-xs" aria-label="Signal per locus">
         <thead className="text-2xs font-semibold tracking-wide text-faint uppercase">
           <tr>
             <th className="px-1.5 py-1 text-left font-semibold">Locus</th>
-            <th className="px-1.5 py-1 text-right font-semibold" title="Median of the highest signal in the locus range, sized wells">Median RFU</th>
-            <th className="px-1.5 py-1 text-right font-semibold" title="Runs with no signal (under 100 RFU)">No signal</th>
-            <th className="px-1.5 py-1 text-right font-semibold" title="Runs at or above 30,000 RFU">Off-scale</th>
-            <th className="px-1.5 py-1 text-right font-semibold" title="Runs in wells whose ladder failed">Unsized</th>
+            <th className="px-1.5 py-1 text-right font-semibold" title="Median of the highest signal in the locus range, sized wells">
+              Median RFU
+            </th>
+            <th className="px-1.5 py-1 text-right font-semibold" title="Runs with no signal (under 100 RFU)">
+              No signal
+            </th>
+            <th className="px-1.5 py-1 text-right font-semibold" title="Runs at or above 30,000 RFU">
+              Off-scale
+            </th>
+            <th className="px-1.5 py-1 text-right font-semibold" title="Runs in wells whose ladder failed">
+              Unsized
+            </th>
           </tr>
         </thead>
         <tbody>

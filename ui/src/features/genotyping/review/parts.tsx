@@ -86,15 +86,40 @@ export function NarrowChips({ misses }: { misses: readonly NarrowMiss[] }) {
 }
 
 /** "Reviewed 412 / 1,656" with a thin bar. */
-export function ReviewProgressBar({ p, label, testId, className }: { p: ReviewProgress; label?: string; testId?: string; className?: string }) {
+export function ReviewProgressBar({
+  p,
+  label,
+  testId,
+  className,
+}: {
+  p: ReviewProgress
+  label?: string
+  testId?: string
+  className?: string
+}) {
   const frac = p.calls ? p.reviewed / p.calls : 0
   const left = p.calls - p.reviewed
   return (
-    <Tooltip content={left ? `${left.toLocaleString('en-US')} calls left to review (controls included). A mark stays until the call changes.` : 'Every call is reviewed.'}>
-      <span tabIndex={-1} className={cn('flex shrink-0 items-center gap-1.5 text-2xs text-muted', className)} data-testid={testId} data-reviewed={p.reviewed} data-calls={p.calls}>
+    <Tooltip
+      content={
+        left
+          ? `${left.toLocaleString('en-US')} calls left to review (controls included). A mark stays until the call changes.`
+          : 'Every call is reviewed.'
+      }
+    >
+      <span
+        tabIndex={-1}
+        className={cn('flex shrink-0 items-center gap-1.5 text-2xs text-muted', className)}
+        data-testid={testId}
+        data-reviewed={p.reviewed}
+        data-calls={p.calls}
+      >
         {label && <span>{label}</span>}
         <span className="relative h-1.5 w-16 overflow-hidden rounded-full bg-surface-3" aria-hidden>
-          <span className={cn('absolute inset-y-0 left-0 rounded-full', left ? 'bg-accent' : 'bg-ok')} style={{ width: `${frac * 100}%` }} />
+          <span
+            className={cn('absolute inset-y-0 left-0 rounded-full', left ? 'bg-accent' : 'bg-ok')}
+            style={{ width: `${frac * 100}%` }}
+          />
         </span>
         <span className="num whitespace-nowrap">
           {p.reviewed.toLocaleString('en-US')} / {p.calls.toLocaleString('en-US')} reviewed
@@ -130,8 +155,8 @@ export function MoiLine({
         <div className="max-w-xs space-y-1">
           <p>
             The model MOI comes from the probabilistic pass. It counts only alleles whose probability reaches the bootstrap threshold
-            {bootstrapThreshold != null ? ` (${bootstrapThreshold})` : ''}, and by default takes the locus with the second-most such alleles, so one locus with a spurious
-            extra peak does not raise it.
+            {bootstrapThreshold != null ? ` (${bootstrapThreshold})` : ''}, and by default takes the locus with the second-most such
+            alleles, so one locus with a spurious extra peak does not raise it.
           </p>
           {maxAlleles != null && (
             <p className="text-muted">
@@ -141,12 +166,21 @@ export function MoiLine({
         </div>
       }
     >
-      <span tabIndex={-1} className={cn('text-xs text-muted', className)} data-testid="moi-line" data-moi={moi ?? ''} data-max-alleles={maxAlleles ?? ''}>
+      <span
+        tabIndex={-1}
+        className={cn('text-xs text-muted', className)}
+        data-testid="moi-line"
+        data-moi={moi ?? ''}
+        data-max-alleles={maxAlleles ?? ''}
+      >
         MOI <b className="text-fg">{moi ?? '–'}</b>
         {differs && (
           <>
             {' '}
-            (model) · <span className="text-warn">up to {maxAlleles} allele{maxAlleles === 1 ? '' : 's'} called</span>
+            (model) ·{' '}
+            <span className="text-warn">
+              up to {maxAlleles} allele{maxAlleles === 1 ? '' : 's'} called
+            </span>
             {where && ` at ${where}`}
           </>
         )}
@@ -249,10 +283,22 @@ function Swatch({ state }: { state: PeakState | 'expected' | 'narrow' }) {
 }
 
 type LegendKey = PeakState | 'expected' | 'narrow'
-const LEGEND: LegendKey[] = ['called', 'manual-on', 'manual-off', 'artifact', 'flagged', 'below', 'out-of-bin', 'candidate', 'narrow', 'expected']
+const LEGEND: LegendKey[] = [
+  'called',
+  'manual-on',
+  'manual-off',
+  'artifact',
+  'flagged',
+  'below',
+  'out-of-bin',
+  'candidate',
+  'narrow',
+  'expected',
+]
 const LEGEND_TEXT: Record<LegendKey, string> = { ...PEAK_STATE_TEXT, expected: 'Expected artifact ±1 SD', narrow: 'Narrow miss' }
 const LEGEND_HELP: Record<LegendKey, string> = {
-  narrow: 'Dashed amber ring: a binned peak one calling rule rejected by a small margin (just under the height limit after expected stutter, or a probability just under the threshold). Worth a look.',
+  narrow:
+    'Dashed amber ring: a binned peak one calling rule rejected by a small margin (just under the height limit after expected stutter, or a probability just under the threshold). Worth a look.',
   called: 'Called allele: in a bin, no flag, taller than artifacts explain.',
   'manual-on': 'Called by hand, although the automatic call left it out.',
   'manual-off': 'Removed by hand, although the automatic call included it.',
@@ -261,7 +307,8 @@ const LEGEND_HELP: Record<LegendKey, string> = {
   below: 'Too low: under the relative or absolute height limit on its own.',
   'out-of-bin': 'Unflagged, but outside every bin: not an allele of this locus.',
   candidate: 'In a bin and unflagged, but its probability is below the threshold.',
-  expected: 'Bar: height that stutter of the other peaks is expected to produce at this peak, with ±1 SD. A peak well above its bar is a true allele even on a stutter position.',
+  expected:
+    'Bar: height that stutter of the other peaks is expected to produce at this peak, with ±1 SD. A peak well above its bar is a true allele even on a stutter position.',
 }
 
 /** One-line legend of peak markers; shapes, not only colors, carry the state. */
@@ -282,13 +329,27 @@ export function PeakLegend({ className }: { className?: string }) {
 export function ShortcutHints({ onMore }: { onMore: () => void }) {
   return (
     <div className="flex items-center gap-2 text-2xs text-faint">
-      <span><Kbd>J</Kbd>/<Kbd>K</Kbd> sample</span>
-      <span><Kbd>H</Kbd>/<Kbd>L</Kbd> locus</span>
-      <span><Kbd>N</Kbd> attention</span>
-      <span><Kbd>U</Kbd> not reviewed</span>
-      <span><Kbd>1</Kbd>–<Kbd>9</Kbd> toggle</span>
-      <span><Kbd>↵</Kbd> reviewed, next</span>
-      <span><Kbd>M</Kbd> mark</span>
+      <span>
+        <Kbd>J</Kbd>/<Kbd>K</Kbd> sample
+      </span>
+      <span>
+        <Kbd>H</Kbd>/<Kbd>L</Kbd> locus
+      </span>
+      <span>
+        <Kbd>N</Kbd> attention
+      </span>
+      <span>
+        <Kbd>U</Kbd> not reviewed
+      </span>
+      <span>
+        <Kbd>1</Kbd>–<Kbd>9</Kbd> toggle
+      </span>
+      <span>
+        <Kbd>↵</Kbd> reviewed, next
+      </span>
+      <span>
+        <Kbd>M</Kbd> mark
+      </span>
       <button type="button" onClick={onMore} className="text-accent hover:underline">
         all shortcuts <Kbd>?</Kbd>
       </button>

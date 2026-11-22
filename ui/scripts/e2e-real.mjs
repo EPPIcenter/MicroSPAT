@@ -38,7 +38,13 @@ for (let i = 0; i < own.length; i++) {
   if (a === '--no-build') build = false
   else if (a === '-j' || a === '--jobs') jobs = Math.max(1, Number(own[++i]) || 1)
   else if (a === '-h' || a === '--help') {
-    console.log(readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\n').filter((l) => l.startsWith('//')).map((l) => l.slice(3)).join('\n'))
+    console.log(
+      readFileSync(fileURLToPath(import.meta.url), 'utf8')
+        .split('\n')
+        .filter((l) => l.startsWith('//'))
+        .map((l) => l.slice(3))
+        .join('\n'),
+    )
     process.exit(0)
   } else filters.push(a)
 }
@@ -60,7 +66,11 @@ if (specs.length === 0) {
 const children = new Set()
 function run(cmd, args, opts = {}) {
   return new Promise((res) => {
-    const child = spawn(cmd, args, { cwd: UI, stdio: opts.capture ? ['ignore', 'pipe', 'pipe'] : 'inherit', env: { ...process.env, ...opts.env } })
+    const child = spawn(cmd, args, {
+      cwd: UI,
+      stdio: opts.capture ? ['ignore', 'pipe', 'pipe'] : 'inherit',
+      env: { ...process.env, ...opts.env },
+    })
     children.add(child)
     let out = ''
     child.stdout?.on('data', (d) => (out += d))
@@ -101,7 +111,11 @@ async function waitForDemo(url, server, timeoutMs = 120_000) {
       const r = await fetch(`${url}/api/rpc/list_plates`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: 'null' })
       if (r.ok && (await r.json()).length > 0) {
         // `--demo` loads in the background; wait for its task to finish too.
-        const info = await fetch(`${url}/api/rpc/get_workspace_info`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: 'null' })
+        const info = await fetch(`${url}/api/rpc/get_workspace_info`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: 'null',
+        })
         const counts = info.ok ? (await info.json()).counts : null
         if (!counts || counts.plates >= 3) return
       }
@@ -129,10 +143,14 @@ async function runSpec(spec, uiDir) {
   try {
     await waitForDemo(url, server)
     const report = join(dir, 'report.json')
-    const r = await run('pnpm', ['exec', 'playwright', 'test', '--config', 'playwright.real.config.ts', `e2e/${spec}`, '--reporter=list,json', ...passthrough], {
-      capture: true,
-      env: { MICROSPAT_E2E_URL: url, PLAYWRIGHT_JSON_OUTPUT_NAME: report },
-    })
+    const r = await run(
+      'pnpm',
+      ['exec', 'playwright', 'test', '--config', 'playwright.real.config.ts', `e2e/${spec}`, '--reporter=list,json', ...passthrough],
+      {
+        capture: true,
+        env: { MICROSPAT_E2E_URL: url, PLAYWRIGHT_JSON_OUTPUT_NAME: report },
+      },
+    )
     result = { spec, code: r.code, out: r.out, stats: existsSync(report) ? JSON.parse(readFileSync(report, 'utf8')).stats : null }
   } catch (e) {
     result = { spec, code: 1, out: `${e.message}\n--- server log ---\n${serverLog}`, stats: null }

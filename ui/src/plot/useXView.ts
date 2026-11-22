@@ -36,8 +36,7 @@ export function useXView(opts: {
   }, [])
   const pan = useCallback((delta: number) => set(panDomain(domain.current, delta, o.current.bounds)), [set])
   const zoomAt = useCallback(
-    (anchor: number, factor: number) =>
-      set(zoomDomain(domain.current, anchor, factor, o.current.bounds, o.current.minSpan)),
+    (anchor: number, factor: number) => set(zoomDomain(domain.current, anchor, factor, o.current.bounds, o.current.minSpan)),
     [set],
   )
   const reset = useCallback(() => {

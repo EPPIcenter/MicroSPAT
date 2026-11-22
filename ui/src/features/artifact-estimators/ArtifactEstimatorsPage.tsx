@@ -38,7 +38,9 @@ function EstimatorsIndex() {
   const none = useProjects('artifact_estimator').data?.length === 0
   const detail = useProject(selected)
   return (
-    <Page header={<PageHeader title="Artifact estimators" icon={<Waves />} subtitle="Stutter heights relative to the parent peak, by size" />}>
+    <Page
+      header={<PageHeader title="Artifact estimators" icon={<Waves />} subtitle="Stutter heights relative to the parent peak, by size" />}
+    >
       <ListDetailLayout
         id="artifact-estimators"
         listWidth={720}
@@ -66,7 +68,9 @@ function EstimatorsIndex() {
                 <h2 className="text-[15px] font-semibold">{detail.data.project.title}</h2>
                 {detail.data.project.description && <p className="mt-0.5 text-xs text-muted">{detail.data.project.description}</p>}
                 <p className="mt-1 text-xs text-muted">{projectOverall(detail.data.project).sentence}</p>
-                {detail.data.project.bin_estimator && <p className="mt-1 text-xs text-muted">Bins from {detail.data.project.bin_estimator.title}.</p>}
+                {detail.data.project.bin_estimator && (
+                  <p className="mt-1 text-xs text-muted">Bins from {detail.data.project.bin_estimator.title}.</p>
+                )}
                 <div className="mt-2 flex gap-1.5">
                   <Button variant="primary" onClick={() => navigate(`${PATH}/${selected}`)}>
                     <Play size={12} /> Open classes
@@ -74,7 +78,12 @@ function EstimatorsIndex() {
                   <Button onClick={() => navigate(`${PATH}/${selected}?tab=overview`)}>Overview</Button>
                 </div>
               </div>
-              <LocusStatusList detail={detail.data} selected={null} onSelect={(l) => navigate(`${PATH}/${selected}?tab=classes&locus=${l}`)} className="min-h-0 flex-1" />
+              <LocusStatusList
+                detail={detail.data}
+                selected={null}
+                onSelect={(l) => navigate(`${PATH}/${selected}?tab=classes&locus=${l}`)}
+                className="min-h-0 flex-1"
+              />
             </div>
           )
         }
@@ -114,15 +123,27 @@ function EstimatorWorkspace({ projectId }: { projectId: number }) {
     [setSearch],
   )
 
-  if (project.isLoading) return <div className="grid h-full place-items-center text-muted"><Spinner /></div>
-  if (project.isError || !project.data) {
+  if (project.isLoading)
     return (
-      <NotFound what="artifact estimator" error={project.error ?? undefined} back={{ to: PATH, label: 'All artifact estimators' }} />
+      <div className="grid h-full place-items-center text-muted">
+        <Spinner />
+      </div>
     )
+  if (project.isError || !project.data) {
+    return <NotFound what="artifact estimator" error={project.error ?? undefined} back={{ to: PATH, label: 'All artifact estimators' }} />
   }
   const detail = project.data
   if (detail.project.kind !== 'artifact_estimator') {
-    return <EmptyState title="Not an artifact estimator" action={<Button asChild size="sm"><Link to={PATH}>All artifact estimators</Link></Button>} />
+    return (
+      <EmptyState
+        title="Not an artifact estimator"
+        action={
+          <Button asChild size="sm">
+            <Link to={PATH}>All artifact estimators</Link>
+          </Button>
+        }
+      />
+    )
   }
   const p = detail.project
   return (
@@ -137,7 +158,14 @@ function EstimatorWorkspace({ projectId }: { projectId: number }) {
           </Button>
         }
         actions={
-          <Button size="sm" variant="ghost" onClick={() => void exp.run()} disabled={exp.busy} data-testid="export-equations" title="Every segment of every class as CSV">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => void exp.run()}
+            disabled={exp.busy}
+            data-testid="export-equations"
+            title="Every segment of every class as CSV"
+          >
             {exp.busy ? <Spinner className="size-3" /> : <Download size={12} />} Export equations CSV
           </Button>
         }

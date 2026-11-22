@@ -138,7 +138,12 @@ const handlers: Record<string, MockHandler> = {
   get_sample: async (params) => {
     const runs = await withRuns()
     const s = get((params as IdParams).id)
-    const r = [...(runs.get(s.id) ?? [])].sort((a, b) => a.locus_label.localeCompare(b.locus_label) || a.plate_label.localeCompare(b.plate_label) || a.well_label.localeCompare(b.well_label))
+    const r = [...(runs.get(s.id) ?? [])].sort(
+      (a, b) =>
+        a.locus_label.localeCompare(b.locus_label) ||
+        a.plate_label.localeCompare(b.plate_label) ||
+        a.well_label.localeCompare(b.well_label),
+    )
     const detail: SampleDetail = { id: s.id, barcode: s.barcode, designation: s.designation, runs: r }
     return detail
   },
@@ -176,7 +181,10 @@ const handlers: Record<string, MockHandler> = {
     const r = runs.get(s.id) ?? []
     if (r.length) {
       const plates = [...new Set(r.map((x) => x.plate_label))].sort()
-      throw new RpcError('in_use', `Sample ${s.barcode} has ${r.length} runs on plate(s) ${plates.join(', ')}. Clear or change those plate maps first.`)
+      throw new RpcError(
+        'in_use',
+        `Sample ${s.barcode} has ${r.length} runs on plate(s) ${plates.join(', ')}. Clear or change those plate maps first.`,
+      )
     }
     drop(s)
     ctx.changed('samples', [s.id])
@@ -209,7 +217,11 @@ const handlers: Record<string, MockHandler> = {
       if (!s) refused.push({ sample_id: id, barcode: null, reason: `Sample ${id} does not exist.` })
       else if (r.length) {
         const plates = [...new Set(r.map((x) => x.plate_label))].sort()
-        refused.push({ sample_id: id, barcode: s.barcode, reason: `Sample ${s.barcode} has ${r.length} runs on plate(s) ${plates.join(', ')}. Clear or change those plate maps first.` })
+        refused.push({
+          sample_id: id,
+          barcode: s.barcode,
+          reason: `Sample ${s.barcode} has ${r.length} runs on plate(s) ${plates.join(', ')}. Clear or change those plate maps first.`,
+        })
       } else {
         drop(s)
         done.push(id)
@@ -227,14 +239,22 @@ const handlers: Record<string, MockHandler> = {
     const preview = previewSamplesCsv(p.content ?? '', new Set(barcodes.keys()))
     if (preview.headerError) throw new RpcError('invalid', preview.headerError)
     const bad = preview.rows.filter((r) => r.status === 'invalid')
-    if (bad.length) throw new RpcError('invalid', `The samples CSV has ${bad.length} problem(s): ${bad.map((r) => `line ${r.line}: ${r.problem}`).join(', ')}. Nothing was imported.`)
+    if (bad.length)
+      throw new RpcError(
+        'invalid',
+        `The samples CSV has ${bad.length} problem(s): ${bad.map((r) => `line ${r.line}: ${r.problem}`).join(', ')}. Nothing was imported.`,
+      )
     const created: Sample[] = []
     for (const r of preview.rows.filter((x) => x.status === 'create')) {
       const s = { id: nextId++, barcode: r.barcode, designation: r.designation ?? 'sample' }
       put(s)
       created.push(summary(s))
     }
-    if (created.length) ctx.changed('samples', created.map((s) => s.id))
+    if (created.length)
+      ctx.changed(
+        'samples',
+        created.map((s) => s.id),
+      )
     return { created, existing: preview.rows.filter((r) => r.status === 'existing').map((r) => r.barcode) }
   },
 }

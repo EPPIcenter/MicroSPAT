@@ -33,7 +33,10 @@ export function ProbabilitiesTab({ detail }: { detail: ProjectDetail }) {
     meta: { errorTitle: 'Could not calculate probabilities' },
     onSuccess: (r) => {
       setLast(r)
-      toast.success('Peak probabilities calculated', `${countOf(r.samples, 'sample')}; ${countOf(r.manual_calls_kept, 'curated call')} kept as they were.`)
+      toast.success(
+        'Peak probabilities calculated',
+        `${countOf(r.samples, 'sample')}; ${countOf(r.manual_calls_kept, 'curated call')} kept as they were.`,
+      )
     },
   })
   const running = run.isPending || task?.status === 'running'
@@ -48,15 +51,17 @@ export function ProbabilitiesTab({ detail }: { detail: ProjectDetail }) {
             <AnalysisBadge status={status} what="Peak probabilities" />
           </div>
           <p className="mt-2 max-w-prose text-xs leading-relaxed text-muted">
-            Weighs every candidate peak against the whole project: it estimates how common each allele is (prevalence) and how many clones each sample
-            carries (MOI), then gives each peak the probability that it is a true allele rather than stutter, weighing how far it stands above its
-            expected artifact height against that prior, and re-calls alleles from those probabilities. It needs every locus analyzed and current, and must be re-run after any locus is re-analyzed. Calls you curated by hand keep
-            their alleles; only their probabilities are updated.
+            Weighs every candidate peak against the whole project: it estimates how common each allele is (prevalence) and how many clones
+            each sample carries (MOI), then gives each peak the probability that it is a true allele rather than stutter, weighing how far
+            it stands above its expected artifact height against that prior, and re-calls alleles from those probabilities. It needs every
+            locus analyzed and current, and must be re-run after any locus is re-analyzed. Calls you curated by hand keep their alleles;
+            only their probabilities are updated.
           </p>
           {needs.length > 0 && (
             <div className="mt-3 flex items-center gap-2 rounded border border-warn/30 bg-warn-soft px-2.5 py-1.5 text-xs" role="status">
               <span className="flex-1">
-                {needs.map((l) => l.label).join(', ')} {needs.length === 1 ? 'is' : 'are'} not current. Analyze {needs.length === 1 ? 'it' : 'them'} first.
+                {needs.map((l) => l.label).join(', ')} {needs.length === 1 ? 'is' : 'are'} not current. Analyze{' '}
+                {needs.length === 1 ? 'it' : 'them'} first.
               </span>
               <Button size="sm" variant="primary" disabled={analyze.isPending} onClick={() => analyze.mutate({ only_stale: true })}>
                 {analyze.isPending && <Spinner className="size-3" />} Analyze {needs.length === 1 ? 'it' : 'them'}
@@ -84,7 +89,9 @@ export function ProbabilitiesTab({ detail }: { detail: ProjectDetail }) {
               </div>
             )}
           </div>
-          {status?.state === 'stale' && status.reasons.length > 0 && <p className="mt-2 text-xs text-warn">Out of date: {status.reasons.join('; ')}</p>}
+          {status?.state === 'stale' && status.reasons.length > 0 && (
+            <p className="mt-2 text-xs text-warn">Out of date: {status.reasons.join('; ')}</p>
+          )}
         </section>
         {last && (
           <section className="rounded border border-line bg-surface p-4 text-xs" data-testid="probability-result">

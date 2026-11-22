@@ -37,7 +37,22 @@ describe('trace model', () => {
     expect(peakStateOf(makePeak({ index: 1, flags: { artifact: true } as never }), { manual: 'on' })).toBe('manual-on')
   })
   it('toTracePeaks carries labels and details', () => {
-    const [p] = toTracePeaks([makePeak({ index: 7, size: 170.1, height: 900, bin_id: 2, bin_label: '170', in_bin: true, relative_height: 0.12, artifact_contribution: 300, artifact_error: 50, pullup_contribution: 120, pullup_error: 25, probability: 0.97 })])
+    const [p] = toTracePeaks([
+      makePeak({
+        index: 7,
+        size: 170.1,
+        height: 900,
+        bin_id: 2,
+        bin_label: '170',
+        in_bin: true,
+        relative_height: 0.12,
+        artifact_contribution: 300,
+        artifact_error: 50,
+        pullup_contribution: 120,
+        pullup_error: 25,
+        probability: 0.97,
+      }),
+    ])
     expect(p).toMatchObject({ index: 7, size: 170.1, label: '170', state: 'called' })
     expect(p!.detail!.join(' ')).toContain('artifact 300 ± 50 RFU')
     expect(p!.detail!.join(' ')).toContain('expected pull-up 120 ± 25 RFU')

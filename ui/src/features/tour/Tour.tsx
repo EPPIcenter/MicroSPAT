@@ -84,7 +84,9 @@ function TourIntro({ welcome }: { welcome: boolean }) {
       open
       onOpenChange={(open) => !open && closeTour()}
       title={welcome ? 'Welcome to MicroSPAT' : 'Take the tour'}
-      description={welcome ? 'New here? Take a five-minute guided tour of a finished study.' : 'A five-minute guided tour of a finished study.'}
+      description={
+        welcome ? 'New here? Take a five-minute guided tour of a finished study.' : 'A five-minute guided tour of a finished study.'
+      }
       footer={
         <>
           <Button onClick={closeTour} data-testid="tour-cancel">
@@ -99,7 +101,8 @@ function TourIntro({ welcome }: { welcome: boolean }) {
     >
       <div className="space-y-2.5" data-testid="tour-intro">
         <p>
-          The tour goes from imported plates through calibration to reviewed calls and export. While it runs, the page is locked, so nothing you click can change the workspace.
+          The tour goes from imported plates through calibration to reviewed calls and export. While it runs, the page is locked, so nothing
+          you click can change the workspace.
         </p>
         {loadError && (
           <p className="flex gap-2 rounded-md bg-bad-soft px-2.5 py-2 text-xs text-bad" role="alert">
@@ -111,14 +114,14 @@ function TourIntro({ welcome }: { welcome: boolean }) {
           <p className="flex gap-2 rounded-md bg-warn-soft px-2.5 py-2 text-xs" role="note">
             <TriangleAlert size={14} className="mt-0.5 shrink-0 text-warn" />
             <span>
-              This workspace already holds data. The tour adds the demo study beside it: three plates, 288 samples, and six loci named PfB1 to PfY2. To keep them apart, cancel
-              and start the tour in a new workspace.
+              This workspace already holds data. The tour adds the demo study beside it: three plates, 288 samples, and six loci named PfB1
+              to PfY2. To keep them apart, cancel and start the tour in a new workspace.
             </span>
           </p>
         ) : (
           <p className="text-muted">
-            {hasDemo ? 'It uses the demo study in this workspace' : 'It first loads the demo study into this workspace'}: three synthetic plates, 288 samples, and six loci,
-            already analyzed.
+            {hasDemo ? 'It uses the demo study in this workspace' : 'It first loads the demo study into this workspace'}: three synthetic
+            plates, 288 samples, and six loci, already analyzed.
           </p>
         )}
         {busy && !hasDemo && (
@@ -176,7 +179,9 @@ function useTarget(selector: string | undefined, stepId: string): Tracked {
         shown = true
         const viewport = windowSize()
         setTracked((prev) =>
-          sameRect(prev.rect, rect) && prev.viewport.width === viewport.width && prev.viewport.height === viewport.height ? prev : { rect, viewport },
+          sameRect(prev.rect, rect) && prev.viewport.width === viewport.width && prev.viewport.height === viewport.height
+            ? prev
+            : { rect, viewport },
         )
       }
       frame = requestAnimationFrame(tick)
@@ -207,7 +212,7 @@ function TourOverlay({ index, context }: { index: number; context: TourContext }
   })
   const wanted = step?.path?.(context)
   useEffect(() => {
-    if (wanted != null && !onPage(here.current, wanted)) navigate(wanted)
+    if (wanted != null && !onPage(here.current, wanted)) void navigate(wanted)
   }, [wanted, step?.id, navigate])
 
   useLayoutEffect(() => {
@@ -256,7 +261,13 @@ function TourOverlay({ index, context }: { index: number; context: TourContext }
   const position = placeCard({ target: highlight, card: cardSize, viewport, prefer: step.prefer })
 
   return createPortal(
-    <div className="fixed inset-0 z-[70]" data-testid="tour" data-step={step.id} data-placement={position.placement} onMouseDown={(e) => e.target === e.currentTarget && e.preventDefault()}>
+    <div
+      className="fixed inset-0 z-[70]"
+      data-testid="tour"
+      data-step={step.id}
+      data-placement={position.placement}
+      onMouseDown={(e) => e.target === e.currentTarget && e.preventDefault()}
+    >
       {highlight ? (
         <div
           className="pointer-events-none absolute rounded-md outline-2 outline-accent transition-[left,top,width,height] duration-200 motion-reduce:transition-none"
@@ -279,7 +290,14 @@ function TourOverlay({ index, context }: { index: number; context: TourContext }
           <span className="num text-2xs font-semibold tracking-wide text-faint uppercase">
             Tour · {at + 1} of {steps.length}
           </span>
-          <Button variant="ghost" size="icon-sm" className="-mt-1 -mr-1.5 ml-auto" aria-label="End the tour" title="End the tour (Esc)" onClick={closeTour}>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="-mt-1 -mr-1.5 ml-auto"
+            aria-label="End the tour"
+            title="End the tour (Esc)"
+            onClick={closeTour}
+          >
             <X size={14} />
           </Button>
         </div>
@@ -297,7 +315,13 @@ function TourOverlay({ index, context }: { index: number; context: TourContext }
           <Button size="sm" className="ml-auto" disabled={at === 0} onClick={() => goToStep(at - 1)} data-testid="tour-back">
             Back
           </Button>
-          <Button ref={nextRef} size="sm" variant="primary" onClick={() => (at < last ? goToStep(at + 1) : closeTour())} data-testid="tour-next">
+          <Button
+            ref={nextRef}
+            size="sm"
+            variant="primary"
+            onClick={() => (at < last ? goToStep(at + 1) : closeTour())}
+            data-testid="tour-next"
+          >
             {at < last ? 'Next' : 'Done'}
           </Button>
         </div>

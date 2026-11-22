@@ -48,7 +48,7 @@ export default function PlatesPage() {
   // Open the first plate when none is chosen.
   const first = plates.data?.[0]?.id
   useEffect(() => {
-    if (plateId == null && first != null) navigate(`/plates/${first}`, { replace: true })
+    if (plateId == null && first != null) void navigate(`/plates/${first}`, { replace: true })
   }, [plateId, first, navigate])
 
   const demo = useMutation({
@@ -92,7 +92,14 @@ export default function PlatesPage() {
     )
   } else if (plates.isError) {
     body = (
-      <EmptyState title="Could not load plates" action={<Button size="sm" onClick={() => void plates.refetch()}>Try again</Button>}>
+      <EmptyState
+        title="Could not load plates"
+        action={
+          <Button size="sm" onClick={() => void plates.refetch()}>
+            Try again
+          </Button>
+        }
+      >
         {(plates.error as Error).message}
       </EmptyState>
     )
@@ -115,7 +122,8 @@ export default function PlatesPage() {
           </div>
         }
       >
-        Import zip archives or folders of .fsa files from a capillary run. Each well’s size ladder is fitted on import; then check the plate here, fix failed ladders, and apply a plate map.
+        Import zip archives or folders of .fsa files from a capillary run. Each well’s size ladder is fitted on import; then check the plate
+        here, fix failed ladders, and apply a plate map.
       </EmptyState>
     )
   } else {
@@ -131,13 +139,13 @@ export default function PlatesPage() {
             selected={selected.length === 1 && plateId != null && selected[0] !== String(plateId) ? [String(plateId)] : selected}
             onSelectionChange={(ids) => {
               setSelected(ids)
-              if (ids.length === 1 && ids[0] !== String(plateId)) navigate(`/plates/${ids[0]}`)
+              if (ids.length === 1 && ids[0] !== String(plateId)) void navigate(`/plates/${ids[0]}`)
             }}
             onOpen={(pid) => navigate(`/plates/${pid}`)}
             onDeleted={(ids) => {
               setSelected([])
               // Its unsaved ladder edits went with it.
-              if (plateId != null && ids.includes(plateId)) bypassUnsaved(() => navigate('/plates'))
+              if (plateId != null && ids.includes(plateId)) void bypassUnsaved(() => navigate('/plates'))
             }}
           />
         }

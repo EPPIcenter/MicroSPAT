@@ -31,10 +31,24 @@ export interface LocusStatusListProps {
   className?: string
 }
 
-export function LocusStatusList({ detail, selected, onSelect, checked, onCheckedChange, variant = 'list', trailing, className }: LocusStatusListProps) {
+export function LocusStatusList({
+  detail,
+  selected,
+  onSelect,
+  checked,
+  onCheckedChange,
+  variant = 'list',
+  trailing,
+  className,
+}: LocusStatusListProps) {
   if (variant === 'strip') {
     return (
-      <div role="tablist" aria-label="Loci" className={cn('flex min-w-0 items-stretch gap-0.5 overflow-x-auto', className)} data-testid="locus-strip">
+      <div
+        role="tablist"
+        aria-label="Loci"
+        className={cn('flex min-w-0 items-stretch gap-0.5 overflow-x-auto', className)}
+        data-testid="locus-strip"
+      >
         {detail.loci.map((l) => {
           const v = statusView(l.status, `${l.label} results`)
           const active = l.locus_id === selected
@@ -62,14 +76,18 @@ export function LocusStatusList({ detail, selected, onSelect, checked, onChecked
                 onClick={() => onSelect(l.locus_id)}
                 className={cn(
                   'flex h-7 shrink-0 items-center gap-1.5 rounded-[5px] border px-2 text-xs outline-none focus-visible:ring-2 focus-visible:ring-accent/40',
-                  active ? 'border-accent bg-accent-soft font-semibold text-fg' : 'border-transparent text-muted hover:bg-surface-3 hover:text-fg',
+                  active
+                    ? 'border-accent bg-accent-soft font-semibold text-fg'
+                    : 'border-transparent text-muted hover:bg-surface-3 hover:text-fg',
                   l.status.state === 'stale' && !active && 'border-warn/40 border-dashed',
                 )}
               >
                 <span aria-hidden className="size-2 rounded-[2px]" style={{ background: `var(--dye-${l.color})` }} />
                 {l.label}
                 {l.status.state !== 'current' && <StatusIcon view={v} size={11} />}
-                {l.warnings?.length ? <AlertTriangle size={11} className="text-warn" aria-label={l.warnings.join(' ')} data-testid="locus-warning" /> : null}
+                {l.warnings?.length ? (
+                  <AlertTriangle size={11} className="text-warn" aria-label={l.warnings.join(' ')} data-testid="locus-warning" />
+                ) : null}
                 {l.custom_params && <SlidersHorizontal size={10} className="text-faint" aria-label="custom parameters" />}
                 {trailing?.(l)}
               </button>
@@ -113,7 +131,11 @@ export function LocusStatusList({ detail, selected, onSelect, checked, onChecked
                 if (next != null) {
                   e.preventDefault()
                   onSelect(next)
-                  ;(e.currentTarget.parentElement?.querySelector(`[data-locus="${detail.loci.find((x) => x.locus_id === next)?.label}"]`) as HTMLElement | null)?.focus()
+                  ;(
+                    e.currentTarget.parentElement?.querySelector(
+                      `[data-locus="${detail.loci.find((x) => x.locus_id === next)?.label}"]`,
+                    ) as HTMLElement | null
+                  )?.focus()
                 }
               }}
               className={cn(
@@ -144,9 +166,16 @@ export function LocusStatusList({ detail, selected, onSelect, checked, onChecked
                   )}
                   <span className="ml-auto">{trailing?.(l)}</span>
                 </div>
-                <div className={cn('mt-0.5 flex items-start gap-1 text-2xs', v.state === 'stale' ? 'text-warn' : v.state === 'current' ? 'text-muted' : 'text-faint')}>
+                <div
+                  className={cn(
+                    'mt-0.5 flex items-start gap-1 text-2xs',
+                    v.state === 'stale' ? 'text-warn' : v.state === 'current' ? 'text-muted' : 'text-faint',
+                  )}
+                >
                   <StatusIcon view={v} size={11} className="mt-px" />
-                  <span className="min-w-0">{v.state === 'stale' ? v.reasons.map((r) => r.replace(/\.$/, '')).join('; ') || 'Stale' : shortStatus(l.status)}</span>
+                  <span className="min-w-0">
+                    {v.state === 'stale' ? v.reasons.map((r) => r.replace(/\.$/, '')).join('; ') || 'Stale' : shortStatus(l.status)}
+                  </span>
                 </div>
                 {l.warnings?.map((w) => (
                   <div key={w} className="mt-0.5 flex items-start gap-1 text-2xs text-warn" data-testid="locus-warning">

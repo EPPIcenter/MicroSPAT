@@ -72,7 +72,9 @@ export function mockQualityReport(wells: readonly MockQualityWell[], opts: MockQ
   const r = rng(opts.seed * 7919 + 13)
   const ladderColor = opts.ladderColor ?? 'orange'
   const unseparated = new Set(opts.unseparated ?? [])
-  const sampleDyes = (['blue', 'green', 'yellow', 'red'] as Color[]).filter((c) => c !== ladderColor && wells.some((w) => w.signal[c] !== undefined))
+  const sampleDyes = (['blue', 'green', 'yellow', 'red'] as Color[]).filter(
+    (c) => c !== ladderColor && wells.some((w) => w.signal[c] !== undefined),
+  )
   const dyes = [...sampleDyes, ladderColor]
   const ladderHeights = wells.filter((w) => w.sized).map(() => 2500 + r.next() * 3500)
   let li = 0
@@ -135,7 +137,13 @@ export function mockQualityReport(wells: readonly MockQualityWell[], opts: MockQ
       const key = `${s}>${t}` as const
       const f = opts.pullUp?.[key] ?? TYPICAL_PULL_UP[key] ?? (r.next() - 0.5) * 0.02
       const peaks = s === ladderColor ? 1800 + Math.floor(r.next() * 200) : 60 + Math.floor(r.next() * 60)
-      pull_up.push({ source: s, target: t, fraction: s === 'yellow' && t === ladderColor ? null : f, spread: 0.0015, peaks: s === 'yellow' && t === ladderColor ? 12 : peaks })
+      pull_up.push({
+        source: s,
+        target: t,
+        fraction: s === 'yellow' && t === ladderColor ? null : f,
+        spread: 0.0015,
+        peaks: s === 'yellow' && t === ladderColor ? 12 : peaks,
+      })
     }
 
   const controls = opts.controls ?? []

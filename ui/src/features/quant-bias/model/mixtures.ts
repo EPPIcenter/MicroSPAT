@@ -60,7 +60,14 @@ export function checkMixture(components: readonly DraftComponent[], controlIds: 
   else if (Math.abs(sum - 100) > SUM_TOLERANCE) errors.push(`Shares sum to ${fmtPercentNumber(sum)}%, not 100%.`)
   if (components.length === 1 && Object.keys(rowErrors).length === 0)
     warnings.push('A single strain at 100% says nothing about bias; mixtures of two or more strains do.')
-  return { sum, remainder: Math.round((100 - sum) * 1e6) / 1e6, rowErrors, errors, warnings, ok: errors.length === 0 && Object.keys(rowErrors).length === 0 }
+  return {
+    sum,
+    remainder: Math.round((100 - sum) * 1e6) / 1e6,
+    rowErrors,
+    errors,
+    warnings,
+    ok: errors.length === 0 && Object.keys(rowErrors).length === 0,
+  }
 }
 
 export function fmtPercentNumber(v: number): string {
@@ -69,7 +76,9 @@ export function fmtPercentNumber(v: number): string {
 
 /** Engine components (proportions sum to 1). */
 export function toComponents(components: readonly DraftComponent[]): MixtureComponent[] {
-  return components.filter((c) => c.controlId != null && c.percent != null).map((c) => ({ control_id: c.controlId!, proportion: c.percent! / 100 }))
+  return components
+    .filter((c) => c.controlId != null && c.percent != null)
+    .map((c) => ({ control_id: c.controlId!, proportion: c.percent! / 100 }))
 }
 
 /** Draft rows from stored components (percent rounded to 0.01). */

@@ -88,7 +88,14 @@ export function plateHealth(p: PlateSummary): PlateHealth {
   if (s.failed) parts.push(`${s.failed} failed`)
   if (s.unusable) parts.push(`${s.unusable} unusable`)
   if (s.flagged) parts.push(`${s.flagged} flagged`)
-  const tone: Tone = p.contaminated_loci.length > 0 || s.failed + s.unusable > 0 ? (s.failed + s.unusable > p.well_count * 0.1 || p.contaminated_loci.length ? 'danger' : 'warn') : s.flagged ? 'warn' : 'ok'
+  const tone: Tone =
+    p.contaminated_loci.length > 0 || s.failed + s.unusable > 0
+      ? s.failed + s.unusable > p.well_count * 0.1 || p.contaminated_loci.length
+        ? 'danger'
+        : 'warn'
+      : s.flagged
+        ? 'warn'
+        : 'ok'
   return { tone, text: parts.length ? parts.join(', ') : 'all good' }
 }
 
@@ -121,8 +128,12 @@ export function stateReasons(wells: readonly WellSummary[], maxLines = 6): Parti
   }
   const out: Partial<Record<SizingState, string>> = {}
   for (const [state, m] of by) {
-    const lines = [...m].map(([reason, labels]) => `${labels.length > 3 ? `${labels.slice(0, 3).join(', ')} +${labels.length - 3}` : labels.join(', ')}: ${reason}`)
-    out[state] = lines.length > maxLines ? [...lines.slice(0, maxLines), `…and ${lines.length - maxLines} more`].join('\n') : lines.join('\n')
+    const lines = [...m].map(
+      ([reason, labels]) =>
+        `${labels.length > 3 ? `${labels.slice(0, 3).join(', ')} +${labels.length - 3}` : labels.join(', ')}: ${reason}`,
+    )
+    out[state] =
+      lines.length > maxLines ? [...lines.slice(0, maxLines), `…and ${lines.length - maxLines} more`].join('\n') : lines.join('\n')
   }
   return out
 }
@@ -150,10 +161,7 @@ function wellLabelFor(w: WellSummary): string | undefined {
 }
 
 /** Grid data for Ladder mode: sizing state and quality, hand edits marked. */
-export function ladderWells(
-  wells: readonly WellSummary[],
-  opts: { drafts?: ReadonlySet<number> } = {},
-): Record<string, WellDatum> {
+export function ladderWells(wells: readonly WellSummary[], opts: { drafts?: ReadonlySet<number> } = {}): Record<string, WellDatum> {
   const out: Record<string, WellDatum> = {}
   for (const w of wells) {
     const detail = [w.sizing_quality == null ? 'Failed: no ladder fit' : `${SIZING_LABEL[w.sizing]} · SQ ${fmtQuality(w.sizing_quality)}`]
@@ -208,13 +216,10 @@ export function dyeSignal(w: WellSummary, color: Color, mapped: boolean, locusId
  * or one value when a single locus is chosen. Negative controls are marked;
  * contaminated ones in red.
  */
-export function signalWells(
-  detail: PlateDetail,
-  opts: { ladderColor: Color | null; locusId: number | null },
-): Record<string, WellDatum> {
+export function signalWells(detail: PlateDetail, opts: { ladderColor: Color | null; locusId: number | null }): Record<string, WellDatum> {
   const mapped = detail.plate.has_plate_map
   const dyes = signalDyes(detail, opts.ladderColor)
-  const locus = opts.locusId == null ? null : detail.loci.find((l) => l.locus_id === opts.locusId) ?? null
+  const locus = opts.locusId == null ? null : (detail.loci.find((l) => l.locus_id === opts.locusId) ?? null)
   const out: Record<string, WellDatum> = {}
   for (const w of detail.wells) {
     const runs = wellRuns(w).filter((r) => !locus || r.locus_id === locus.locus_id)
@@ -222,7 +227,9 @@ export function signalWells(
     if (w.sizing === 'failed') detailLines.push('Ladder failed: signal in the size range is unknown')
     if (mapped) {
       for (const r of runs)
-        detailLines.push(`${r.locus_label}: ${r.max_signal == null ? '–' : `${fmtRfu(r.max_signal)} RFU`}${r.contaminated ? ' · contaminated' : ''}`)
+        detailLines.push(
+          `${r.locus_label}: ${r.max_signal == null ? '–' : `${fmtRfu(r.max_signal)} RFU`}${r.contaminated ? ' · contaminated' : ''}`,
+        )
     }
     if (w.offscale_count) detailLines.push(`${w.offscale_count} off-scale point${w.offscale_count === 1 ? '' : 's'}`)
     const negatives = runs.filter((r) => r.designation === 'negative_control')
@@ -282,7 +289,11 @@ export function locusStats(detail: PlateDetail, noneBelow = 100, offscale = 3000
   return detail.loci.map((l) => {
     const s = by.get(l.locus_id)
     const v = (s?.values ?? []).slice().sort((a, b) => a - b)
-    const mid = v.length ? (v.length % 2 ? (v[(v.length - 1) / 2] as number) : ((v[v.length / 2 - 1] as number) + (v[v.length / 2] as number)) / 2) : null
+    const mid = v.length
+      ? v.length % 2
+        ? (v[(v.length - 1) / 2] as number)
+        : ((v[v.length / 2 - 1] as number) + (v[v.length / 2] as number)) / 2
+      : null
     return {
       locusId: l.locus_id,
       label: l.label,

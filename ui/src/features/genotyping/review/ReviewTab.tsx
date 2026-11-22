@@ -151,7 +151,10 @@ export function ReviewTab({ detail, locusId, sampleId, onSelect, active }: Revie
 
   // ------------------------------------------------------------- toggling
 
-  const cachedRow = useCallback((sid: number, l: number) => qc.getQueryData<LocusCalls>(genoKeys.calls(pid, l))?.rows.find((r) => r.sample_id === sid), [qc, pid])
+  const cachedRow = useCallback(
+    (sid: number, l: number) => qc.getQueryData<LocusCalls>(genoKeys.calls(pid, l))?.rows.find((r) => r.sample_id === sid),
+    [qc, pid],
+  )
   const toggle = useMutation({
     mutationFn: (r: ToggleRecord) => api.toggle_allele({ project_id: pid, sample_id: r.sampleId, locus_id: r.locusId, bin_id: r.binId }),
     meta: { errorTitle: 'Could not change the call' },
@@ -165,7 +168,13 @@ export function ReviewTab({ detail, locusId, sampleId, onSelect, active }: Revie
         const alleles = (has ? row.alleles.filter((a) => a.bin_id !== r.binId) : [...row.alleles, { bin_id: r.binId, label: r.label }])
           .map((a) => ({ bin_id: a.bin_id, label: a.label, size: a.size }))
           .sort((a, b) => size(a.bin_id) - size(b.bin_id))
-        return { ...row, alleles, flags: { ...row.flags, manual_curation: true }, reviewed: false, review_dropped: !!(before?.reviewed || before?.review_dropped) }
+        return {
+          ...row,
+          alleles,
+          flags: { ...row.flags, manual_curation: true },
+          reviewed: false,
+          review_dropped: !!(before?.reviewed || before?.review_dropped),
+        }
       })
     },
     onSuccess: (row, r) => patchCallRow(qc, pid, r.sampleId, r.locusId, () => row),
@@ -175,7 +184,8 @@ export function ReviewTab({ detail, locusId, sampleId, onSelect, active }: Revie
     },
   })
   const review = useMutation({
-    mutationFn: (r: { sampleId: number; locusId: number; reviewed: boolean }) => api.set_call_reviewed({ project_id: pid, sample_id: r.sampleId, locus_id: r.locusId, reviewed: r.reviewed }),
+    mutationFn: (r: { sampleId: number; locusId: number; reviewed: boolean }) =>
+      api.set_call_reviewed({ project_id: pid, sample_id: r.sampleId, locus_id: r.locusId, reviewed: r.reviewed }),
     meta: { errorTitle: 'Could not change the review mark' },
     onMutate: (r) => {
       patchCallRow(qc, pid, r.sampleId, r.locusId, (row) => ({ ...row, reviewed: r.reviewed, review_dropped: false }))
@@ -191,12 +201,18 @@ export function ReviewTab({ detail, locusId, sampleId, onSelect, active }: Revie
     [sampleId, lid, byId, review],
   )
   const bulk = useMutation({
-    mutationFn: (r: { locusId: number; sampleIds: number[] }) => api.set_calls_reviewed({ project_id: pid, locus_id: r.locusId, sample_ids: r.sampleIds, reviewed: true }),
+    mutationFn: (r: { locusId: number; sampleIds: number[] }) =>
+      api.set_calls_reviewed({ project_id: pid, locus_id: r.locusId, sample_ids: r.sampleIds, reviewed: true }),
     meta: { errorTitle: 'Could not mark the calls reviewed' },
     onSuccess: (res, r) => {
       const done = new Set(r.sampleIds.filter((id) => !res.missing.includes(id)))
-      qc.setQueryData<LocusCalls>(genoKeys.calls(pid, r.locusId), (old) => (old ? { ...old, rows: old.rows.map((x) => (done.has(x.sample_id) ? { ...x, reviewed: true, review_dropped: false } : x)) } : old))
-      toast.success(`Marked ${countOf(res.updated, 'call')} reviewed`, res.missing.length ? `${countOf(res.missing.length, 'sample')} had no call and were skipped.` : undefined)
+      qc.setQueryData<LocusCalls>(genoKeys.calls(pid, r.locusId), (old) =>
+        old ? { ...old, rows: old.rows.map((x) => (done.has(x.sample_id) ? { ...x, reviewed: true, review_dropped: false } : x)) } : old,
+      )
+      toast.success(
+        `Marked ${countOf(res.updated, 'call')} reviewed`,
+        res.missing.length ? `${countOf(res.missing.length, 'sample')} had no call and were skipped.` : undefined,
+      )
     },
   })
   const doToggle = useCallback(
@@ -228,8 +244,17 @@ export function ReviewTab({ detail, locusId, sampleId, onSelect, active }: Revie
     if (!active || shortcutBlocked(e)) return
     // Keys the focused trace or a button handles itself.
     const t = e.target as HTMLElement | null
-    if (t?.closest('[data-testid=trace-viewer]') && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', '0', 'a', '+', '-', '='].includes(e.key)) return
-    if ((e.key === ' ' || e.key === 'Enter') && t && (t.tagName === 'BUTTON' || t.getAttribute('role') === 'tab' || t.getAttribute('role') === 'option')) return
+    if (
+      t?.closest('[data-testid=trace-viewer]') &&
+      ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', '0', 'a', '+', '-', '='].includes(e.key)
+    )
+      return
+    if (
+      (e.key === ' ' || e.key === 'Enter') &&
+      t &&
+      (t.tagName === 'BUTTON' || t.getAttribute('role') === 'tab' || t.getAttribute('role') === 'option')
+    )
+      return
     const a = reviewKeyAction(e)
     if (!a) return
     e.preventDefault()
@@ -247,7 +272,11 @@ export function ReviewTab({ detail, locusId, sampleId, onSelect, active }: Revie
       case 'attention': {
         const n: number | null = nextMatching(order, sampleId, (id) => !!byId.get(id)?.needsAttention, a.delta)
         if (n != null) onSelect({ sample: n })
-        else toast.info(`Nothing else needs attention at ${locus?.label ?? 'this locus'}`, 'Every flagged call the table shows is reviewed. U goes to calls not reviewed yet.')
+        else
+          toast.info(
+            `Nothing else needs attention at ${locus?.label ?? 'this locus'}`,
+            'Every flagged call the table shows is reviewed. U goes to calls not reviewed yet.',
+          )
         break
       }
       case 'unreviewed': {
@@ -322,10 +351,15 @@ export function ReviewTab({ detail, locusId, sampleId, onSelect, active }: Revie
   }, [])
 
   if (!locus) return <EmptyState title="This project has no loci" />
-  const progress = new Map<number, ReviewProgress>((summary.data?.loci ?? []).map((l) => [l.locus_id, { calls: l.calls ?? 0, reviewed: l.reviewed ?? 0 }]))
+  const progress = new Map<number, ReviewProgress>(
+    (summary.data?.loci ?? []).map((l) => [l.locus_id, { calls: l.calls ?? 0, reviewed: l.reviewed ?? 0 }]),
+  )
   // The open locus counts from its rows, which follow every mark at once.
   if (data) progress.set(data.locus_id, { calls: views.length, reviewed: views.filter((v) => v.reviewed).length })
-  const projectProgress = [...progress.values()].reduce((a, b) => ({ calls: a.calls + b.calls, reviewed: a.reviewed + b.reviewed }), { calls: 0, reviewed: 0 })
+  const projectProgress = [...progress.values()].reduce((a, b) => ({ calls: a.calls + b.calls, reviewed: a.reviewed + b.reviewed }), {
+    calls: 0,
+    reviewed: 0,
+  })
   const toMark = shown.filter((v) => !v.reviewed)
   const filterWords = describeFilters(filters)
   const current = sampleId != null ? byId.get(sampleId) : undefined
@@ -333,10 +367,22 @@ export function ReviewTab({ detail, locusId, sampleId, onSelect, active }: Revie
   const analyzing = analyze.isPending || task?.status === 'running'
 
   let main: React.ReactNode
-  if (calls.isLoading && !data) main = <div className="grid flex-1 place-items-center text-muted"><Spinner /></div>
+  if (calls.isLoading && !data)
+    main = (
+      <div className="grid flex-1 place-items-center text-muted">
+        <Spinner />
+      </div>
+    )
   else if (calls.isError && !data)
     main = (
-      <EmptyState title="Could not load calls" action={<Button size="sm" onClick={() => void calls.refetch()}>Try again</Button>}>
+      <EmptyState
+        title="Could not load calls"
+        action={
+          <Button size="sm" onClick={() => void calls.refetch()}>
+            Try again
+          </Button>
+        }
+      >
         {(calls.error as Error).message}
       </EmptyState>
     )
@@ -350,7 +396,8 @@ export function ReviewTab({ detail, locusId, sampleId, onSelect, active }: Revie
           </Button>
         }
       >
-        Analyzing scans every run of the project’s samples at this locus, filters peaks, bins them and calls alleles. It runs in the background.
+        Analyzing scans every run of the project’s samples at this locus, filters peaks, bins them and calls alleles. It runs in the
+        background.
       </EmptyState>
     )
   else
@@ -364,29 +411,41 @@ export function ReviewTab({ detail, locusId, sampleId, onSelect, active }: Revie
           showParams ? (
             <ParamsPanel detail={detail} locusId={locus.locus_id} onClose={toggleParams} onDirtyChange={setParamsDirty} />
           ) : (
-          <StaleFrame status={status}>
-            <CallsTable
-              rows={shown}
-              total={views.length}
-              selectedId={sampleId != null ? String(sampleId) : null}
-              onSelect={(id) => onSelect({ sample: Number(id) })}
-              sort={sort}
-              onSortChange={setSort}
-              filters={filters}
-              onFiltersChange={setFilters}
-              stale={status.state === 'stale'}
-              searchRef={searchRef}
-              bulk={
-                <Tooltip content={toMark.length ? `Mark the ${countOf(toMark.length, 'call')} the filter shows that are not reviewed yet` : 'Every call the filter shows is reviewed'}>
-                  <span tabIndex={-1}>
-                    <Button size="sm" variant="ghost" disabled={toMark.length === 0 || bulk.isPending} onClick={() => setBulkOpen(true)} data-testid="bulk-review">
-                      {bulk.isPending ? <Spinner className="size-3" /> : <CheckCheck size={12} />} Mark {toMark.length} reviewed
-                    </Button>
-                  </span>
-                </Tooltip>
-              }
-            />
-          </StaleFrame>
+            <StaleFrame status={status}>
+              <CallsTable
+                rows={shown}
+                total={views.length}
+                selectedId={sampleId != null ? String(sampleId) : null}
+                onSelect={(id) => onSelect({ sample: Number(id) })}
+                sort={sort}
+                onSortChange={setSort}
+                filters={filters}
+                onFiltersChange={setFilters}
+                stale={status.state === 'stale'}
+                searchRef={searchRef}
+                bulk={
+                  <Tooltip
+                    content={
+                      toMark.length
+                        ? `Mark the ${countOf(toMark.length, 'call')} the filter shows that are not reviewed yet`
+                        : 'Every call the filter shows is reviewed'
+                    }
+                  >
+                    <span tabIndex={-1}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={toMark.length === 0 || bulk.isPending}
+                        onClick={() => setBulkOpen(true)}
+                        data-testid="bulk-review"
+                      >
+                        {bulk.isPending ? <Spinner className="size-3" /> : <CheckCheck size={12} />} Mark {toMark.length} reviewed
+                      </Button>
+                    </span>
+                  </Tooltip>
+                }
+              />
+            </StaleFrame>
           )
         }
         second={
@@ -436,7 +495,14 @@ export function ReviewTab({ detail, locusId, sampleId, onSelect, active }: Revie
           trailing={(l: ProjectLocus) => <LocusProgress p={progress.get(l.locus_id)} />}
         />
         {projectProgress.calls > 0 && <ReviewProgressBar p={projectProgress} label="Project" testId="project-review-progress" />}
-        <Button size="sm" variant={showParams ? 'secondary' : 'ghost'} aria-pressed={showParams} onClick={toggleParams} data-testid="toggle-params" title="Parameters of this locus (P)">
+        <Button
+          size="sm"
+          variant={showParams ? 'secondary' : 'ghost'}
+          aria-pressed={showParams}
+          onClick={toggleParams}
+          data-testid="toggle-params"
+          title="Parameters of this locus (P)"
+        >
           <SlidersHorizontal size={12} /> Parameters <Kbd>P</Kbd>
         </Button>
       </div>
@@ -445,7 +511,13 @@ export function ReviewTab({ detail, locusId, sampleId, onSelect, active }: Revie
         what={`${locus.label} calls`}
         action={
           status.state !== 'not_analyzed' && (
-            <Button size="sm" variant="primary" disabled={analyzing} onClick={() => analyze.mutate({ locus_ids: [locus.locus_id] })} data-testid="reanalyze-locus">
+            <Button
+              size="sm"
+              variant="primary"
+              disabled={analyzing}
+              onClick={() => analyze.mutate({ locus_ids: [locus.locus_id] })}
+              data-testid="reanalyze-locus"
+            >
               {analyzing && <Spinner className="size-3" />} Re-analyze {locus.label}
             </Button>
           )
@@ -453,7 +525,8 @@ export function ReviewTab({ detail, locusId, sampleId, onSelect, active }: Revie
       />
       {data?.probabilities && data.probabilities.state === 'stale' && status.state === 'current' && (
         <div className="border-b border-line bg-surface-2 px-3 py-1 text-xs text-muted" role="status">
-          Peak probabilities and MOI are out of date ({data.probabilities.reasons.join('; ') || 'a locus was re-analyzed'}). Recalculate them on the Probabilities tab.
+          Peak probabilities and MOI are out of date ({data.probabilities.reasons.join('; ') || 'a locus was re-analyzed'}). Recalculate
+          them on the Probabilities tab.
         </div>
       )}
       {main}
@@ -469,8 +542,14 @@ export function ReviewTab({ detail, locusId, sampleId, onSelect, active }: Revie
             {filterWords
               ? `The table shows ${countOf(shown.length, 'call')} (${filterWords}). ${toMark.length === shown.length ? 'None of them is reviewed yet' : `${toMark.length} of them are not reviewed yet`}`
               : `These are all the calls at ${locus.label} not reviewed yet`}
-            {toMark.length > 0 && `: ${toMark.slice(0, 6).map((v) => v.row.barcode).join(', ')}${toMark.length > 6 ? ` and ${toMark.length - 6} more` : ''}`}. Each stays reviewed until its alleles, flags or reference run
-            change. {views.length - shown.length > 0 && `${countOf(views.length - shown.length, 'call')} hidden by the filter are left as they are.`}
+            {toMark.length > 0 &&
+              `: ${toMark
+                .slice(0, 6)
+                .map((v) => v.row.barcode)
+                .join(', ')}${toMark.length > 6 ? ` and ${toMark.length - 6} more` : ''}`}
+            . Each stays reviewed until its alleles, flags or reference run change.{' '}
+            {views.length - shown.length > 0 &&
+              `${countOf(views.length - shown.length, 'call')} hidden by the filter are left as they are.`}
           </>
         }
         confirmLabel={`Mark ${toMark.length} reviewed`}
@@ -500,7 +579,10 @@ function LocusProgress({ p }: { p: ReviewProgress | undefined }) {
   const done = p.reviewed >= p.calls
   return (
     <span
-      className={cn('num ml-0.5 rounded-[3px] px-1 text-2xs font-normal', done ? 'bg-ok-soft text-ok' : p.reviewed ? 'bg-surface-3 text-muted' : 'text-faint')}
+      className={cn(
+        'num ml-0.5 rounded-[3px] px-1 text-2xs font-normal',
+        done ? 'bg-ok-soft text-ok' : p.reviewed ? 'bg-surface-3 text-muted' : 'text-faint',
+      )}
       data-testid="locus-review-progress"
       data-reviewed={p.reviewed}
       data-calls={p.calls}

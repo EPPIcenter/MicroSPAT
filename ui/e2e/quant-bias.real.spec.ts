@@ -43,7 +43,8 @@ async function rpc<T>(page: Page, method: string, params: unknown): Promise<T> {
 async function cleanup(page: Page) {
   for (const p of await rpc<{ id: number; title: string }[]>(page, 'list_projects', { kind: 'quant_bias_estimator' }))
     if (p.title.startsWith('E2E')) await rpc(page, 'delete_project', { id: p.id })
-  for (const c of await rpc<Control[]>(page, 'list_controls', {})) if (c.label.startsWith('E2E')) await rpc(page, 'delete_control', { id: c.id })
+  for (const c of await rpc<Control[]>(page, 'list_controls', {}))
+    if (c.label.startsWith('E2E')) await rpc(page, 'delete_control', { id: c.id })
 }
 
 /** Put the demo estimator back: default parameters and every locus current. */
@@ -117,7 +118,13 @@ test('creates, edits and deletes a control; refuses a duplicate name and a contr
   await expect(picker).toHaveAttribute('data-value', String(pfy1.bin_id))
   await page.keyboard.press('ControlOrMeta+s')
   await expect(editor.getByText('unsaved', { exact: true })).toHaveCount(0)
-  await expect.poll(async () => (await rpc<Control[]>(page, 'list_controls', {})).find((c) => c.label === label)?.alleles.find((a) => a.locus_label === 'PfY1')?.bin_id).toBe(pfy1.bin_id)
+  await expect
+    .poll(
+      async () =>
+        (await rpc<Control[]>(page, 'list_controls', {})).find((c) => c.label === label)?.alleles.find((a) => a.locus_label === 'PfY1')
+          ?.bin_id,
+    )
+    .toBe(pfy1.bin_id)
 
   // A name another control of the bin estimator has is refused.
   await editor.getByLabel('Name (barcode)').fill('3D7')
@@ -144,7 +151,10 @@ test('creates, edits and deletes a control; refuses a duplicate name and a contr
 
 test('opens Demo bias: β negative and of realistic size at every locus, with the regression drawn', async ({ page }) => {
   await page.goto('/quant-bias')
-  await page.getByRole('grid', { name: /Quantification-bias estimators/ }).getByText('Demo bias', { exact: true }).dblclick()
+  await page
+    .getByRole('grid', { name: /Quantification-bias estimators/ })
+    .getByText('Demo bias', { exact: true })
+    .dblclick()
   await expect(page).toHaveURL(new RegExp(`/quant-bias/${ids.project}`))
   await expect(page.getByTestId('project-title')).toHaveText('Demo bias')
   const strip = page.getByTestId('locus-strip')
@@ -177,7 +187,9 @@ test('previews a mixtures CSV through the dry run, reports its errors, then appl
   await page.goto(`/quant-bias/${ids.project}?tab=mixtures`)
   await page.getByTestId('import-mixtures').click()
   const dialog = page.getByRole('dialog', { name: /from CSV/ })
-  await dialog.getByLabel('Mixtures CSV').fill('Barcode,C1,C2\nD3-MIX-3D7-DD2-50,3D7;0.5,DD2;0.5\nE2E-NO-SUCH-SAMPLE,3D7;0.5,DD2;0.5\nD3-MIX-3D7-DD2-70,3D7;0.7,DD2;0.2\n')
+  await dialog
+    .getByLabel('Mixtures CSV')
+    .fill('Barcode,C1,C2\nD3-MIX-3D7-DD2-50,3D7;0.5,DD2;0.5\nE2E-NO-SUCH-SAMPLE,3D7;0.5,DD2;0.5\nD3-MIX-3D7-DD2-70,3D7;0.7,DD2;0.2\n')
   const preview = dialog.getByTestId('csv-preview')
   await expect(preview).toHaveAttribute('data-bad', '2')
   await expect(preview.locator('tr[data-barcode="E2E-NO-SUCH-SAMPLE"]')).toContainText('unknown barcode')
@@ -255,7 +267,11 @@ test('creates an estimator, assigns mixtures, analyzes it, and deletes it', asyn
   await expect(page).toHaveURL(/tab=mixtures/)
   await expect(page.getByTestId('mixtures-tab')).toContainText('No control mixtures yet')
   // Assign four mixtures directly: pick the samples, then the composition.
-  await page.getByTestId('mixtures-tab').getByRole('button', { name: /Assign mixtures/ }).first().click()
+  await page
+    .getByTestId('mixtures-tab')
+    .getByRole('button', { name: /Assign mixtures/ })
+    .first()
+    .click()
   const editor = page.getByTestId('mixture-editor')
   await editor.getByPlaceholder('Search barcodes…').fill('D3-MIX-3D7-HB3-50')
   await editor.getByRole('grid').getByText('D3-MIX-3D7-HB3-50', { exact: true }).click()
@@ -269,7 +285,9 @@ test('creates an estimator, assigns mixtures, analyzes it, and deletes it', asyn
   // …and three more from a CSV.
   await page.getByTestId('import-mixtures').click()
   const csv = page.getByRole('dialog', { name: /from CSV/ })
-  await csv.getByLabel('Mixtures CSV').fill('Barcode,A,B\nD3-MIX-3D7-HB3-30,3D7;0.3,HB3;0.7\nD3-MIX-3D7-HB3-70,3D7;0.7,HB3;0.3\nD3-MIX-3D7-DD2-50,3D7;0.5,DD2;0.5\n')
+  await csv
+    .getByLabel('Mixtures CSV')
+    .fill('Barcode,A,B\nD3-MIX-3D7-HB3-30,3D7;0.3,HB3;0.7\nD3-MIX-3D7-HB3-70,3D7;0.7,HB3;0.3\nD3-MIX-3D7-DD2-50,3D7;0.5,DD2;0.5\n')
   await expect(csv.getByTestId('csv-preview')).toHaveAttribute('data-bad', '0')
   await csv.getByTestId('csv-apply').click()
   await expect(page.getByRole('grid', { name: 'Control mixtures' }).locator('[role=row][data-row-id]')).toHaveCount(4)
@@ -294,7 +312,9 @@ test('exports the control peak data of an estimator', async ({ page }) => {
   await page.getByTestId('export-peaks').click()
   const file = await download
   expect(file.suggestedFilename()).toMatch(/_control_peak_data\.csv$/)
-  const lines = readFileSync((await file.path())!, 'utf8').trim().split('\n')
+  const lines = readFileSync((await file.path())!, 'utf8')
+    .trim()
+    .split('\n')
   expect(lines[0]).toMatch(/^Sample,Locus,Plate,Well,Peak Size,Peak Height,/)
   expect(lines[0]).toContain('Used In Fit,Exclusion Reason')
   expect(lines.length).toBeGreaterThan(20)
@@ -303,17 +323,27 @@ test('exports the control peak data of an estimator', async ({ page }) => {
 test('a control whose allele bin was deleted says so, apart from alleles never set', async ({ page }) => {
   const all = await rpc<{ id: number; title: string }[]>(page, 'list_projects', { kind: 'bin_estimator' })
   const demoBins = all.find((p) => p.title === 'Demo bins')!.id
-  const dup = await rpc<{ project: { id: number }; loci: { locus_id: number; label: string }[] }>(page, 'duplicate_project', { id: demoBins, title: `E2E deleted bin ${Date.now()}` })
+  const dup = await rpc<{ project: { id: number }; loci: { locus_id: number; label: string }[] }>(page, 'duplicate_project', {
+    id: demoBins,
+    title: `E2E deleted bin ${Date.now()}`,
+  })
   const pfy1 = dup.loci.find((l) => l.label === 'PfY1')!.locus_id
   const bins = await rpc<{ bins: { id: number; label: string }[] }>(page, 'get_locus_bins', { project_id: dup.project.id, locus_id: pfy1 })
   const bin = bins.bins[0]!
-  const control = await rpc<{ id: number }>(page, 'create_control', { bin_estimator_id: dup.project.id, label: 'E2E-DEL', alleles: [{ locus_id: pfy1, bin_id: bin.id }] })
+  const control = await rpc<{ id: number }>(page, 'create_control', {
+    bin_estimator_id: dup.project.id,
+    label: 'E2E-DEL',
+    alleles: [{ locus_id: pfy1, bin_id: bin.id }],
+  })
   await rpc(page, 'update_locus_bins', { project_id: dup.project.id, locus_id: pfy1, bins: [], delete_ids: [bin.id] })
   await page.goto(`/controls/${control.id}`)
   const notice = page.getByTestId('bins-notice')
   await expect(notice).toContainText("1 allele's bin was deleted from the bin estimator")
   await expect(notice).toContainText('5 loci have no allele set')
-  await expect(page.getByTestId('allele-grid').locator('[data-locus=PfY1] [aria-label*="was deleted"]')).toHaveAttribute('aria-label', new RegExp(`bin ${bin.label} \\(`))
+  await expect(page.getByTestId('allele-grid').locator('[data-locus=PfY1] [aria-label*="was deleted"]')).toHaveAttribute(
+    'aria-label',
+    new RegExp(`bin ${bin.label} \\(`),
+  )
   await rpc(page, 'delete_control', { id: control.id })
   await rpc(page, 'delete_project', { id: dup.project.id })
 })

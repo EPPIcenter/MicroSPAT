@@ -44,7 +44,15 @@ export function NotFound({ what, error, back }: { what: string; error?: unknown;
         )
       }
     >
-      <span data-testid="not-found">{missing ? 'It may have been deleted, or the link is from another workspace.' : error instanceof Error || isRpcError(error) ? error.message : String(error)}</span>
+      <span data-testid="not-found">
+        {missing
+          ? 'It may have been deleted, or the link is from another workspace.'
+          : error instanceof Error || isRpcError(error)
+            ? error.message
+            : typeof error === 'string'
+              ? error
+              : 'Could not load data.'}
+      </span>
     </EmptyState>
   )
 }

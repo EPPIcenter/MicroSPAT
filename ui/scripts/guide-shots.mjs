@@ -21,7 +21,11 @@ const out = resolve(process.argv[3] ?? join(REPO, 'docs', 'images'))
 mkdirSync(out, { recursive: true })
 
 async function rpc(method, params = null) {
-  const res = await fetch(`${base}/api/rpc/${method}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(params) })
+  const res = await fetch(`${base}/api/rpc/${method}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(params),
+  })
   if (!res.ok) throw new Error(`${method}: ${res.status} ${await res.text()}`)
   return res.json()
 }
@@ -50,7 +54,10 @@ async function open({ offered }) {
   }, offered)
   const page = await context.newPage()
   page.on('pageerror', (e) => errors.push(e.message))
-  page.on('response', (r) => watching && r.status() >= 400 && errors.push(`${r.status()} ${r.request().method()} ${r.url()} (page at ${page.url()})`))
+  page.on(
+    'response',
+    (r) => watching && r.status() >= 400 && errors.push(`${r.status()} ${r.request().method()} ${r.url()} (page at ${page.url()})`),
+  )
   return page
 }
 

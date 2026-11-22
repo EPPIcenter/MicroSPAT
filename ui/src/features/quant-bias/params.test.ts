@@ -7,7 +7,14 @@ import { quantBiasParams } from '@/params/schemas'
 // A quantification-bias estimator's effective parameters as the engine returns them (defaults).
 const engine: LocusParams = {
   scan: { maxima_window: 10, relmax_window: 6, smoothing_window: 11, smoothing_order: 7, tophat_factor: 0.005 },
-  filter: { min_peak_height: 0, max_peak_height: 40000, min_peak_height_ratio: 0, max_bleedthrough: 10, max_crosstalk: 100, min_peak_distance: 2.2 },
+  filter: {
+    min_peak_height: 0,
+    max_peak_height: 40000,
+    min_peak_height_ratio: 0,
+    max_bleedthrough: 10,
+    max_crosstalk: 100,
+    min_peak_distance: 2.2,
+  },
   quant_bias: { min_peak_height: 1000, min_true_proportion: 0.25, offscale_threshold: 32000 },
 }
 

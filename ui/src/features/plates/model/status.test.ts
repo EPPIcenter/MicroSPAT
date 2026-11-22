@@ -57,7 +57,10 @@ describe('plate health', () => {
     expect(plateHealth(plate())).toEqual({ tone: 'ok', text: 'all good' })
   })
   it('warns about a few failures, alarms on many or on contamination', () => {
-    expect(plateHealth(plate({ sizing: { good: 94, flagged: 1, unusable: 0, failed: 1 } }))).toEqual({ tone: 'warn', text: '1 failed, 1 flagged' })
+    expect(plateHealth(plate({ sizing: { good: 94, flagged: 1, unusable: 0, failed: 1 } }))).toEqual({
+      tone: 'warn',
+      text: '1 failed, 1 flagged',
+    })
     expect(plateHealth(plate({ sizing: { good: 80, flagged: 0, unusable: 6, failed: 10 } })).tone).toBe('danger')
     expect(plateHealth(plate({ contaminated_loci: ['PfB1'] })).tone).toBe('danger')
   })
@@ -95,7 +98,9 @@ describe('signal view', () => {
   const red = (max: number | null = 900): ChannelSummary => ({ id: 3, color: 'red', max_signal: max, runs: [] })
 
   it('takes the highest run signal of the dye, or one locus', () => {
-    const w = well('A01', {}, [blue([run({ locus_id: 1, locus_label: 'B1', max_signal: 800 }), run({ locus_id: 2, locus_label: 'B2', max_signal: 4000 })])])
+    const w = well('A01', {}, [
+      blue([run({ locus_id: 1, locus_label: 'B1', max_signal: 800 }), run({ locus_id: 2, locus_label: 'B2', max_signal: 4000 })]),
+    ])
     expect(dyeSignal(w, 'blue', true, null)).toBe(4000)
     expect(dyeSignal(w, 'blue', true, 1)).toBe(800)
   })
@@ -105,7 +110,9 @@ describe('signal view', () => {
     expect(dyeSignal(sized, 'blue', true, null)).toBeNull()
     expect(dyeSignal(sized, 'green', true, null)).toBeUndefined() // dye not assigned
     expect(dyeSignal(sized, 'yellow', true, null)).toBeUndefined() // no channel
-    const failed = well('A02', { sizing: 'failed', sizing_quality: null }, [blue([run({ locus_id: 1, locus_label: 'B1', max_signal: null })], null)])
+    const failed = well('A02', { sizing: 'failed', sizing_quality: null }, [
+      blue([run({ locus_id: 1, locus_label: 'B1', max_signal: null })], null),
+    ])
     expect(dyeSignal(failed, 'blue', true, null)).toBeUndefined()
     expect(dyeSignal(failed, 'blue', false, null)).toBeUndefined()
   })
@@ -121,13 +128,21 @@ describe('signal view', () => {
       { locus_id: 3, label: 'G1', color: 'green', run_count: 2, contaminated: false },
     ],
     wells: [
-      well('A01', {}, [blue([run({ locus_id: 1, locus_label: 'B1', max_signal: 6000 })]), green([run({ locus_id: 3, locus_label: 'G1', max_signal: 50 })]), red()]),
+      well('A01', {}, [
+        blue([run({ locus_id: 1, locus_label: 'B1', max_signal: 6000 })]),
+        green([run({ locus_id: 3, locus_label: 'G1', max_signal: 50 })]),
+        red(),
+      ]),
       well('H12', {}, [
         blue([run({ locus_id: 1, locus_label: 'B1', max_signal: 1800, designation: 'negative_control', contaminated: true })]),
         green([run({ locus_id: 3, locus_label: 'G1', max_signal: 20, designation: 'negative_control' })]),
         red(),
       ]),
-      well('A03', { sizing: 'failed', sizing_quality: null }, [blue([run({ locus_id: 1, locus_label: 'B1', max_signal: null })], null), green([run({ locus_id: 3, locus_label: 'G1', max_signal: null })], null), red(null)]),
+      well('A03', { sizing: 'failed', sizing_quality: null }, [
+        blue([run({ locus_id: 1, locus_label: 'B1', max_signal: null })], null),
+        green([run({ locus_id: 3, locus_label: 'G1', max_signal: null })], null),
+        red(null),
+      ]),
     ],
   }
 

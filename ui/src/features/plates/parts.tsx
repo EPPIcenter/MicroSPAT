@@ -76,7 +76,9 @@ export function SizingCountsInline({
 }
 
 export function SizingSwatch({ state, className }: { state: SizingState; className?: string }) {
-  return <span aria-hidden className={cn('inline-block size-2 shrink-0 rounded-[2px]', className)} style={{ background: SIZING_FILL[state] }} />
+  return (
+    <span aria-hidden className={cn('inline-block size-2 shrink-0 rounded-[2px]', className)} style={{ background: SIZING_FILL[state] }} />
+  )
 }
 
 /** Legend entry with a swatch, label and count. */
@@ -101,7 +103,13 @@ export function SizingLegend({ counts, manual, drafts }: { counts: Record<Sizing
   return (
     <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-2xs text-muted">
       {SIZING_STATES.map((s) => (
-        <LegendItem key={s} swatch={<SizingSwatch state={s} className="size-2.5" />} label={SIZING_LABEL[s]} count={counts[s]} help={SIZING_HELP[s]} />
+        <LegendItem
+          key={s}
+          swatch={<SizingSwatch state={s} className="size-2.5" />}
+          label={SIZING_LABEL[s]}
+          count={counts[s]}
+          help={SIZING_HELP[s]}
+        />
       ))}
       {manual > 0 && <LegendItem swatch={<CornerSwatch color="var(--c-accent)" />} label="Edited by hand" count={manual} />}
       {drafts > 0 && <LegendItem swatch={<CornerSwatch color="var(--c-fg)" />} label="Unsaved edit" count={drafts} />}

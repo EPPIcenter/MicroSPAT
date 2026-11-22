@@ -1,7 +1,7 @@
-# Checks for pull requests and pushes to master: Rust format, clippy and tests
-# (including the desktop shell on Linux), UI typecheck/lint/unit tests/build,
-# and cross-platform compilation of the desktop app and standalone server on
-# Linux, Windows, and macOS.
+# Checks for pull requests and pushes to master: Rust format, clippy, tests,
+# and cargo-deny (licenses/advisories), UI format, typecheck, type-aware lint,
+# unit tests, build, Playwright E2E, and cross-platform compilation of the
+# desktop app and standalone server on Linux, Windows, and macOS.
 name: CI
 
 on:
@@ -22,7 +22,7 @@ env:
 
 jobs:
   rust:
-    name: Rust (fmt, clippy, test)
+    name: Rust (fmt, clippy, test, deny)
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -44,8 +44,11 @@ jobs:
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo test --workspace
 
+      - name: Check Rust advisories, licenses, and sources
+        uses: EmbarkStudios/cargo-deny-action@17aeb3c839e42274e2b8adf721c8c65edfdc74dd # v2.1.3
+
   ui:
-    name: UI (typecheck, lint, test, build)
+    name: UI (fmt, typecheck, lint, test, build)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -61,6 +64,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
         working-directory: ui
+      - run: pnpm fmt:check
+        working-directory: ui
       - run: pnpm typecheck
         working-directory: ui
       - run: pnpm lint
@@ -68,6 +73,27 @@ jobs:
       - run: pnpm test
         working-directory: ui
       - run: pnpm build
+        working-directory: ui
+
+  ui-e2e:
+    name: UI E2E (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: ui/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+        working-directory: ui
+      - run: pnpm exec playwright install --with-deps chromium
+        working-directory: ui
+      - run: pnpm e2e
         working-directory: ui
 
   cross-platform:

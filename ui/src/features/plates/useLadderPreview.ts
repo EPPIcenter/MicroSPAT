@@ -54,7 +54,11 @@ export function useLadderPreview(plateId: number, wellId: number, draft: LadderD
 
   const fitter = useQuery(previewQuery(plateId, needsFitter ? fitterRequest(wellId, d) : null, draft != null))
   const fitterCurrent = needsFitter && !fitter.isPlaceholderData && fitter.data != null
-  const built = explicit ? (needsFitter && !fitterCurrent ? null : explicitRequest(wellId, d, fitterCurrent ? (fitter.data?.peaks ?? null) : null)) : null
+  const built = explicit
+    ? needsFitter && !fitterCurrent
+      ? null
+      : explicitRequest(wellId, d, fitterCurrent ? (fitter.data?.peaks ?? null) : null)
+    : null
   const chosen = useQuery(previewQuery(plateId, built?.request ?? null, draft != null && explicit))
 
   if (draft == null) return { preview: null, request: null, problem: null, pending: false, error: null }

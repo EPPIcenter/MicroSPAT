@@ -30,10 +30,29 @@ describe('hitBand', () => {
     expect(hitBand(bands, 101, 3)).toEqual({ index: 0, part: 'left' })
   })
   it('body hit picks the narrowest band', () => {
-    expect(hitBand([{ lo: 0, hi: 100 }, { lo: 40, hi: 60 }], 50, 2)).toEqual({ index: 1, part: 'body' })
+    expect(
+      hitBand(
+        [
+          { lo: 0, hi: 100 },
+          { lo: 40, hi: 60 },
+        ],
+        50,
+        2,
+      ),
+    ).toEqual({ index: 1, part: 'body' })
   })
   it('selected band wins overlapping bodies', () => {
-    expect(hitBand([{ lo: 0, hi: 100 }, { lo: 40, hi: 60 }], 50, 2, 0)).toEqual({ index: 0, part: 'body' })
+    expect(
+      hitBand(
+        [
+          { lo: 0, hi: 100 },
+          { lo: 40, hi: 60 },
+        ],
+        50,
+        2,
+        0,
+      ),
+    ).toEqual({ index: 0, part: 'body' })
   })
   it('misses outside every band', () => {
     expect(hitBand(bands, 300)).toBeNull()

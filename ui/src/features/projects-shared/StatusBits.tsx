@@ -59,14 +59,23 @@ export function AnalysisBadge({
 }) {
   const v = statusView(status, what)
   const chip = compact ? (
-    <span tabIndex={0} className={cn('inline-flex items-center outline-none', className)} aria-label={`${v.label}${v.reasons.length ? `: ${v.reasons.join('; ')}` : ''}`} data-state={v.state}>
+    <span
+      tabIndex={0}
+      className={cn('inline-flex items-center outline-none', className)}
+      aria-label={`${v.label}${v.reasons.length ? `: ${v.reasons.join('; ')}` : ''}`}
+      data-state={v.state}
+    >
       <StatusIcon view={v} />
     </span>
   ) : (
     <span
       tabIndex={0}
       data-state={v.state}
-      className={cn('inline-flex h-[18px] items-center gap-1 rounded-[4px] px-1.5 text-2xs font-medium whitespace-nowrap outline-none', TONE_CLASS[v.tone], className)}
+      className={cn(
+        'inline-flex h-[18px] items-center gap-1 rounded-[4px] px-1.5 text-2xs font-medium whitespace-nowrap outline-none',
+        TONE_CLASS[v.tone],
+        className,
+      )}
     >
       <StatusIcon view={v} size={11} className="text-current" />
       {label ?? v.label}
@@ -116,12 +125,19 @@ export function StaleNotice({
 
 /** Hatched backdrop for result areas whose status is not current. */
 export const STALE_HATCH: CSSProperties = {
-  backgroundImage:
-    'repeating-linear-gradient(135deg, color-mix(in srgb, var(--c-warn) 9%, transparent) 0 6px, transparent 6px 14px)',
+  backgroundImage: 'repeating-linear-gradient(135deg, color-mix(in srgb, var(--c-warn) 9%, transparent) 0 6px, transparent 6px 14px)',
 }
 
 /** Wraps result content; hatched with an amber edge when not current. */
-export function StaleFrame({ status, children, className }: { status: AnalysisStatus | null | undefined; children: ReactNode; className?: string }) {
+export function StaleFrame({
+  status,
+  children,
+  className,
+}: {
+  status: AnalysisStatus | null | undefined
+  children: ReactNode
+  className?: string
+}) {
   const stale = status?.state === 'stale'
   return (
     <div

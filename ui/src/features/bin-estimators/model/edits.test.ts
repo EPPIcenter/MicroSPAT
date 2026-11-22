@@ -3,7 +3,13 @@ import type { Bin } from '@/api/bindings'
 import { moveBin, newBin, removeBin, replaceBin } from '@/components/BinPlot/binEdit'
 import { applyEdit, baseChanged, buildBatch, describeDiff, diffBins, discard, initEdits, isDirty, receive, redo, undo } from './edits'
 
-const b = (id: number, size: number, label = String(Math.round(size))): Bin => ({ id, label, base_size: size, bin_buffer: 0.75, peak_count: 30 })
+const b = (id: number, size: number, label = String(Math.round(size))): Bin => ({
+  id,
+  label,
+  base_size: size,
+  bin_buffer: 0.75,
+  peak_count: 30,
+})
 const base = [b(1, 72.3), b(2, 75.3), b(3, 78.31)]
 
 describe('bin edit history', () => {

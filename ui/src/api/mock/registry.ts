@@ -13,7 +13,7 @@ export interface MockContext {
   changed(entity: string, ids?: number[] | null): void
 }
 
-export type MockHandler = (params: unknown, ctx: MockContext) => unknown | Promise<unknown>
+export type MockHandler = (params: unknown, ctx: MockContext) => unknown
 
 const handlers = new Map<string, MockHandler>()
 const listeners = new Set<(e: AppEvent) => void>()

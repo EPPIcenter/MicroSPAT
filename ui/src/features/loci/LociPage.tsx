@@ -60,7 +60,7 @@ export default function LociPage() {
   const select = (ids: string[]) => {
     setSelected(ids)
     const next = ids.length === 1 ? `/loci/${ids[0]}` : '/loci'
-    if (next !== (id ? `/loci/${id}` : '/loci')) navigate(next, { replace: true })
+    if (next !== (id ? `/loci/${id}` : '/loci')) void navigate(next, { replace: true })
   }
 
   const columns = useMemo<DataColumn<Locus>[]>(
@@ -73,7 +73,11 @@ export default function LociPage() {
           <span className="flex items-center gap-1.5">
             <span className="truncate font-medium">{l.label}</span>
             {flagged.has(l.id) && (
-              <span title={`Overlaps ${flagged.get(l.id)!.join(', ')} on the ${l.color} dye`} className="text-danger" aria-label="Overlapping range">
+              <span
+                title={`Overlaps ${flagged.get(l.id)!.join(', ')} on the ${l.color} dye`}
+                className="text-danger"
+                aria-label="Overlapping range"
+              >
                 <AlertTriangle size={12} />
               </span>
             )}
@@ -84,7 +88,15 @@ export default function LociPage() {
       { id: 'color', header: 'Dye', value: (l) => l.color, cell: (l) => <DyeChip color={l.color} />, width: 80 },
       { id: 'min', header: 'Min (bp)', value: (l) => l.min_base_length, align: 'right', width: 80, searchable: false },
       { id: 'max', header: 'Max (bp)', value: (l) => l.max_base_length, align: 'right', width: 80, searchable: false },
-      { id: 'repeat', header: 'Repeat', value: (l) => l.nucleotide_repeat_length, align: 'right', width: 66, searchable: false, description: 'Repeat unit length in bases' },
+      {
+        id: 'repeat',
+        header: 'Repeat',
+        value: (l) => l.nucleotide_repeat_length,
+        align: 'right',
+        width: 66,
+        searchable: false,
+        description: 'Repeat unit length in bases',
+      },
       {
         id: 'sets',
         header: 'Sets',
@@ -99,7 +111,15 @@ export default function LociPage() {
         searchable: false,
         description: 'Locus sets containing this locus',
       },
-      { id: 'runs', header: 'Runs', value: (l) => l.run_count, align: 'right', width: 70, searchable: false, description: 'Runs assigned to this locus by plate maps' },
+      {
+        id: 'runs',
+        header: 'Runs',
+        value: (l) => l.run_count,
+        align: 'right',
+        width: 70,
+        searchable: false,
+        description: 'Runs assigned to this locus by plate maps',
+      },
       {
         id: 'overlap',
         header: 'Overlaps',
@@ -123,7 +143,15 @@ export default function LociPage() {
       />
     )
   else if (single)
-    panel = <LocusPanel key={single.id} locus={single} sets={sets.data ?? []} overlapsWith={flagged.get(single.id)} onDelete={() => setDeleting(true)} />
+    panel = (
+      <LocusPanel
+        key={single.id}
+        locus={single}
+        sets={sets.data ?? []}
+        overlapsWith={flagged.get(single.id)}
+        onDelete={() => setDeleting(true)}
+      />
+    )
   else if (id && !isNew && loci.data && !all.some((l) => String(l.id) === id) && selected.length <= 1) panel = <NotFound what="locus" />
   else if (selectedLoci.length > 1)
     panel = (
@@ -131,7 +159,12 @@ export default function LociPage() {
         <p className="text-fg">{countOf(selectedLoci.length, 'locus', 'loci')} selected</p>
         <p className="text-muted">{selectedLoci.map((l) => l.label).join(', ')}</p>
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="primary" onClick={() => navigate(`/locus-sets/new?loci=${selectedLoci.map((l) => l.id).join(',')}`)} data-testid="locus-set-from-selection">
+          <Button
+            size="sm"
+            variant="primary"
+            onClick={() => navigate(`/locus-sets/new?loci=${selectedLoci.map((l) => l.id).join(',')}`)}
+            data-testid="locus-set-from-selection"
+          >
             <Plus size={12} /> New locus set of these
           </Button>
           <Button size="sm" variant="danger-ghost" onClick={() => setDeleting(true)}>
@@ -165,10 +198,20 @@ export default function LociPage() {
     <PageHeader
       icon={<Dna />}
       title="Loci"
-      subtitle={loci.data ? `${countOf(all.length, 'locus', 'loci')}${overlaps.length ? ` · ${countOf(overlaps.length, 'overlap')}` : ''}` : undefined}
+      subtitle={
+        loci.data
+          ? `${countOf(all.length, 'locus', 'loci')}${overlaps.length ? ` · ${countOf(overlaps.length, 'overlap')}` : ''}`
+          : undefined
+      }
       actions={
         <>
-          <Button size="sm" variant="danger-ghost" disabled={selectedLoci.length === 0} onClick={() => setDeleting(true)} title="Delete the selected loci">
+          <Button
+            size="sm"
+            variant="danger-ghost"
+            disabled={selectedLoci.length === 0}
+            onClick={() => setDeleting(true)}
+            title="Delete the selected loci"
+          >
             <Trash2 size={12} /> Delete{selectedLoci.length > 1 ? ` ${selectedLoci.length}` : ''}
           </Button>
           <Button size="sm" onClick={() => setImporting(true)}>
@@ -284,7 +327,12 @@ export default function LociPage() {
           {panel}
         </aside>
       </div>
-      <ImportLociDialog open={importing} onOpenChange={setImporting} existing={all} onImported={(c) => select(c.map((l) => String(l.id)))} />
+      <ImportLociDialog
+        open={importing}
+        onOpenChange={setImporting}
+        existing={all}
+        onImported={(c) => select(c.map((l) => String(l.id)))}
+      />
       <BulkDeleteDialog
         open={deleting}
         onOpenChange={setDeleting}
@@ -296,7 +344,8 @@ export default function LociPage() {
         note={
           selectedLoci.some((l) => l.run_count > 0 || l.locus_set_ids.length > 0) ? (
             <p>
-              {plural(selectedLoci.length, 'This locus is', 'Some of these loci are')} used by runs or locus sets; the engine refuses those and says what uses them.
+              {plural(selectedLoci.length, 'This locus is', 'Some of these loci are')} used by runs or locus sets; the engine refuses those
+              and says what uses them.
             </p>
           ) : undefined
         }

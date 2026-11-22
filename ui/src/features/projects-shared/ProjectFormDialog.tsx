@@ -132,7 +132,13 @@ function ProjectForm({ kind, open, onOpenChange, project, onSaved }: ProjectForm
           if (canSave) save.mutate()
         }}
       >
-        <TextField label="Title" value={title} onChange={setTitle} error={title !== '' || project ? titleError : null} placeholder="e.g. Kisumu 2026 cohort" />
+        <TextField
+          label="Title"
+          value={title}
+          onChange={setTitle}
+          error={title !== '' || project ? titleError : null}
+          placeholder="e.g. Kisumu 2026 cohort"
+        />
         <Field label="Description" htmlFor="project-description">
           <TextInput id="project-description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional" />
         </Field>
@@ -145,7 +151,9 @@ function ProjectForm({ kind, open, onOpenChange, project, onSaved }: ProjectForm
             value={effectiveSet != null ? String(effectiveSet) : ''}
             onChange={(v) => setLocusSetId(Number(v))}
             disabled={editing}
-            placeholder={sets.isLoading ? 'Loading…' : sets.data?.length ? 'Choose a locus set' : 'No locus sets: create one under Locus sets'}
+            placeholder={
+              sets.isLoading ? 'Loading…' : sets.data?.length ? 'Choose a locus set' : 'No locus sets: create one under Locus sets'
+            }
             options={(sets.data ?? []).map((s) => ({ value: String(s.id), label: `${s.label} (${s.locus_ids.length} loci)` }))}
           />
         </Field>

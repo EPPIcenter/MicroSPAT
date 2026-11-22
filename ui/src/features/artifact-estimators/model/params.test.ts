@@ -19,6 +19,7 @@ describe('estimator parameter schemas', () => {
     expect(defaultsOf(artifactEstimatorParams)).toEqual(engineArtifact)
   })
   it('explain every field', () => {
-    for (const f of [...schemaFields(binEstimatorParams), ...schemaFields(artifactEstimatorParams)]) expect(f.help?.length ?? 0).toBeGreaterThan(40)
+    for (const f of [...schemaFields(binEstimatorParams), ...schemaFields(artifactEstimatorParams)])
+      expect(f.help?.length ?? 0).toBeGreaterThan(40)
   })
 })

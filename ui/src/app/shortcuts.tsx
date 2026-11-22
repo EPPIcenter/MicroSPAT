@@ -150,7 +150,12 @@ export function ShortcutSheet() {
     items: [
       { keys: ['?'], label: 'Show these shortcuts' },
       { keys: [kbd('⌘,')], label: 'Open settings' },
-      ...(hasNativePaths() ? [{ keys: [kbd('⌘O')], label: 'Open a workspace' }, { keys: [kbd('⇧⌘S')], label: 'Save the workspace as…' }] : []),
+      ...(hasNativePaths()
+        ? [
+            { keys: [kbd('⌘O')], label: 'Open a workspace' },
+            { keys: [kbd('⇧⌘S')], label: 'Save the workspace as…' },
+          ]
+        : []),
     ],
   }
   const groups = [...(section ? (SECTION_SHORTCUTS[section.path] ?? []) : []), PLOTS, app]

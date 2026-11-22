@@ -23,7 +23,15 @@ import { Spinner } from '@/components/ui/ProgressBar'
 import { cn } from '@/lib/cn'
 import { useUnsavedChanges } from '@/lib/unsaved'
 import { toast } from '@/stores/toasts'
-import { changedByGroup, combinedSchema, flattenParams, paramGroupsFor, partialParams, prefixedSchema, type ParamGroupKey } from './paramsModel'
+import {
+  changedByGroup,
+  combinedSchema,
+  flattenParams,
+  paramGroupsFor,
+  partialParams,
+  prefixedSchema,
+  type ParamGroupKey,
+} from './paramsModel'
 import { useAnalyze } from './ProjectHeader'
 import { useLocusParams, useProjectTask } from './queries'
 
@@ -53,7 +61,16 @@ const GROUP_LABEL: Record<ParamGroupKey, string> = {
   genotyping: 'Calling',
 }
 
-export function ParamsPanel({ detail, locusId, selectedLocusIds, kindSchema, defaultOpen, onClose, onDirtyChange, className }: ParamsPanelProps) {
+export function ParamsPanel({
+  detail,
+  locusId,
+  selectedLocusIds,
+  kindSchema,
+  defaultOpen,
+  onClose,
+  onDirtyChange,
+  className,
+}: ParamsPanelProps) {
   const project = detail.project
   const locus = detail.loci.find((l) => l.locus_id === locusId)
   const groups = useMemo(() => paramGroupsFor(project.kind, kindSchema), [project.kind, kindSchema])
@@ -68,7 +85,9 @@ export function ParamsPanel({ detail, locusId, selectedLocusIds, kindSchema, def
         <h2 className="text-xs font-semibold tracking-wide text-muted uppercase">Parameters</h2>
         <span className="text-xs font-medium">{locus?.label}</span>
         {view.data && (
-          <span className={cn('text-2xs', view.data.is_default ? 'text-faint' : 'text-accent')}>{view.data.is_default ? 'defaults' : 'custom'}</span>
+          <span className={cn('text-2xs', view.data.is_default ? 'text-faint' : 'text-accent')}>
+            {view.data.is_default ? 'defaults' : 'custom'}
+          </span>
         )}
         {view.isFetching && <Spinner className="size-3" />}
         {onClose && (
@@ -133,7 +152,8 @@ function ParamsForm({
   const task = useProjectTask('analyze_project', project.title)
   const analyzing = analyze.isPending || task?.status === 'running'
   const selected = selectedLocusIds.filter((id) => detail.loci.some((l) => l.locus_id === id))
-  const scopeIds = scope === 'locus' ? [locusId] : scope === 'selected' ? [...new Set([locusId, ...selected])] : detail.loci.map((l) => l.locus_id)
+  const scopeIds =
+    scope === 'locus' ? [locusId] : scope === 'selected' ? [...new Set([locusId, ...selected])] : detail.loci.map((l) => l.locus_id)
   const label = detail.loci.find((l) => l.locus_id === locusId)?.label ?? 'this locus'
   const byGroup = changedByGroup(form.dirty)
   // Not dirty but a wider scope: copy this locus's whole parameter set there.
@@ -143,7 +163,11 @@ function ParamsForm({
     mutationFn: async (thenAnalyze: boolean) => {
       const keys = copying ? Object.keys(form.values) : form.dirty
       const params = partialParams(form.values, keys)
-      const out = await api.update_project_locus_params({ project_id: project.id, params, ...(scope === 'all' ? {} : { locus_ids: scopeIds }) })
+      const out = await api.update_project_locus_params({
+        project_id: project.id,
+        params,
+        ...(scope === 'all' ? {} : { locus_ids: scopeIds }),
+      })
       if (thenAnalyze) analyze.mutate({ locus_ids: scopeIds })
       return out
     },
@@ -254,13 +278,27 @@ function ParamsForm({
                 <DropdownMenuItem onSelect={() => reset.mutate(true)}>Reset every locus to defaults</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button size="icon-sm" variant="ghost" onClick={form.revert} disabled={!form.isDirty || busy} aria-label="Discard edits (Esc)" title="Discard edits (Esc)">
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              onClick={form.revert}
+              disabled={!form.isDirty || busy}
+              aria-label="Discard edits (Esc)"
+              title="Discard edits (Esc)"
+            >
               <Undo2 size={12} />
             </Button>
             <Button size="sm" onClick={() => save.mutate(false)} disabled={!canSave} title="Save without analyzing; results go stale">
               {copying ? 'Copy' : 'Save'}
             </Button>
-            <Button size="sm" variant="primary" type="submit" disabled={!canSave || analyzing} data-testid="params-save-analyze" title="Save, then re-analyze the affected loci (Enter)">
+            <Button
+              size="sm"
+              variant="primary"
+              type="submit"
+              disabled={!canSave || analyzing}
+              data-testid="params-save-analyze"
+              title="Save, then re-analyze the affected loci (Enter)"
+            >
               {save.isPending || analyzing ? <Spinner className="size-3" /> : <Play size={11} />}
               {copying ? 'Copy & re-analyze' : 'Save & re-analyze'}
             </Button>

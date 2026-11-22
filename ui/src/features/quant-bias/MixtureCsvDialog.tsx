@@ -86,7 +86,14 @@ export function MixtureCsvDialog({ detail, rows, controls, open, onOpenChange }:
     setFileName(null)
     onOpenChange(false)
   }
-  const template = () => saveTextFile(`${p.title.replace(/\W+/g, '_')}_mixtures.csv`, mixtureTemplate(rows, own.map((c) => c.label)))
+  const template = () =>
+    saveTextFile(
+      `${p.title.replace(/\W+/g, '_')}_mixtures.csv`,
+      mixtureTemplate(
+        rows,
+        own.map((c) => c.label),
+      ),
+    )
   const ex = own.length >= 2 ? [own[0]!.label, own[1]!.label] : ['3D7', 'DD2']
 
   return (
@@ -155,8 +162,8 @@ export function MixtureCsvDialog({ detail, rows, controls, open, onOpenChange }:
         <aside className="space-y-2 rounded border border-line bg-surface-2 p-2.5 text-xs" aria-label="CSV format">
           <h3 className="font-semibold">Format</h3>
           <p className="text-muted">
-            A header row starting with <b>Barcode</b>, then one column per control strain in the sample (column names do not matter). Each cell is <code>CONTROL;PROPORTION</code>,
-            and a row's proportions add up to 1.
+            A header row starting with <b>Barcode</b>, then one column per control strain in the sample (column names do not matter). Each
+            cell is <code>CONTROL;PROPORTION</code>, and a row's proportions add up to 1.
           </p>
           <pre className="overflow-x-auto rounded bg-surface p-1.5 font-mono text-2xs leading-relaxed">
             {`Barcode,C1,C2\nMIX-01,${ex[0]};0.7,${ex[1]};0.3\nMIX-02,${ex[0]};0.5,${ex[1]};0.5`}
@@ -204,7 +211,8 @@ function Preview({ preview, checking }: { preview: MixtureCsvPreview; checking: 
         ) : (
           <span className="flex items-center gap-1 text-danger">
             <AlertTriangle size={13} />
-            {preview.badRows > 0 ? `${countOf(preview.badRows, 'row')} with problems` : 'Problems'}; nothing is assigned until every row is fixed.
+            {preview.badRows > 0 ? `${countOf(preview.badRows, 'row')} with problems` : 'Problems'}; nothing is assigned until every row is
+            fixed.
             <span className="text-muted">({preview.okRows} fine)</span>
           </span>
         )}
@@ -229,10 +237,22 @@ function Preview({ preview, checking }: { preview: MixtureCsvPreview; checking: 
           </thead>
           <tbody>
             {preview.rows.map((r) => (
-              <tr key={r.line} className={cn('border-t border-line align-top', r.problems.length && 'bg-danger-soft/50')} data-barcode={r.barcode} data-ok={!r.problems.length}>
+              <tr
+                key={r.line}
+                className={cn('border-t border-line align-top', r.problems.length && 'bg-danger-soft/50')}
+                data-barcode={r.barcode}
+                data-ok={!r.problems.length}
+              >
                 <td className="num px-2 py-1 text-faint">{r.line}</td>
                 <td className="px-2 py-1 font-medium whitespace-nowrap">{r.barcode || <span className="text-faint">(none)</span>}</td>
-                <td className="px-2 py-1 whitespace-nowrap">{r.components.map((c) => `${c.label} ${c.proportion != null && c.proportion >= 0 && c.proportion <= 1 ? `${+(c.proportion * 100).toFixed(2)}%` : (c.raw.split(';')[1] ?? '?')}`).join(' · ')}</td>
+                <td className="px-2 py-1 whitespace-nowrap">
+                  {r.components
+                    .map(
+                      (c) =>
+                        `${c.label} ${c.proportion != null && c.proportion >= 0 && c.proportion <= 1 ? `${+(c.proportion * 100).toFixed(2)}%` : (c.raw.split(';')[1] ?? '?')}`,
+                    )
+                    .join(' · ')}
+                </td>
                 <td className={cn('num px-2 py-1 text-right', Math.abs(r.sum - 1) > 0.01 && 'text-danger')}>{r.sum.toFixed(2)}</td>
                 <td className="px-2 py-1">
                   {r.problems.length ? (

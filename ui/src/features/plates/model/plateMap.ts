@@ -59,7 +59,7 @@ export function parsePlateMap(text: string): ParsedMap {
   return {
     loci: cols.map((c) => c.h),
     rows: rows.slice(1).map((r) => ({
-      well: normalizeWell(r[wellCol] ?? '') ?? (r[wellCol] ?? ''),
+      well: normalizeWell(r[wellCol] ?? '') ?? r[wellCol] ?? '',
       cells: cols.map((c) => r[c.i] ?? ''),
     })),
     error: null,
@@ -129,7 +129,8 @@ export function assignmentTable(assignments: readonly PlateMapAssignment[]): Non
       row.changed = true
       continue
     }
-    const state: PreviewCell['state'] = a.change === 'unchanged' ? 'unchanged' : a.creates_sample ? 'create' : a.sample_id == null ? 'unknown' : 'new'
+    const state: PreviewCell['state'] =
+      a.change === 'unchanged' ? 'unchanged' : a.creates_sample ? 'create' : a.sample_id == null ? 'unknown' : 'new'
     row.cells[i] = { barcode: a.barcode, state, removed: cur?.removed ?? null }
     if (state !== 'unchanged') row.changed = true
   }
@@ -150,11 +151,17 @@ export function presentPlateMap(report: PlateMapReport): MapPreview {
   const facts: MapPreview['facts'] = [{ label: 'Runs in the new map', value: report.run_count.toLocaleString('en-US') }]
   if (report.runs_kept || report.runs_removed) {
     facts.push({ label: 'Unchanged from the current map', value: report.runs_kept.toLocaleString('en-US') })
-    facts.push({ label: 'Removed or reassigned', value: report.runs_removed.toLocaleString('en-US'), tone: report.runs_removed ? 'warn' : undefined })
+    facts.push({
+      label: 'Removed or reassigned',
+      value: report.runs_removed.toLocaleString('en-US'),
+      tone: report.runs_removed ? 'warn' : undefined,
+    })
   }
-  if (report.created_samples.length) facts.push({ label: 'Samples to create', value: report.created_samples.length.toLocaleString('en-US') })
+  if (report.created_samples.length)
+    facts.push({ label: 'Samples to create', value: report.created_samples.length.toLocaleString('en-US') })
   if (notCreated.length) facts.push({ label: 'Unknown samples', value: notCreated.length.toLocaleString('en-US'), tone: 'danger' })
-  if (report.unknown_loci.length) facts.push({ label: 'Unknown loci', value: report.unknown_loci.length.toLocaleString('en-US'), tone: 'danger' })
+  if (report.unknown_loci.length)
+    facts.push({ label: 'Unknown loci', value: report.unknown_loci.length.toLocaleString('en-US'), tone: 'danger' })
 
   let headline: string
   if (status === 'ready') {
@@ -167,7 +174,16 @@ export function presentPlateMap(report: PlateMapReport): MapPreview {
     headline = `${plural(n, 'problem')} must be fixed before this map can be applied.`
   }
 
-  return { status, headline, facts, problems, unknownLoci: report.unknown_loci, unknownSamples: notCreated, created: report.created_samples, table }
+  return {
+    status,
+    headline,
+    facts,
+    problems,
+    unknownLoci: report.unknown_loci,
+    unknownSamples: notCreated,
+    created: report.created_samples,
+    table,
+  }
 }
 
 /** The format explanation and example shown in the dialog. */

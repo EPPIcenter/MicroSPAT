@@ -25,7 +25,9 @@ function grid(page: Page, name: string): Locator {
 function row(page: Page, gridName: string, text: string, column = 1): Locator {
   const exact = new RegExp(`^${text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`)
   // Match one column only: other columns can mention the same label.
-  return grid(page, gridName).getByRole('row').filter({ has: page.locator(`[role=gridcell]:nth-child(${column})`, { hasText: exact }) })
+  return grid(page, gridName)
+    .getByRole('row')
+    .filter({ has: page.locator(`[role=gridcell]:nth-child(${column})`, { hasText: exact }) })
 }
 
 async function confirmDelete(page: Page) {
@@ -134,7 +136,10 @@ test('locus: create, edit, duplicate label, in-use refusal, delete', async ({ pa
 
   // Delete ours.
   await row(page, 'Loci', label).click()
-  await page.getByRole('form', { name: `Locus ${label}` }).getByRole('button', { name: 'Delete' }).click()
+  await page
+    .getByRole('form', { name: `Locus ${label}` })
+    .getByRole('button', { name: 'Delete' })
+    .click()
   await confirmDelete(page)
   await expect(row(page, 'Loci', label)).toHaveCount(0)
 })
@@ -148,7 +153,9 @@ test('loci: CSV import with preview, then a locus set from them', async ({ page 
   await expect(page.getByTestId('loci-csv-header')).toHaveText('Label,Min. Base Length,Max. Base Length,Nucleotide Repeat Length,Color')
   await page
     .getByLabel('CSV text')
-    .fill(`Label,Min. Base Length,Max. Base Length,Nucleotide Repeat Length,Color\n${a},460,500,3,red\n${b},480,520,3,red\nPfB1,70,135,3,blue\n`)
+    .fill(
+      `Label,Min. Base Length,Max. Base Length,Nucleotide Repeat Length,Color\n${a},460,500,3,red\n${b},480,520,3,red\nPfB1,70,135,3,blue\n`,
+    )
   const preview = page.getByTestId('loci-import-preview')
   await expect(preview).toContainText('2 to create')
   await expect(preview).toContainText('1 rejected')
@@ -184,7 +191,10 @@ test('loci: CSV import with preview, then a locus set from them', async ({ page 
   // Loci in a set cannot be deleted.
   await page.goto('/loci')
   await row(page, 'Loci', a).click()
-  await page.getByRole('form', { name: `Locus ${a}` }).getByRole('button', { name: 'Delete' }).click()
+  await page
+    .getByRole('form', { name: `Locus ${a}` })
+    .getByRole('button', { name: 'Delete' })
+    .click()
   await confirmDelete(page)
   await expect(page.getByTestId('delete-failures')).toContainText('is in locus set(s)')
   await page.getByRole('button', { name: 'Close' }).first().click()

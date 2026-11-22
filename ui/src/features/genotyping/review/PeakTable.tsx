@@ -40,8 +40,8 @@ export function PeakReadout({ row, ctx, isReference }: { row: PeakRowModel | nul
   if (!row && ctx.failed) {
     return (
       <p className="px-3 py-1.5 text-xs text-danger" data-testid="peak-readout-failed">
-        Failed: no peak is taller than the failure threshold{ctx.params ? ` (${ctx.params.failure_threshold} RFU)` : ''}, so nothing is called. Check the other runs of this
-        sample, or toggle a bin by hand if the signal is real.
+        Failed: no peak is taller than the failure threshold{ctx.params ? ` (${ctx.params.failure_threshold} RFU)` : ''}, so nothing is
+        called. Check the other runs of this sample, or toggle a bin by hand if the signal is real.
       </p>
     )
   }
@@ -62,17 +62,30 @@ export function PeakReadout({ row, ctx, isReference }: { row: PeakRowModel | nul
           {row.n != null && <span className="mr-1 text-faint">[{row.n}]</span>}
           {fmtFixed(p.size, 2)} bp
         </span>
-        <span className="text-muted"> · {fmtRfu(p.height)} RFU · {p.bin_label ? `bin ${p.bin_label}` : 'no bin'} · </span>
+        <span className="text-muted">
+          {' '}
+          · {fmtRfu(p.height)} RFU · {p.bin_label ? `bin ${p.bin_label}` : 'no bin'} ·{' '}
+        </span>
         <span className={STATE_CLASS[row.state]}>{PEAK_STATE_TEXT[row.state]}</span>
         {!isReference && <span className="text-faint"> (shown run is not the reference run; calls come from the reference)</span>}
       </p>
       <p className="text-muted">
-        relative height {fmtShare(p.relative_height) || '0%'} · expected artifact {fmtRfu(p.artifact_contribution)} ± {fmtRfu(p.artifact_error)} RFU
+        relative height {fmtShare(p.relative_height) || '0%'} · expected artifact {fmtRfu(p.artifact_contribution)} ±{' '}
+        {fmtRfu(p.artifact_error)} RFU
         {p.probability != null && <> · P(allele) {fmtProbability(p.probability)}</>}
-        {(row.state === 'called' || row.state === 'manual-on') && sharesOf(p, ctx).share != null && <> · share {fmtShare(sharesOf(p, ctx).share)}</>}
-        {(row.state === 'called' || row.state === 'manual-on') && sharesOf(p, ctx).corrected != null && <> · bias-corrected {fmtShare(sharesOf(p, ctx).corrected)}</>}
-        {p.pullup_contribution != null && p.pullup_error != null && (Math.abs(p.pullup_contribution) >= 10 || p.pullup_error >= 10 || p.flags.bleedthrough) ? (
-          <> · expected pull-up {fmtRfu(p.pullup_contribution)} ± {fmtRfu(p.pullup_error)} RFU</>
+        {(row.state === 'called' || row.state === 'manual-on') && sharesOf(p, ctx).share != null && (
+          <> · share {fmtShare(sharesOf(p, ctx).share)}</>
+        )}
+        {(row.state === 'called' || row.state === 'manual-on') && sharesOf(p, ctx).corrected != null && (
+          <> · bias-corrected {fmtShare(sharesOf(p, ctx).corrected)}</>
+        )}
+        {p.pullup_contribution != null &&
+        p.pullup_error != null &&
+        (Math.abs(p.pullup_contribution) >= 10 || p.pullup_error >= 10 || p.flags.bleedthrough) ? (
+          <>
+            {' '}
+            · expected pull-up {fmtRfu(p.pullup_contribution)} ± {fmtRfu(p.pullup_error)} RFU
+          </>
         ) : (
           p.bleedthrough_ratio >= 0.5 && <> · pull-up ratio {p.bleedthrough_ratio.toFixed(2)}</>
         )}
@@ -109,7 +122,9 @@ export function PeakTable({
     <table className="w-full border-collapse text-[11.5px]" data-testid="peak-table">
       <thead className="sticky top-0 z-[1] bg-surface-2 text-2xs text-muted">
         <tr className="[&>th]:px-1 [&>th]:py-1 [&>th]:text-right [&>th]:font-semibold [&>th]:whitespace-nowrap">
-          <th className="w-6 !text-center" title="Number key that toggles the allele">#</th>
+          <th className="w-6 !text-center" title="Number key that toggles the allele">
+            #
+          </th>
           <th>Size</th>
           <th>Height</th>
           <th className="!text-left">Bin</th>
@@ -146,7 +161,9 @@ export function PeakTable({
               <td className="!text-left font-mono">{p.bin_label ?? <span className="text-faint">–</span>}</td>
               <td className="num">{fmtShare(p.relative_height)}</td>
               <td className="num text-muted">
-                {p.artifact_contribution > 0 || p.artifact_error > 0 ? `${fmtRfu(p.artifact_contribution)} ± ${fmtRfu(p.artifact_error)}` : '–'}
+                {p.artifact_contribution > 0 || p.artifact_error > 0
+                  ? `${fmtRfu(p.artifact_contribution)} ± ${fmtRfu(p.artifact_error)}`
+                  : '–'}
               </td>
               <td className="num">{fmtProbability(p.probability)}</td>
               <td className="num">{sh ? fmtShare(sh.share) : ''}</td>
@@ -157,7 +174,10 @@ export function PeakTable({
               >
                 {PEAK_STATE_TEXT[r.state]}
                 {r.narrow && (
-                  <span className="ml-1 rounded-[3px] border border-dashed border-warn/70 px-1 text-2xs font-normal text-warn" data-testid="narrow-badge">
+                  <span
+                    className="ml-1 rounded-[3px] border border-dashed border-warn/70 px-1 text-2xs font-normal text-warn"
+                    data-testid="narrow-badge"
+                  >
                     narrow miss · {narrowMissShort(r.narrow)}
                   </span>
                 )}

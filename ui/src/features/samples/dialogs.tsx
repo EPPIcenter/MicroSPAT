@@ -15,7 +15,15 @@ import { Banner, CsvTextInput, errorText } from '@/features/loci/shared'
 import { DESIGNATION_OPTIONS, DesignationBadge } from './designation'
 import { previewSamplesCsv, rowsToCreateCsv } from './importPreview'
 
-export function CreateSampleDialog({ open, onOpenChange, onCreated }: { open: boolean; onOpenChange: (v: boolean) => void; onCreated: (s: Sample) => void }) {
+export function CreateSampleDialog({
+  open,
+  onOpenChange,
+  onCreated,
+}: {
+  open: boolean
+  onOpenChange: (v: boolean) => void
+  onCreated: (s: Sample) => void
+}) {
   const qc = useQueryClient()
   const [barcode, setBarcode] = useState('')
   const [designation, setDesignation] = useState<Designation>('sample')
@@ -102,7 +110,9 @@ export function ImportSamplesDialog({
       void qc.invalidateQueries({ queryKey: ['samples'] })
       toast.success(
         `Imported ${countOf(r.created.length, 'sample')}`,
-        r.existing.length ? `${countOf(r.existing.length, 'barcode')} already existed and ${r.existing.length === 1 ? 'was' : 'were'} left unchanged.` : undefined,
+        r.existing.length
+          ? `${countOf(r.existing.length, 'barcode')} already existed and ${r.existing.length === 1 ? 'was' : 'were'} left unchanged.`
+          : undefined,
       )
       setText('')
       onOpenChange(false)
@@ -135,10 +145,16 @@ export function ImportSamplesDialog({
     >
       <div className="flex flex-col gap-3">
         <div className="rounded-md bg-surface-2 px-2.5 py-2 text-xs text-muted">
-          A CSV with a <code className="font-mono text-fg">Barcode</code> column and an optional <code className="font-mono text-fg">Designation</code> column
-          (sample, negative / neg / NTC, positive / pos), or just one barcode per line.
+          A CSV with a <code className="font-mono text-fg">Barcode</code> column and an optional{' '}
+          <code className="font-mono text-fg">Designation</code> column (sample, negative / neg / NTC, positive / pos), or just one barcode
+          per line.
         </div>
-        <CsvTextInput value={text} onChange={(t) => setText(t)} placeholder={'Barcode,Designation\nP1-S001,sample\nP1-NTC,negative'} rows={5} />
+        <CsvTextInput
+          value={text}
+          onChange={(t) => setText(t)}
+          placeholder={'Barcode,Designation\nP1-S001,sample\nP1-NTC,negative'}
+          rows={5}
+        />
         {imp.isError && <Banner tone="danger">{errorText(imp.error)}</Banner>}
         {preview?.headerError && <Banner tone="danger">{preview.headerError}</Banner>}
         {preview && !preview.headerError && (
@@ -174,7 +190,12 @@ export function ImportSamplesDialog({
                       <td className="num px-2 py-1 text-right text-faint">{r.line}</td>
                       <td className="px-2 py-1 font-medium">{r.barcode}</td>
                       <td className="px-2 py-1">{r.designation ? <DesignationBadge d={r.designation} /> : '–'}</td>
-                      <td className={cn('px-2 py-1', r.status === 'create' ? 'text-ok' : r.status === 'existing' ? 'text-muted' : 'text-danger')}>
+                      <td
+                        className={cn(
+                          'px-2 py-1',
+                          r.status === 'create' ? 'text-ok' : r.status === 'existing' ? 'text-muted' : 'text-danger',
+                        )}
+                      >
                         {r.status === 'create' ? 'Create' : r.problem}
                       </td>
                     </tr>
@@ -182,7 +203,9 @@ export function ImportSamplesDialog({
                 </tbody>
               </table>
               {preview.rows.length > PREVIEW_LIMIT && (
-                <p className="border-t border-line px-2 py-1 text-2xs text-muted">…and {(preview.rows.length - PREVIEW_LIMIT).toLocaleString('en-US')} more rows</p>
+                <p className="border-t border-line px-2 py-1 text-2xs text-muted">
+                  …and {(preview.rows.length - PREVIEW_LIMIT).toLocaleString('en-US')} more rows
+                </p>
               )}
             </div>
           </div>
@@ -250,7 +273,12 @@ export function DeleteSamplesDialog({
             <Button onClick={() => close(false)} disabled={del.isPending}>
               Cancel
             </Button>
-            <Button variant="danger" onClick={() => del.mutate()} disabled={del.isPending || samples.length === 0} data-testid="confirm-delete">
+            <Button
+              variant="danger"
+              onClick={() => del.mutate()}
+              disabled={del.isPending || samples.length === 0}
+              data-testid="confirm-delete"
+            >
               {del.isPending && <Spinner className="size-3" />}
               {del.isPending ? 'Deleting…' : `Delete ${countOf(samples.length, 'sample')}`}
             </Button>
@@ -265,8 +293,12 @@ export function DeleteSamplesDialog({
           {samples.length > 1 && samples.length <= 12 && <p className="text-fg">{samples.map((s) => s.barcode).join(', ')}</p>}
           {withRuns > 0 && (
             <Banner tone="warn">
-              {withRuns === samples.length ? (samples.length === 1 ? 'It has runs' : 'They all have runs') : `${countOf(withRuns, 'of them', 'of them')} ${withRuns === 1 ? 'has' : 'have'} runs`} on a
-              plate map; the engine will refuse {withRuns === 1 ? 'it' : 'those'} until the plate maps are cleared or changed.
+              {withRuns === samples.length
+                ? samples.length === 1
+                  ? 'It has runs'
+                  : 'They all have runs'
+                : `${countOf(withRuns, 'of them', 'of them')} ${withRuns === 1 ? 'has' : 'have'} runs`}{' '}
+              on a plate map; the engine will refuse {withRuns === 1 ? 'it' : 'those'} until the plate maps are cleared or changed.
             </Banner>
           )}
           {del.isError && <Banner tone="danger">{errorText(del.error)}</Banner>}

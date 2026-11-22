@@ -40,7 +40,10 @@ export function useProjectSamples(id: number, enabled = true) {
 
 export function useLocusParams(projectId: number, locusId: number | null) {
   return useQuery({
-    ...apiQuery(projectKeys.params(projectId, locusId ?? -1), 'get_project_locus_params', { project_id: projectId, locus_id: locusId ?? -1 }),
+    ...apiQuery(projectKeys.params(projectId, locusId ?? -1), 'get_project_locus_params', {
+      project_id: projectId,
+      locus_id: locusId ?? -1,
+    }),
     enabled: locusId != null,
     placeholderData: keepPreviousData,
   })

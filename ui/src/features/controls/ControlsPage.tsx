@@ -60,7 +60,7 @@ export default function ControlsPage() {
     meta: { errorTitle: 'Could not duplicate the control' },
     onSuccess: (c) => {
       toast.success(`Created ${c.label}`, 'A copy with the same alleles. Rename it and change what differs.')
-      navigate(`/controls/${c.id}`)
+      void navigate(`/controls/${c.id}`)
     },
   })
 
@@ -79,7 +79,17 @@ export default function ControlsPage() {
         cell: (c) => {
           const { set, total } = allelesSet(c)
           return (
-            <span className={set < total ? 'flex items-center justify-end gap-1 text-warn' : 'num'} title={set < total ? `No allele at ${c.alleles.filter((a) => a.bin_id == null).map((a) => a.locus_label).join(', ')}` : undefined}>
+            <span
+              className={set < total ? 'flex items-center justify-end gap-1 text-warn' : 'num'}
+              title={
+                set < total
+                  ? `No allele at ${c.alleles
+                      .filter((a) => a.bin_id == null)
+                      .map((a) => a.locus_label)
+                      .join(', ')}`
+                  : undefined
+              }
+            >
               {set < total && <AlertTriangle size={11} />}
               <span className="num">
                 {set}/{total}
@@ -93,7 +103,8 @@ export default function ControlsPage() {
         header: 'Mixtures',
         description: 'Control mixtures of quantification-bias estimators that include it',
         value: (c) => c.mixture_count,
-        cell: (c) => (c.mixture_count ? <span className="num">{c.mixture_count.toLocaleString('en-US')}</span> : <span className="text-faint">–</span>),
+        cell: (c) =>
+          c.mixture_count ? <span className="num">{c.mixture_count.toLocaleString('en-US')}</span> : <span className="text-faint">–</span>,
         searchable: false,
         align: 'right',
         width: 84,
@@ -147,7 +158,7 @@ export default function ControlsPage() {
         control={null}
         binEstimators={binEstimators}
         onSaved={(c) => {
-          bypassUnsaved(() => navigate(`/controls/${c.id}`, { replace: true }))
+          void bypassUnsaved(() => navigate(`/controls/${c.id}`, { replace: true }))
         }}
         onCancelNew={() => bypassUnsaved(() => navigate(selectedId ? `/controls/${selectedId}` : '/controls', { replace: true }))}
       />
@@ -166,8 +177,8 @@ export default function ControlsPage() {
   else
     detail = (
       <EmptyState icon={<ShieldCheck />} title={all.length ? 'Select a control' : 'No controls yet'}>
-        A control is a lab strain with one known allele per locus. Mixing controls in known proportions lets a quantification-bias estimator measure how much
-        PCR favours shorter alleles.
+        A control is a lab strain with one known allele per locus. Mixing controls in known proportions lets a quantification-bias estimator
+        measure how much PCR favours shorter alleles.
       </EmptyState>
     )
 
@@ -220,7 +231,10 @@ export default function ControlsPage() {
                       onChange={setBeFilter}
                       className="w-44"
                       aria-label="Bin estimator filter"
-                      options={[{ value: 'all', label: 'All bin estimators' }, ...binEstimators.map((b) => ({ value: String(b.id), label: b.title }))]}
+                      options={[
+                        { value: 'all', label: 'All bin estimators' },
+                        ...binEstimators.map((b) => ({ value: String(b.id), label: b.title })),
+                      ]}
                     />
                   ) : undefined
                 }
@@ -231,7 +245,13 @@ export default function ControlsPage() {
           detail={detail}
         />
       )}
-      {deleting && <DeleteControlDialog control={deleting} onClose={() => setDeleting(null)} onDeleted={() => bypassUnsaved(() => navigate('/controls', { replace: true }))} />}
+      {deleting && (
+        <DeleteControlDialog
+          control={deleting}
+          onClose={() => setDeleting(null)}
+          onDeleted={() => bypassUnsaved(() => navigate('/controls', { replace: true }))}
+        />
+      )}
     </Page>
   )
 }

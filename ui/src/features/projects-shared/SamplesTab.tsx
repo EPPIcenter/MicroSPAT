@@ -83,9 +83,22 @@ export function SamplesTab({ detail, extraColumns, onOpenSample, readOnlyReason 
   })
   const columns = useMemo<DataColumn<ProjectSampleRow>[]>(
     () => [
-      { id: 'barcode', header: 'Barcode', value: (r) => r.barcode, cell: (r) => <span className="font-medium">{r.barcode}</span>, width: 170 },
+      {
+        id: 'barcode',
+        header: 'Barcode',
+        value: (r) => r.barcode,
+        cell: (r) => <span className="font-medium">{r.barcode}</span>,
+        width: 170,
+      },
       { id: 'designation', header: 'Type', value: (r) => DESIGNATION[r.designation] ?? r.designation, width: 120 },
-      { id: 'runs', header: 'Runs', value: (r) => r.run_count, align: 'right', width: 64, description: 'Runs of this sample at the project’s loci' },
+      {
+        id: 'runs',
+        header: 'Runs',
+        value: (r) => r.run_count,
+        align: 'right',
+        width: 64,
+        description: 'Runs of this sample at the project’s loci',
+      },
       ...(extraColumns ?? []),
     ],
     [extraColumns],
@@ -100,7 +113,12 @@ export function SamplesTab({ detail, extraColumns, onOpenSample, readOnlyReason 
   })
 
   let body: ReactNode
-  if (rows.isLoading) body = <div className="grid flex-1 place-items-center text-muted"><Spinner /></div>
+  if (rows.isLoading)
+    body = (
+      <div className="grid flex-1 place-items-center text-muted">
+        <Spinner />
+      </div>
+    )
   else if (!rows.data?.length)
     body = (
       <EmptyState
@@ -134,10 +152,22 @@ export function SamplesTab({ detail, extraColumns, onOpenSample, readOnlyReason 
         initialSort={[{ id: 'barcode', desc: false }]}
         toolbar={
           <>
-            <Button size="sm" variant="ghost" disabled={!selected.length || selected.length === all.length} onClick={() => setRestricting('exclude')} data-testid="exclude-samples">
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={!selected.length || selected.length === all.length}
+              onClick={() => setRestricting('exclude')}
+              data-testid="exclude-samples"
+            >
               <ListX size={12} /> Leave out {selected.length || ''}
             </Button>
-            <Button size="sm" variant="primary" disabled={!selected.length} onClick={() => setRestricting('keep')} data-testid="keep-samples">
+            <Button
+              size="sm"
+              variant="primary"
+              disabled={!selected.length}
+              onClick={() => setRestricting('keep')}
+              data-testid="keep-samples"
+            >
               <ListChecks size={12} /> Use only {selected.length || ''}
             </Button>
           </>
@@ -161,11 +191,24 @@ export function SamplesTab({ detail, extraColumns, onOpenSample, readOnlyReason 
           !readOnlyReason && (
             <>
               {info.mayUseAllSamples && (
-                <Button size="sm" variant="ghost" onClick={() => useAll.mutate()} disabled={useAll.isPending} data-testid="samples-use-all" title={`Switch the ${noun} back to every sample with runs at its loci (samples from new plates join automatically)`}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => useAll.mutate()}
+                  disabled={useAll.isPending}
+                  data-testid="samples-use-all"
+                  title={`Switch the ${noun} back to every sample with runs at its loci (samples from new plates join automatically)`}
+                >
                   {useAll.isPending ? <Spinner className="size-3" /> : <Undo2 size={12} />} Use every sample with runs
                 </Button>
               )}
-              <Button size="sm" variant="ghost" disabled={selected.length === 0} onClick={() => setRemoving(true)} data-testid="remove-samples">
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={selected.length === 0}
+                onClick={() => setRemoving(true)}
+                data-testid="remove-samples"
+              >
                 <Trash2 size={12} /> Remove{selected.length ? ` ${selected.length}` : ''}
               </Button>
               <Button size="sm" variant="primary" onClick={() => setAdding(true)} data-testid="add-samples">
@@ -185,16 +228,20 @@ export function SamplesTab({ detail, extraColumns, onOpenSample, readOnlyReason 
           <ListChecks size={14} className="mt-px shrink-0 text-accent" />
           <div className="min-w-0 flex-1">
             <p>
-              <b>Every sample with runs</b> at {p.locus_set_label} ({countOf(all.length, 'sample')} now). Samples from plates imported later join automatically.
+              <b>Every sample with runs</b> at {p.locus_set_label} ({countOf(all.length, 'sample')} now). Samples from plates imported later
+              join automatically.
             </p>
             <p className="mt-0.5 text-muted">
-              To restrict the {noun}, select samples and use only those or leave them out. Either switches it to a fixed list you can edit; you can switch back from there.
+              To restrict the {noun}, select samples and use only those or leave them out. Either switches it to a fixed list you can edit;
+              you can switch back from there.
             </p>
           </div>
         </div>
       )}
       {body}
-      {adding && <AddSamplesDialog detail={detail} inProject={new Set((rows.data ?? []).map((r) => r.sample_id))} onClose={() => setAdding(false)} />}
+      {adding && (
+        <AddSamplesDialog detail={detail} inProject={new Set((rows.data ?? []).map((r) => r.sample_id))} onClose={() => setAdding(false)} />
+      )}
       <ConfirmDialog
         open={removing}
         onOpenChange={setRemoving}
@@ -221,7 +268,15 @@ export function SamplesTab({ detail, extraColumns, onOpenSample, readOnlyReason 
 }
 
 /** Add samples by picking or by CSV. Exported for pages with their own sample lists. */
-export function AddSamplesDialog({ detail, inProject, onClose }: { detail: ProjectDetail; inProject: ReadonlySet<number>; onClose: () => void }) {
+export function AddSamplesDialog({
+  detail,
+  inProject,
+  onClose,
+}: {
+  detail: ProjectDetail
+  inProject: ReadonlySet<number>
+  onClose: () => void
+}) {
   const p = detail.project
   const all = useWorkspaceSamples()
   const [tab, setTab] = useState<'pick' | 'csv'>('pick')
@@ -251,7 +306,10 @@ export function AddSamplesDialog({ detail, inProject, onClose }: { detail: Proje
     },
     meta: { errorTitle: 'Could not add samples' },
     onSuccess: (r) => {
-      toast.success(`Added ${countOf(r.added, 'sample')}`, r.already ? `${countOf(r.already, 'sample')} already in the project.` : undefined)
+      toast.success(
+        `Added ${countOf(r.added, 'sample')}`,
+        r.already ? `${countOf(r.already, 'sample')} already in the project.` : undefined,
+      )
       onClose()
     },
   })
@@ -261,7 +319,11 @@ export function AddSamplesDialog({ detail, inProject, onClose }: { detail: Proje
       open
       onOpenChange={(o) => !o && onClose()}
       title={`Add samples to ${p.title}`}
-      description={p.all_samples && KINDS[p.kind].mayUseAllSamples ? 'This project uses every sample with runs; adding samples switches it to a fixed list.' : undefined}
+      description={
+        p.all_samples && KINDS[p.kind].mayUseAllSamples
+          ? 'This project uses every sample with runs; adding samples switches it to a fixed list.'
+          : undefined
+      }
       width="lg"
       footer={
         <>
@@ -281,7 +343,9 @@ export function AddSamplesDialog({ detail, inProject, onClose }: { detail: Proje
         </TabsList>
         <TabsContent value="pick" className="flex h-[46vh] flex-col">
           {all.isLoading ? (
-            <div className="grid flex-1 place-items-center"><Spinner /></div>
+            <div className="grid flex-1 place-items-center">
+              <Spinner />
+            </div>
           ) : (
             <DataTable
               data={candidates}
@@ -298,12 +362,14 @@ export function AddSamplesDialog({ detail, inProject, onClose }: { detail: Proje
               className="rounded border border-line"
             />
           )}
-          <p className="mt-1.5 text-2xs text-muted">Click to toggle, Shift-click for a range, {kbd('⌘A')} to select everything the filter shows.</p>
+          <p className="mt-1.5 text-2xs text-muted">
+            Click to toggle, Shift-click for a range, {kbd('⌘A')} to select everything the filter shows.
+          </p>
         </TabsContent>
         <TabsContent value="csv" className="flex flex-col gap-2">
           <p className="text-xs text-muted">
-            A CSV with a <b>Barcode</b> column (other columns are ignored), or one barcode per line. Barcodes must match samples in the workspace, which
-            plate maps create.
+            A CSV with a <b>Barcode</b> column (other columns are ignored), or one barcode per line. Barcodes must match samples in the
+            workspace, which plate maps create.
           </p>
           <div className="flex items-center gap-2">
             <Button size="sm" onClick={() => fileRef.current?.click()}>
@@ -343,7 +409,12 @@ export function AddSamplesDialog({ detail, inProject, onClose }: { detail: Proje
 }
 
 function CsvPreview({ preview }: { preview: ReturnType<typeof previewSampleCsv> }) {
-  if (preview.error) return <p className="text-xs text-danger" role="alert">{preview.error}</p>
+  if (preview.error)
+    return (
+      <p className="text-xs text-danger" role="alert">
+        {preview.error}
+      </p>
+    )
   const list = (xs: string[]) => (xs.length > 12 ? `${xs.slice(0, 12).join(', ')} and ${xs.length - 12} more` : xs.join(', '))
   return (
     <div className="space-y-1 rounded border border-line bg-surface-2 p-2 text-xs" data-testid="csv-preview">
@@ -354,10 +425,15 @@ function CsvPreview({ preview }: { preview: ReturnType<typeof previewSampleCsv> 
       </p>
       {preview.unknown.length > 0 && (
         <p className="text-warn">
-          {countOf(preview.unknown.length, 'unknown barcode')} (not in the workspace, will be skipped): <span className="font-mono">{list(preview.unknown)}</span>
+          {countOf(preview.unknown.length, 'unknown barcode')} (not in the workspace, will be skipped):{' '}
+          <span className="font-mono">{list(preview.unknown)}</span>
         </p>
       )}
-      {preview.matched.length > 0 && <p className="text-muted">Adding: <span className="font-mono">{list(preview.matched.map((s) => s.barcode))}</span></p>}
+      {preview.matched.length > 0 && (
+        <p className="text-muted">
+          Adding: <span className="font-mono">{list(preview.matched.map((s) => s.barcode))}</span>
+        </p>
+      )}
     </div>
   )
 }

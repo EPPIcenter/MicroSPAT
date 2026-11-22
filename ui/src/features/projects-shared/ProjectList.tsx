@@ -48,8 +48,10 @@ export interface ProjectListProps {
 /** What a kind does, for its empty list. */
 const PURPOSE: Record<ProjectKind, string> = {
   bin_estimator: 'A bin estimator clusters the peak sizes of every run at its loci into allele bins, which genotyping calls alleles from.',
-  artifact_estimator: 'An artifact estimator measures stutter (peaks a fixed distance from a larger one) in runs with a single clone, so genotyping can tell a minor allele from stutter.',
-  quant_bias_estimator: 'A quantification-bias estimator measures, from control mixtures of known proportions, how much PCR favours shorter alleles, so genotyping can correct allele shares.',
+  artifact_estimator:
+    'An artifact estimator measures stutter (peaks a fixed distance from a larger one) in runs with a single clone, so genotyping can tell a minor allele from stutter.',
+  quant_bias_estimator:
+    'A quantification-bias estimator measures, from control mixtures of known proportions, how much PCR favours shorter alleles, so genotyping can correct allele shares.',
   genotyping:
     'A genotyping project calls alleles for a set of samples at the loci of a locus set, using bins from a bin estimator and, optionally, an artifact estimator and a quantification-bias estimator.',
 }
@@ -68,18 +70,41 @@ export function usePrerequisite(kind: ProjectKind): Prerequisite | null {
   const samples = useWorkspaceSamples()
   const all = useAllProjects()
   if (!sets.data || !samples.data || !all.data) return null
-  if (sets.data.length === 0) return { text: 'Every project analyzes the loci of a locus set. Create loci (or import them from CSV), then a locus set.', to: '/locus-sets', label: 'Locus sets' }
+  if (sets.data.length === 0)
+    return {
+      text: 'Every project analyzes the loci of a locus set. Create loci (or import them from CSV), then a locus set.',
+      to: '/locus-sets',
+      label: 'Locus sets',
+    }
   if (!samples.data.some((s) => s.run_count > 0))
-    return { text: 'No sample has runs yet: import plates and apply a plate map, which assigns each well to a sample and its loci.', to: '/plates', label: 'Plates' }
+    return {
+      text: 'No sample has runs yet: import plates and apply a plate map, which assigns each well to a sample and its loci.',
+      to: '/plates',
+      label: 'Plates',
+    }
   for (const l of KINDS[kind].links) {
     if (!l.required || all.data.some((p) => p.kind === l.kind)) continue
     const up = KINDS[l.kind]
-    return { text: `It needs a ${up.noun.toLowerCase()} (${l.purpose[0]!.toLowerCase()}${l.purpose.slice(1, -1)}). Create and analyze one first.`, to: up.path, label: up.plural }
+    return {
+      text: `It needs a ${up.noun.toLowerCase()} (${l.purpose[0]!.toLowerCase()}${l.purpose.slice(1, -1)}). Create and analyze one first.`,
+      to: up.path,
+      label: up.plural,
+    }
   }
   return null
 }
 
-export function ProjectList({ kind, selectedId, onSelect, onOpen, onCreated, onDeleted, extraColumns, toolbar, className }: ProjectListProps) {
+export function ProjectList({
+  kind,
+  selectedId,
+  onSelect,
+  onOpen,
+  onCreated,
+  onDeleted,
+  extraColumns,
+  toolbar,
+  className,
+}: ProjectListProps) {
   const info = KINDS[kind]
   const projects = useProjects(kind)
   const needs = usePrerequisite(kind)
@@ -104,7 +129,13 @@ export function ProjectList({ kind, selectedId, onSelect, onOpen, onCreated, onD
         width: 150,
       },
       ...(extraColumns ?? []),
-      { id: 'updated', header: 'Updated', value: (p) => p.updated_at, cell: (p) => <span className="num text-muted">{formatWhen(p.updated_at)}</span>, width: 120 },
+      {
+        id: 'updated',
+        header: 'Updated',
+        value: (p) => p.updated_at,
+        cell: (p) => <span className="num text-muted">{formatWhen(p.updated_at)}</span>,
+        width: 120,
+      },
     ],
     [extraColumns],
   )
@@ -132,10 +163,22 @@ export function ProjectList({ kind, selectedId, onSelect, onOpen, onCreated, onD
   )
 
   let body: ReactNode
-  if (projects.isLoading) body = <div className="grid flex-1 place-items-center text-muted"><Spinner /></div>
+  if (projects.isLoading)
+    body = (
+      <div className="grid flex-1 place-items-center text-muted">
+        <Spinner />
+      </div>
+    )
   else if (projects.isError)
     body = (
-      <EmptyState title={`Could not load ${info.plural.toLowerCase()}`} action={<Button size="sm" onClick={() => void projects.refetch()}>Try again</Button>}>
+      <EmptyState
+        title={`Could not load ${info.plural.toLowerCase()}`}
+        action={
+          <Button size="sm" onClick={() => void projects.refetch()}>
+            Try again
+          </Button>
+        }
+      >
         {(projects.error as Error).message}
       </EmptyState>
     )
@@ -215,7 +258,15 @@ function OverallInline({ p }: { p: ProjectSummary }) {
 }
 
 /** "Duplicate" with a title prompt. Exported for project pages that duplicate from their header. */
-export function DuplicateDialog({ project, onClose, onCreated }: { project: ProjectSummary | null; onClose: () => void; onCreated?: (p: ProjectDetail) => void }) {
+export function DuplicateDialog({
+  project,
+  onClose,
+  onCreated,
+}: {
+  project: ProjectSummary | null
+  onClose: () => void
+  onCreated?: (p: ProjectDetail) => void
+}) {
   const [title, setTitle] = useState('')
   const [prev, setPrev] = useState<ProjectSummary | null>(null)
   if (project !== prev) {
@@ -268,7 +319,15 @@ export function DuplicateDialog({ project, onClose, onCreated }: { project: Proj
 }
 
 /** Delete with confirmation; shows the engine's in-use message instead of closing. */
-export function DeleteDialog({ project, onClose, onDeleted }: { project: ProjectSummary | null; onClose: () => void; onDeleted?: (id: number) => void }) {
+export function DeleteDialog({
+  project,
+  onClose,
+  onDeleted,
+}: {
+  project: ProjectSummary | null
+  onClose: () => void
+  onDeleted?: (id: number) => void
+}) {
   const qc = useQueryClient()
   const [error, setError] = useState<string | null>(null)
   const [prev, setPrev] = useState<ProjectSummary | null>(null)

@@ -123,7 +123,9 @@ function WorkspaceTab({
     >
       <div className="min-h-0 flex-1 overflow-auto p-4">
         <div className="flex max-w-4xl flex-col gap-5">
-          <p className="text-xs text-muted">Saved inside this workspace file. Changing limits updates stored plate quality reports at once.</p>
+          <p className="text-xs text-muted">
+            Saved inside this workspace file. Changing limits updates stored plate quality reports at once.
+          </p>
           <ParameterSections schema={workspaceSettingsSchema} form={form} disabled={off} columnWidth={210} />
         </div>
       </div>
@@ -211,7 +213,9 @@ function ApplicationTab() {
                 onClick={() => setThemePref(t.value)}
                 className={cn(
                   'inline-flex h-7 items-center gap-1.5 rounded-[5px] border px-2.5 text-[13px] outline-none focus-visible:ring-2 focus-visible:ring-accent/25',
-                  on ? 'border-accent bg-accent/10 font-medium text-fg' : 'border-line-strong bg-surface text-muted hover:bg-surface-2 hover:text-fg',
+                  on
+                    ? 'border-accent bg-accent/10 font-medium text-fg'
+                    : 'border-line-strong bg-surface text-muted hover:bg-surface-2 hover:text-fg',
                 )}
               >
                 {t.icon}
@@ -244,7 +248,9 @@ function ApplicationTab() {
           >
             <RotateCcw size={12} /> Reset panel sizes
           </Button>
-          <span className="text-xs text-muted">{panels === 0 ? 'All panels use their default size.' : `${countOf(panels, 'panel')} resized.`}</span>
+          <span className="text-xs text-muted">
+            {panels === 0 ? 'All panels use their default size.' : `${countOf(panels, 'panel')} resized.`}
+          </span>
         </div>
       </Section>
 

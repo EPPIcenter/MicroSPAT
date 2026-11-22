@@ -108,7 +108,8 @@ function DyeTrack({
             style={{
               left: pct(o.from),
               width: `calc(${pct(o.to)} - ${pct(o.from)})`,
-              backgroundImage: 'repeating-linear-gradient(135deg, transparent 0 4px, color-mix(in srgb, var(--c-danger) 30%, transparent) 4px 6px)',
+              backgroundImage:
+                'repeating-linear-gradient(135deg, transparent 0 4px, color-mix(in srgb, var(--c-danger) 30%, transparent) 4px 6px)',
             }}
           />
         ))}

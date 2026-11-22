@@ -79,7 +79,17 @@ export function BiasScatter({
 
   const r = useMemo(() => plotRect(size.width, size.height, margins), [size, margins])
   const scales = useMemo(() => plotScales(r, x, y), [r, x, y])
-  const px = useMemo(() => pixelPoints(points, (p) => p.x, (p) => p.y, scales.x, scales.y), [points, scales])
+  const px = useMemo(
+    () =>
+      pixelPoints(
+        points,
+        (p) => p.x,
+        (p) => p.y,
+        scales.x,
+        scales.y,
+      ),
+    [points, scales],
+  )
   const order = useMemo(
     () =>
       points
@@ -179,13 +189,21 @@ export function BiasScatter({
       data-points={order.length}
       data-hover={hover ?? ''}
       data-selected={selectedKey ?? ''}
-      className={cn('relative min-h-0 min-w-0 overflow-hidden rounded-sm bg-[var(--plot-bg)] outline-none focus-visible:ring-2 focus-visible:ring-accent/40', className)}
+      className={cn(
+        'relative min-h-0 min-w-0 overflow-hidden rounded-sm bg-[var(--plot-bg)] outline-none focus-visible:ring-2 focus-visible:ring-accent/40',
+        className,
+      )}
       onKeyDown={(e) => {
         if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
           e.preventDefault()
           if (!order.length) return
           const cur = order.indexOf(selectedKey ?? '')
-          const n = cur < 0 ? (e.key === 'ArrowRight' ? 0 : order.length - 1) : Math.max(0, Math.min(order.length - 1, cur + (e.key === 'ArrowRight' ? 1 : -1)))
+          const n =
+            cur < 0
+              ? e.key === 'ArrowRight'
+                ? 0
+                : order.length - 1
+              : Math.max(0, Math.min(order.length - 1, cur + (e.key === 'ArrowRight' ? 1 : -1)))
           onSelect?.(order[n]!)
           setH(order[n]!)
         } else if (e.key === 'Escape') {

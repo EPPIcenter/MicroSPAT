@@ -34,7 +34,6 @@ export const useToastStore = create<ToastState>((set) => ({
 
 export const toast = {
   info: (title: string, description?: string) => useToastStore.getState().push({ tone: 'info', title, description }),
-  success: (title: string, description?: string) =>
-    useToastStore.getState().push({ tone: 'success', title, description }),
+  success: (title: string, description?: string) => useToastStore.getState().push({ tone: 'success', title, description }),
   error: (title: string, description?: string) => useToastStore.getState().push({ tone: 'error', title, description }),
 }

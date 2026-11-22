@@ -18,7 +18,11 @@ describe('genotyping mock', () => {
     const row = calls.rows.find((r) => r.barcode === 'MX-004')!
     expect(row.run_count).toBe(3)
     expect(calls.rows.filter((r) => (r.run_count ?? 0) > 1).length).toBeGreaterThan(3)
-    const v = (await dispatchMock('get_sample_locus_call', { project_id: pid, sample_id: row.sample_id, locus_id: lid })) as SampleLocusCallView
+    const v = (await dispatchMock('get_sample_locus_call', {
+      project_id: pid,
+      sample_id: row.sample_id,
+      locus_id: lid,
+    })) as SampleLocusCallView
     expect(v.runs.map((r) => r.plate_label)).toEqual(['MOCK-1', 'MOCK-2', 'MOCK-3'])
     expect(v.runs.filter((r) => r.is_reference)).toHaveLength(1)
     const rerun = v.runs[1]!
@@ -38,7 +42,12 @@ describe('genotyping mock', () => {
     await dispatchMock('set_call_reviewed', { project_id: pid, sample_id: r.sample_id, locus_id: lid, reviewed: true })
     const after = (await dispatchMock('get_locus_calls', { project_id: pid, locus_id: lid })) as LocusCalls
     expect(after.rows.find((x) => x.sample_id === r.sample_id)!.reviewed).toBe(true)
-    const toggled = (await dispatchMock('toggle_allele', { project_id: pid, sample_id: r.sample_id, locus_id: lid, bin_id: r.alleles[0]!.bin_id })) as LocusCalls['rows'][number]
+    const toggled = (await dispatchMock('toggle_allele', {
+      project_id: pid,
+      sample_id: r.sample_id,
+      locus_id: lid,
+      bin_id: r.alleles[0]!.bin_id,
+    })) as LocusCalls['rows'][number]
     expect(toggled.reviewed).toBe(false)
     const sc = (await dispatchMock('get_project_sample_calls', { project_id: pid, sample_id: r.sample_id })) as SampleCalls
     expect(sc.max_alleles).toBeGreaterThanOrEqual(0)

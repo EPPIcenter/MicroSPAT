@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { genotypingParams, scanningParams, ALL_PARAM_SCHEMAS } from '@/params/schemas'
-import { defaultsOf, dirtyKeys, formatNumber, nonDefaultKeys, parseNumber, validateField, validateValues, withDefaults, type ParamSchema } from './schema'
+import {
+  defaultsOf,
+  dirtyKeys,
+  formatNumber,
+  nonDefaultKeys,
+  parseNumber,
+  validateField,
+  validateValues,
+  withDefaults,
+  type ParamSchema,
+} from './schema'
 
 const schema: ParamSchema = {
   id: 't',
@@ -10,7 +20,16 @@ const schema: ParamSchema = {
         { key: 'n', kind: 'number', label: 'N', default: 5, min: 0, max: 10, integer: true },
         { key: 'x', kind: 'number', label: 'X', default: null, nullable: true },
         { key: 's', kind: 'text', label: 'S', default: '', required: true },
-        { key: 'm', kind: 'select', label: 'M', default: 'a', options: [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }] },
+        {
+          key: 'm',
+          kind: 'select',
+          label: 'M',
+          default: 'a',
+          options: [
+            { value: 'a', label: 'A' },
+            { value: 'b', label: 'B' },
+          ],
+        },
         { key: 'only_b', kind: 'number', label: 'B only', default: 1, min: 0, visibleWhen: (v) => v.m === 'b' },
       ],
     },
@@ -62,6 +81,8 @@ describe('shipped schemas', () => {
     const d = defaultsOf(scanningParams)
     expect(validateValues(scanningParams, { ...d, smoothing_window: 6 })).toHaveProperty('smoothing_window')
     expect(validateValues(scanningParams, { ...d, smoothing_order: 11 })).toHaveProperty('smoothing_order')
-    expect(validateValues(genotypingParams, { ...defaultsOf(genotypingParams), probability_threshold: 1.2 })).toHaveProperty('probability_threshold')
+    expect(validateValues(genotypingParams, { ...defaultsOf(genotypingParams), probability_threshold: 1.2 })).toHaveProperty(
+      'probability_threshold',
+    )
   })
 })

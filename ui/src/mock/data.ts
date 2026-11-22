@@ -103,9 +103,27 @@ export const DEMO_LOCI: MockLocus[] = [
       [186, 520],
     ],
   },
-  { label: 'TA81', color: 'green', range: [110, 145], repeat: 3, alleles: [[121, 5200], [130, 2100]] },
+  {
+    label: 'TA81',
+    color: 'green',
+    range: [110, 145],
+    repeat: 3,
+    alleles: [
+      [121, 5200],
+      [130, 2100],
+    ],
+  },
   { label: 'POLYa', color: 'yellow', range: [230, 290], repeat: 3, alleles: [[251, 2800]] },
-  { label: 'TA87', color: 'red', range: [300, 360], repeat: 3, alleles: [[318, 4100], [327, 900]] },
+  {
+    label: 'TA87',
+    color: 'red',
+    range: [300, 360],
+    repeat: 3,
+    alleles: [
+      [318, 4100],
+      [327, 900],
+    ],
+  },
 ]
 
 export const DEMO_BINS: Record<string, TraceBin[]> = Object.fromEntries(
@@ -139,8 +157,7 @@ export function makeWell(seed = 7, opts: { scale?: number; alleleShift?: number 
   const comps: Record<string, Component[]> = { blue: [], green: [], yellow: [], red: [], orange: [] }
 
   for (const l of DEMO_LOCI) {
-    const binLabel = (bp: number) =>
-      DEMO_BINS[l.label]?.find((b) => Math.abs(b.center - bp) <= b.halfWidth * 1.5)?.label ?? null
+    const binLabel = (bp: number) => DEMO_BINS[l.label]?.find((b) => Math.abs(b.center - bp) <= b.halfWidth * 1.5)?.label ?? null
     for (const [bp0, h0] of l.alleles) {
       const bp = bp0 + (opts.alleleShift ?? 0) + r.gauss() * 0.12
       const h = h0 * scale * (0.9 + r.next() * 0.2)
@@ -164,7 +181,13 @@ export function makeWell(seed = 7, opts: { scale?: number; alleleShift?: number 
     const data = new Float64Array(sizes.length)
     render(data, sizes, comps[dye]!)
     noise(data, r, 9, 18)
-    series.push({ id: dye, color: dye, label: dye === 'orange' ? 'LIZ 500' : (DEMO_LOCI.find((l) => l.color === dye)?.label ?? dye), data, baseSizes: sizes })
+    series.push({
+      id: dye,
+      color: dye,
+      label: dye === 'orange' ? 'LIZ 500' : (DEMO_LOCI.find((l) => l.color === dye)?.label ?? dye),
+      data,
+      baseSizes: sizes,
+    })
 
     const locus = DEMO_LOCI.find((l) => l.color === dye)
     for (const c of comps[dye]!) {

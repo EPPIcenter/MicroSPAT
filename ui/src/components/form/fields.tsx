@@ -75,8 +75,7 @@ export function TextInput({ className, ...p }: ComponentProps<'input'>) {
   return <input className={cn(inputCls, className)} {...p} />
 }
 
-export interface NumberInputProps
-  extends Omit<ComponentProps<'input'>, 'value' | 'onChange' | 'type' | 'min' | 'max' | 'step'> {
+export interface NumberInputProps extends Omit<ComponentProps<'input'>, 'value' | 'onChange' | 'type' | 'min' | 'max' | 'step'> {
   value: number | null
   /** Called with the parsed value on every edit (NaN while unparsable). */
   onChange: (v: number | null) => void

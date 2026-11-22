@@ -20,7 +20,10 @@ const SHOTS = process.env.MICROSPAT_E2E_SHOTS
 const PLATES = ['SYNTH-11', 'SYNTH-12', 'SYNTH-13']
 
 test.skip(!BASE, 'MICROSPAT_E2E_URL is not set')
-test.skip(!SYNTH || !PLATES.every((p) => existsSync(join(SYNTH, `${p}.zip`))) || !existsSync(join(SYNTH ?? '', 'loci.csv')), 'MICROSPAT_E2E_SYNTH_DIR with SYNTH-11…13 and loci.csv is not set')
+test.skip(
+  !SYNTH || !PLATES.every((p) => existsSync(join(SYNTH, `${p}.zip`))) || !existsSync(join(SYNTH ?? '', 'loci.csv')),
+  'MICROSPAT_E2E_SYNTH_DIR with SYNTH-11…13 and loci.csv is not set',
+)
 test.use({ baseURL: BASE, viewport: { width: 1280, height: 800 }, acceptDownloads: true, actionTimeout: 15_000 })
 test.setTimeout(300_000)
 
@@ -116,7 +119,8 @@ test('from an empty workspace to exported alleles', async ({ page }) => {
       const preview = dialog.getByTestId('map-preview')
       await expect(preview).toHaveAttribute('data-status', /samples|ready/)
       if (plate === PLATES[0]) await shot(page, '10-plate-map')
-      if ((await preview.getAttribute('data-status')) === 'samples') await dialog.getByRole('checkbox', { name: /Create missing samples/ }).click()
+      if ((await preview.getAttribute('data-status')) === 'samples')
+        await dialog.getByRole('checkbox', { name: /Create missing samples/ }).click()
       await expect(preview).toHaveAttribute('data-status', 'ready')
       await dialog.getByTestId('apply-map').click()
       await expect(dialog).toHaveCount(0)
@@ -171,7 +175,11 @@ test('from an empty workspace to exported alleles', async ({ page }) => {
     await expect(page.getByTestId('project-title')).toHaveText('Study')
     await expect(page).toHaveURL(/tab=samples/)
     await shot(page, '18-project-samples-empty')
-    await page.getByTestId('samples-tab').getByRole('button', { name: /Add samples/ }).first().click()
+    await page
+      .getByTestId('samples-tab')
+      .getByRole('button', { name: /Add samples/ })
+      .first()
+      .click()
     const add = page.getByRole('dialog', { name: /Add samples/ })
     await add.getByRole('grid', { name: 'Workspace samples' }).locator('[role=row][data-row-id]').first().click()
     await page.keyboard.press('ControlOrMeta+A')
@@ -211,7 +219,9 @@ test('from an empty workspace to exported alleles', async ({ page }) => {
     await page.getByTestId('export-long').click()
     const file = await download
     expect(file.suggestedFilename()).toMatch(/\.csv$/)
-    const lines = readFileSync((await file.path())!, 'utf8').trim().split('\n')
+    const lines = readFileSync((await file.path())!, 'utf8')
+      .trim()
+      .split('\n')
     expect(lines[0]).toBe('Sample,Locus,Allele,Size,Height,Proportion,Corrected Proportion,Probability,MOI,Reviewed')
     expect(lines.length).toBeGreaterThan(500)
     expect(lines.filter((l) => l.startsWith('D12-S001,PfB1,') && l.endsWith(',True')).length).toBeGreaterThan(0)

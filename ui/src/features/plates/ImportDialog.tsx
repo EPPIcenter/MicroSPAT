@@ -74,7 +74,7 @@ export function ImportDialog({
           outcomes={s.outcomes}
           onOpen={(id, quality) => {
             onOpenChange(false)
-            navigate(`/plates/${id}${quality ? '?tab=quality' : ''}`)
+            void navigate(`/plates/${id}${quality ? '?tab=quality' : ''}`)
           }}
         />
       ) : (
@@ -98,7 +98,10 @@ export function ImportDialog({
             />
           </div>
           {groups.length > 0 && (
-            <ul className="flex max-h-48 flex-col divide-y divide-line overflow-auto rounded-md border border-line" aria-label="Files to import">
+            <ul
+              className="flex max-h-48 flex-col divide-y divide-line overflow-auto rounded-md border border-line"
+              aria-label="Files to import"
+            >
               {groups.map((g) => (
                 <li key={g.key} className="flex h-8 items-center gap-2 px-2 text-xs">
                   {g.detail === 'zip archive' ? (
@@ -124,7 +127,10 @@ export function ImportDialog({
               ))}
             </ul>
           )}
-          <Field label="Ladder" help="The size standard run in every well of these plates. You can switch a plate to another ladder later; that re-sizes it.">
+          <Field
+            label="Ladder"
+            help="The size standard run in every well of these plates. You can switch a plate to another ladder later; that re-sizes it."
+          >
             <SelectInput
               aria-label="Ladder"
               value={ladderId == null ? '' : String(ladderId)}
@@ -145,7 +151,9 @@ export function ImportDialog({
               </div>
               <ProgressBar value={task?.progress ?? null} label="Import progress" />
               <span className="truncate text-2xs text-muted">{task?.message ?? 'Starting'}</span>
-              <span className="text-2xs text-faint">You can close this dialog; the import keeps running and the plates appear as they finish.</span>
+              <span className="text-2xs text-faint">
+                You can close this dialog; the import keeps running and the plates appear as they finish.
+              </span>
             </div>
           )}
           {s.error && (
@@ -171,7 +179,12 @@ function Outcomes({ outcomes, onOpen }: { outcomes: PlateImportOutcome[]; onOpen
   const findings = qualityFindings(outcomes)
   return (
     <div className="flex flex-col gap-2" data-testid="import-outcomes">
-      <div className={cn('flex items-center gap-2 text-sm font-medium', sum.tone === 'danger' ? 'text-danger' : sum.tone === 'warn' ? 'text-warn' : 'text-ok')}>
+      <div
+        className={cn(
+          'flex items-center gap-2 text-sm font-medium',
+          sum.tone === 'danger' ? 'text-danger' : sum.tone === 'warn' ? 'text-warn' : 'text-ok',
+        )}
+      >
         {sum.headline}
       </div>
       {sum.imported > 0 && (
@@ -181,13 +194,23 @@ function Outcomes({ outcomes, onOpen }: { outcomes: PlateImportOutcome[]; onOpen
         </p>
       )}
       {findings.length > 0 && (
-        <div className="flex flex-col gap-0.5 rounded-md border border-line bg-surface-2 px-2.5 py-1.5 text-xs" data-testid="import-quality" role="status">
+        <div
+          className="flex flex-col gap-0.5 rounded-md border border-line bg-surface-2 px-2.5 py-1.5 text-xs"
+          data-testid="import-quality"
+          role="status"
+        >
           <span className="text-muted">The quality check found something to look at:</span>
           {findings.map((f) => (
             <span key={f.plateId} className="flex items-center gap-1.5">
               <SeverityIcon severity={f.worst} />
               <span className="text-fg">{f.text}</span>
-              <Button size="sm" variant="ghost" className="ml-auto" onClick={() => onOpen(f.plateId, true)} aria-label={`Show the quality report of ${f.label}`}>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="ml-auto"
+                onClick={() => onOpen(f.plateId, true)}
+                aria-label={`Show the quality report of ${f.label}`}
+              >
                 Show report
               </Button>
             </span>

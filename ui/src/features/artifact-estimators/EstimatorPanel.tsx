@@ -45,7 +45,18 @@ export interface EstimatorPanelProps {
   onDeleted: () => void
 }
 
-export function EstimatorPanel({ projectId, locus, estimator, example, onExampleChange, errorEstimator, onErrorEstimatorChange, errorBusy, dependents, onDeleted }: EstimatorPanelProps) {
+export function EstimatorPanel({
+  projectId,
+  locus,
+  estimator,
+  example,
+  onExampleChange,
+  errorEstimator,
+  onErrorEstimatorChange,
+  errorBusy,
+  dependents,
+  onDeleted,
+}: EstimatorPanelProps) {
   const e = estimator
   const name = className(e.artifact_distance, locus.nucleotide_repeat_length)
   const edit = useArtifactEdit(projectId, locus.locus_id, e.id)
@@ -55,7 +66,13 @@ export function EstimatorPanel({ projectId, locus, estimator, example, onExample
   const busy = edit.isPending
   const run = (x: ArtifactEdit) => edit.mutateAsync(x).catch(() => undefined)
 
-  const segments: ArtifactSegment[] = e.equations.map((q) => ({ start: q.segment.start_size, end: q.segment.end_size, slope: q.fit.slope, intercept: q.fit.intercept, sd: q.fit.sd }))
+  const segments: ArtifactSegment[] = e.equations.map((q) => ({
+    start: q.segment.start_size,
+    end: q.segment.end_size,
+    slope: q.fit.slope,
+    intercept: q.fit.intercept,
+    sd: q.fit.sd,
+  }))
   const breakpoints = breakpointsOf(e)
   const exampleEq = segmentAt(e.equations, example.size)
   const exampleExp = exampleEq ? expectation(exampleEq.fit, example.size, example.height) : null
@@ -64,7 +81,12 @@ export function EstimatorPanel({ projectId, locus, estimator, example, onExample
   const classError = e.equations.find((q) => robustMethod(q.segment.method))?.segment.error ?? 'densest_half'
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-surface" data-testid="estimator-panel" data-class={name.label} data-estimator={e.id}>
+    <div
+      className="flex min-h-0 min-w-0 flex-1 flex-col bg-surface"
+      data-testid="estimator-panel"
+      data-class={name.label}
+      data-estimator={e.id}
+    >
       <div className="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b border-line px-3 py-1.5">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
@@ -86,10 +108,24 @@ export function EstimatorPanel({ projectId, locus, estimator, example, onExample
           </p>
         </div>
         <ErrorToggle value={errorEstimator} classValue={classError} applies={robust} busy={errorBusy} onChange={onErrorEstimatorChange} />
-        <Button size="sm" variant="ghost" onClick={() => run({ type: 'refit' })} disabled={busy} title="Fit every segment again from the stored points" data-testid="refit">
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => run({ type: 'refit' })}
+          disabled={busy}
+          title="Fit every segment again from the stored points"
+          data-testid="refit"
+        >
           <RefreshCw size={12} /> Re-fit
         </Button>
-        <Button size="sm" variant="ghost" onClick={() => run({ type: 'clear' })} disabled={busy || breakpoints.length === 0} title="One segment across the locus" data-testid="clear-breakpoints">
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => run({ type: 'clear' })}
+          disabled={busy || breakpoints.length === 0}
+          title="One segment across the locus"
+          data-testid="clear-breakpoints"
+        >
           <X size={12} /> Clear breakpoints
         </Button>
         <Button size="sm" variant="danger-ghost" onClick={() => setConfirmDelete(true)} disabled={busy} data-testid="delete-class">
@@ -102,19 +138,27 @@ export function EstimatorPanel({ projectId, locus, estimator, example, onExample
           points={e.points.map((p) => ({ x: p.parent_size, y: p.relative_height }))}
           segments={segments}
           breakpoints={breakpoints}
-          onBreakpointsChange={(_bps, c) => void run(c.type === 'add' ? { type: 'add_breakpoint', size: c.x } : { type: 'remove_breakpoint', size: c.x })}
+          onBreakpointsChange={(_bps, c) =>
+            void run(c.type === 'add' ? { type: 'add_breakpoint', size: c.x } : { type: 'remove_breakpoint', size: c.x })
+          }
           color={locus.color}
           readOnly={busy}
           selectedSegment={sel >= 0 ? sel : null}
           onSegmentClick={setSelectedSeg}
-          markers={exampleExp ? [{ x: example.size, y: Math.max(0, exampleExp.ratio), label: `${example.size} bp` }] : [{ x: example.size }]}
+          markers={
+            exampleExp ? [{ x: example.size, y: Math.max(0, exampleExp.ratio), label: `${example.size} bp` }] : [{ x: example.size }]
+          }
         />
       </div>
       <div className="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-t border-line px-3 py-1 text-2xs text-muted">
         <span>Breakpoints:</span>
         {breakpoints.length === 0 && <span className="text-faint">none</span>}
         {breakpoints.map((b) => (
-          <span key={b} className="inline-flex h-5 items-center gap-0.5 rounded-[4px] border border-warn/40 bg-warn-soft pr-0.5 pl-1.5 text-fg" data-testid="breakpoint-chip">
+          <span
+            key={b}
+            className="inline-flex h-5 items-center gap-0.5 rounded-[4px] border border-warn/40 bg-warn-soft pr-0.5 pl-1.5 text-fg"
+            data-testid="breakpoint-chip"
+          >
             <span className="num">{b.toFixed(1)} bp</span>
             <button
               type="button"
@@ -134,19 +178,47 @@ export function EstimatorPanel({ projectId, locus, estimator, example, onExample
             if (newBp != null) void run({ type: 'add_breakpoint', size: newBp }).then(() => setNewBp(null))
           }}
         >
-          <NumberInput value={newBp} onChange={setNewBp} step={1} unit="bp" className="w-24 [&>input]:h-5 [&>input]:text-2xs" aria-label="Breakpoint size" placeholder="at" />
+          <NumberInput
+            value={newBp}
+            onChange={setNewBp}
+            step={1}
+            unit="bp"
+            className="w-24 [&>input]:h-5 [&>input]:text-2xs"
+            aria-label="Breakpoint size"
+            placeholder="at"
+          />
           <Button size="sm" variant="ghost" type="submit" disabled={newBp == null || busy} className="h-5" data-testid="add-breakpoint">
             <Plus size={11} /> Add
           </Button>
         </form>
-        <span className="ml-auto text-faint">Double-click the plot to add a breakpoint, a breakpoint to remove it; click a segment to select it.</span>
+        <span className="ml-auto text-faint">
+          Double-click the plot to add a breakpoint, a breakpoint to remove it; click a segment to select it.
+        </span>
       </div>
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-t border-line bg-surface-2 px-3 py-1 text-xs">
         <span className="text-muted">Example parent</span>
-        <NumberInput value={example.size} onChange={(v) => v != null && v > 0 && onExampleChange({ size: v })} step={5} unit="bp" className="w-24" aria-label="Example parent size" data-testid="example-size" />
-        <NumberInput value={example.height} onChange={(v) => v != null && v > 0 && onExampleChange({ height: v })} step={1000} unit="RFU" className="w-28" aria-label="Example parent height" data-testid="example-height" />
+        <NumberInput
+          value={example.size}
+          onChange={(v) => v != null && v > 0 && onExampleChange({ size: v })}
+          step={5}
+          unit="bp"
+          className="w-24"
+          aria-label="Example parent size"
+          data-testid="example-size"
+        />
+        <NumberInput
+          value={example.height}
+          onChange={(v) => v != null && v > 0 && onExampleChange({ height: v })}
+          step={1000}
+          unit="RFU"
+          className="w-28"
+          aria-label="Example parent height"
+          data-testid="example-height"
+        />
         <span className="min-w-0 flex-1 text-2xs text-muted">
-          {exampleEq && exampleExp ? callingSentence(name, exampleExp) : `No segment covers ${example.size} bp: a parent there contributes nothing.`}
+          {exampleEq && exampleExp
+            ? callingSentence(name, exampleExp)
+            : `No segment covers ${example.size} bp: a parent there contributes nothing.`}
         </span>
       </div>
       <SegmentTable
@@ -169,7 +241,9 @@ export function EstimatorPanel({ projectId, locus, estimator, example, onExample
             {name.global
               ? 'Genotyping will no longer expect background on the other peaks of a run.'
               : `Genotyping will no longer expect an artifact ${name.label.replace(/ \(.*\)$/, '')} from any parent, so peaks there are judged on their own height: real stutter can then be called as a minor allele.`}{' '}
-            {dependents.length ? `${dependents.join(', ')} ${dependents.length === 1 ? 'becomes' : 'become'} stale at ${locus.label}. ` : ''}
+            {dependents.length
+              ? `${dependents.join(', ')} ${dependents.length === 1 ? 'becomes' : 'become'} stale at ${locus.label}. `
+              : ''}
             Re-analyzing {locus.label} estimates every class again and brings it back.
           </span>
         }
@@ -180,13 +254,31 @@ export function EstimatorPanel({ projectId, locus, estimator, example, onExample
   )
 }
 
-function ErrorToggle({ value, classValue, applies, busy, onChange }: { value: ErrorEstimator; classValue: ErrorEstimator; applies: boolean; busy?: boolean; onChange: (v: ErrorEstimator) => void }) {
+function ErrorToggle({
+  value,
+  classValue,
+  applies,
+  busy,
+  onChange,
+}: {
+  value: ErrorEstimator
+  classValue: ErrorEstimator
+  applies: boolean
+  busy?: boolean
+  onChange: (v: ErrorEstimator) => void
+}) {
   const help =
     'How the SD of a Theil–Sen, RANSAC or no-slope fit is estimated. Densest half (the default) moves the line to the middle of the shortest band holding half the points ' +
     'and takes the SD from that half: minor alleles only ever add to a stutter position, so they raise neither. Robust MAD keeps the line: 1.4826 × the median absolute residual. ' +
     'RMS: root mean squared residual, which minor alleles inflate. The SD sets how far above its expected artifact height a peak must be to be called. The global class always uses MAD.'
   return (
-    <div className="flex items-center gap-1 text-2xs text-muted" role="radiogroup" aria-label="Error estimate" data-testid="error-toggle" data-value={classValue}>
+    <div
+      className="flex items-center gap-1 text-2xs text-muted"
+      role="radiogroup"
+      aria-label="Error estimate"
+      data-testid="error-toggle"
+      data-value={classValue}
+    >
       <Tooltip content={<p className="max-w-80">{help}</p>}>
         <span tabIndex={0} className="inline-flex items-center gap-0.5 outline-none">
           SD by <Info size={10} />
@@ -201,7 +293,10 @@ function ErrorToggle({ value, classValue, applies, busy, onChange }: { value: Er
           disabled={busy || (value === v && (!applies || classValue === v))}
           onClick={() => onChange(v)}
           title={!applies ? 'Only least-squares segments in this class: its SD is always RMS' : undefined}
-          className={cn('h-5 rounded-[4px] border px-1.5 disabled:cursor-default', value === v ? 'border-accent bg-accent-soft text-fg' : 'border-line hover:text-fg')}
+          className={cn(
+            'h-5 rounded-[4px] border px-1.5 disabled:cursor-default',
+            value === v ? 'border-accent bg-accent-soft text-fg' : 'border-line hover:text-fg',
+          )}
           data-testid={`error-${v}`}
         >
           {ERROR_LABEL[v]}
@@ -268,7 +363,12 @@ function SegmentTable({
             const rowCls = i === selected ? 'bg-accent-soft' : 'hover:bg-surface-2'
             return (
               <Fragment key={`${q.segment.start_size}-${i}`}>
-                <tr aria-selected={i === selected} onClick={() => onSelect(i)} className={cn('align-top [&>td]:px-2 [&>td]:pt-1', rowCls)} data-testid="segment-row">
+                <tr
+                  aria-selected={i === selected}
+                  onClick={() => onSelect(i)}
+                  className={cn('align-top [&>td]:px-2 [&>td]:pt-1', rowCls)}
+                  data-testid="segment-row"
+                >
                   <td className="num whitespace-nowrap">
                     {q.segment.start_size.toFixed(1)}–{q.segment.end_size.toFixed(1)} bp
                   </td>
@@ -288,17 +388,24 @@ function SegmentTable({
                   <td className="num text-right" title={String(q.fit.intercept)}>
                     {pct(q.fit.intercept)}
                   </td>
-                  <td className="num text-right whitespace-nowrap" title={robust ? `${ERROR_LABEL[q.segment.error]} error` : 'RMS error (this method always uses RMS)'}>
+                  <td
+                    className="num text-right whitespace-nowrap"
+                    title={robust ? `${ERROR_LABEL[q.segment.error]} error` : 'RMS error (this method always uses RMS)'}
+                  >
                     {pct(q.fit.sd)} <span className="text-2xs text-faint">{robust ? ERROR_SHORT[q.segment.error] : 'RMS'}</span>
                   </td>
-                  <td className={cn('num text-right', q.segment.method !== 'no_slope' && q.fit.r_squared < 0 && 'text-warn')}>{q.fit.r_squared.toFixed(2)}</td>
+                  <td className={cn('num text-right', q.segment.method !== 'no_slope' && q.fit.r_squared < 0 && 'text-warn')}>
+                    {q.fit.r_squared.toFixed(2)}
+                  </td>
                   <td className={cn('num text-right', q.n_points < 10 && 'text-warn')}>{q.n_points}</td>
                 </tr>
                 <tr className={cn('border-b border-line', rowCls)} onClick={() => onSelect(i)}>
                   <td colSpan={7} className="px-2 pt-0.5 pb-1.5 text-xs" data-testid="segment-sentence">
                     <span>{expectedSentence(name, distance, q.fit, size, example.height)}</span>
                     {!inside && <span className="text-faint"> (middle of this segment)</span>}
-                    {warnings.length > 0 && <span className="mt-0.5 block text-2xs text-warn">{warnings.map((w) => w.text).join(' ')}</span>}
+                    {warnings.length > 0 && (
+                      <span className="mt-0.5 block text-2xs text-warn">{warnings.map((w) => w.text).join(' ')}</span>
+                    )}
                   </td>
                 </tr>
               </Fragment>

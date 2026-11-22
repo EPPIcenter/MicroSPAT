@@ -7,8 +7,28 @@
  */
 import { useId, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
-import { CircleCheck, CircleDashed, Download, Info, OctagonAlert, RefreshCw, ShieldCheck, SlidersHorizontal, TriangleAlert } from 'lucide-react'
-import type { Color, ControlSignal, Issue, PlateQuality, PlateQualityView, QualityLimits, QualitySummary, Severity, WellQuality } from '@/api/bindings'
+import {
+  CircleCheck,
+  CircleDashed,
+  Download,
+  Info,
+  OctagonAlert,
+  RefreshCw,
+  ShieldCheck,
+  SlidersHorizontal,
+  TriangleAlert,
+} from 'lucide-react'
+import type {
+  Color,
+  ControlSignal,
+  Issue,
+  PlateQuality,
+  PlateQualityView,
+  QualityLimits,
+  QualitySummary,
+  Severity,
+  WellQuality,
+} from '@/api/bindings'
 import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/ProgressBar'
 import { cn } from '@/lib/cn'
@@ -52,7 +72,14 @@ export function SeverityIcon({ severity, size = 13, className }: { severity: Sev
 /** Icon and word, e.g. "⬣ Problem": never color alone. */
 export function SeverityTag({ severity, className }: { severity: Severity; className?: string }) {
   return (
-    <span className={cn('inline-flex shrink-0 items-center gap-1 text-2xs font-semibold tracking-wide uppercase', SEVERITY_TEXT[severity], className)} data-severity={severity}>
+    <span
+      className={cn(
+        'inline-flex shrink-0 items-center gap-1 text-2xs font-semibold tracking-wide uppercase',
+        SEVERITY_TEXT[severity],
+        className,
+      )}
+      data-severity={severity}
+    >
       <SeverityIcon severity={severity} size={12} />
       {SEVERITY_LABEL[severity]}
     </span>
@@ -64,7 +91,17 @@ export function SeverityTag({ severity, className }: { severity: Severity; class
  * 1 note", "No issues", "Not checked". `compact` shows the icon and the number
  * of issues (the words stay for screen readers and in the tooltip).
  */
-export function QualityIndicator({ summary, className, short, compact }: { summary: QualitySummary | null | undefined; className?: string; short?: boolean; compact?: boolean }) {
+export function QualityIndicator({
+  summary,
+  className,
+  short,
+  compact,
+}: {
+  summary: QualitySummary | null | undefined
+  className?: string
+  short?: boolean
+  compact?: boolean
+}) {
   const text = qualityLabel(summary)
   const n = issueCount(summary)
   const outdated = summary?.outdated ? ' (checked with older checks; check again)' : ''
@@ -74,7 +111,11 @@ export function QualityIndicator({ summary, className, short, compact }: { summa
   else icon = <SeverityIcon severity={summary.worst} />
   return (
     <span
-      className={cn('inline-flex min-w-0 items-center gap-1 text-xs', !summary ? 'text-muted' : summary.worst ? 'text-fg' : 'text-muted', className)}
+      className={cn(
+        'inline-flex min-w-0 items-center gap-1 text-xs',
+        !summary ? 'text-muted' : summary.worst ? 'text-fg' : 'text-muted',
+        className,
+      )}
       title={`Quality: ${text}${outdated}`}
       data-testid="quality-indicator"
       data-worst={summary ? (summary.worst ?? 'none') : 'unchecked'}
@@ -113,7 +154,15 @@ export function IssueList({
     <ul className="flex flex-col gap-2" aria-label="Quality issues, worst first" data-testid="quality-issues">
       {sorted.map((issue) => {
         const key = issueKey(issue)
-        return <IssueCard key={key} issue={issue} selected={selected === key} onToggle={() => onSelect(selected === key ? null : key)} onOpenWell={onOpenWell} />
+        return (
+          <IssueCard
+            key={key}
+            issue={issue}
+            selected={selected === key}
+            onToggle={() => onSelect(selected === key ? null : key)}
+            onOpenWell={onOpenWell}
+          />
+        )
       })}
     </ul>
   )
@@ -121,7 +170,17 @@ export function IssueList({
 
 const VALUES_SHOWN = 8
 
-function IssueCard({ issue, selected, onToggle, onOpenWell }: { issue: Issue; selected: boolean; onToggle: () => void; onOpenWell?: (well: string) => void }) {
+function IssueCard({
+  issue,
+  selected,
+  onToggle,
+  onOpenWell,
+}: {
+  issue: Issue
+  selected: boolean
+  onToggle: () => void
+  onOpenWell?: (well: string) => void
+}) {
   const msgId = useId()
   const [all, setAll] = useState(false)
   const rows = groupValues(issue).flatMap((g) => g.values.map((v) => ({ well: g.well, v })))
@@ -209,7 +268,11 @@ function LevelMark({ level }: { level: LeakLevel | null }) {
   )
 }
 
-const LEVEL_CELL: Record<LeakLevel, string> = { ok: 'text-fg', warning: 'bg-warn-soft font-semibold text-warn', problem: 'bg-danger-soft font-semibold text-danger' }
+const LEVEL_CELL: Record<LeakLevel, string> = {
+  ok: 'text-fg',
+  warning: 'bg-warn-soft font-semibold text-warn',
+  problem: 'bg-danger-soft font-semibold text-danger',
+}
 
 const cap = (c: string) => `${c[0]!.toUpperCase()}${c.slice(1)}`
 
@@ -261,7 +324,14 @@ export function PullUpMatrix({ report }: { report: Pick<PlateQuality, 'pull_up' 
                   ? `${cap(s)} into ${t}: not measured, only ${countOf(l.peaks, 'tall peak')} of ${s} to measure from`
                   : `${cap(s)} into ${t}: ${fmtFraction(l.fraction)} of the ${s} signal${l.fraction < 0 ? ` (negative: ${t} dips under ${s} peaks)` : ''}, from ${countOf(l.peaks, 'peak')}${l.spread != null ? `, spread ${fmtFraction(l.spread)}` : ''}; ${LEAK_LEVEL_LABEL[level ?? 'ok']}`
               return (
-                <td key={t} className={cn('num px-1.5 py-1 text-right whitespace-nowrap', level ? LEVEL_CELL[level] : 'text-faint')} title={title} data-source={s} data-target={t} data-level={level ?? 'none'}>
+                <td
+                  key={t}
+                  className={cn('num px-1.5 py-1 text-right whitespace-nowrap', level ? LEVEL_CELL[level] : 'text-faint')}
+                  title={title}
+                  data-source={s}
+                  data-target={t}
+                  data-level={level ?? 'none'}
+                >
                   {l?.fraction == null ? '–' : fmtFraction(l.fraction)}
                   <LevelMark level={level} />
                 </td>
@@ -289,7 +359,13 @@ export function CrosstalkTable({ report }: { report: Pick<PlateQuality, 'crossta
         ? `Not measured: only ${countOf(x.peaks, 'source peak')}`
         : `${fmtFraction(x.fraction)} of the signal${x.saturated ? ' of off-scale peaks' : ''} leaks into ${DISTANCE_LABEL(x.distance).toLowerCase()}, from ${countOf(x.peaks, 'peak')}; ${LEAK_LEVEL_LABEL[level ?? 'ok']}`
     return (
-      <td className={cn('num px-1.5 py-1 text-right whitespace-nowrap', level ? LEVEL_CELL[level] : 'text-faint')} title={title} data-distance={x.distance} data-saturated={x.saturated} data-level={level ?? 'none'}>
+      <td
+        className={cn('num px-1.5 py-1 text-right whitespace-nowrap', level ? LEVEL_CELL[level] : 'text-faint')}
+        title={title}
+        data-distance={x.distance}
+        data-saturated={x.saturated}
+        data-level={level ?? 'none'}
+      >
         {x.fraction == null ? '–' : fmtFraction(x.fraction)}
         <LevelMark level={level} />
       </td>
@@ -368,22 +444,36 @@ export function ControlsTable({
   if (!report.controls.length)
     return (
       <p className="text-xs text-muted">
-        {report.limits ? `No peaks above ${fmtRfu(report.limits.control_height_limit)} RFU in the negative controls.` : 'No peaks above the calling limit in the negative controls.'}
+        {report.limits
+          ? `No peaks above ${fmtRfu(report.limits.control_height_limit)} RFU in the negative controls.`
+          : 'No peaks above the calling limit in the negative controls.'}
       </p>
     )
   return (
     <table className="w-full text-2xs" data-testid="controls-table" aria-label="Peaks in negative controls">
       <thead>
         <tr className="text-faint">
-          <th scope="col" className="px-1.5 py-1 text-left font-normal">Well</th>
-          <th scope="col" className="px-1.5 py-1 text-left font-normal">Locus</th>
-          <th scope="col" className="px-1.5 py-1 text-right font-normal">Tallest peak</th>
-          <th scope="col" className="px-1.5 py-1 text-left font-normal">Explained by</th>
+          <th scope="col" className="px-1.5 py-1 text-left font-normal">
+            Well
+          </th>
+          <th scope="col" className="px-1.5 py-1 text-left font-normal">
+            Locus
+          </th>
+          <th scope="col" className="px-1.5 py-1 text-right font-normal">
+            Tallest peak
+          </th>
+          <th scope="col" className="px-1.5 py-1 text-left font-normal">
+            Explained by
+          </th>
         </tr>
       </thead>
       <tbody>
         {report.controls.map((c: ControlSignal, i) => (
-          <tr key={i} className="border-t border-line/60" title={`${c.sample}: ${countOf(c.peaks, 'peak')} above the limit, tallest ${fmtNumber(c.size, 1)} bp`}>
+          <tr
+            key={i}
+            className="border-t border-line/60"
+            title={`${c.sample}: ${countOf(c.peaks, 'peak')} above the limit, tallest ${fmtNumber(c.size, 1)} bp`}
+          >
             <td className="num px-1.5 py-1 font-medium">{c.well}</td>
             <td className="px-1.5 py-1">
               <span className="inline-flex items-center gap-1">
@@ -451,11 +541,16 @@ export function QualityPanel({
   const report = view.report
   if (!report) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-2 bg-surface px-6 text-center" data-testid="quality-panel" data-state="unchecked">
+      <div
+        className="flex flex-1 flex-col items-center justify-center gap-2 bg-surface px-6 text-center"
+        data-testid="quality-panel"
+        data-state="unchecked"
+      >
         <CircleDashed size={22} className="text-faint" aria-hidden />
         <h3 className="text-sm font-semibold">Quality not checked yet</h3>
         <p className="max-w-sm text-xs text-muted">
-          {view.plate_label} was imported before quality checks existed. Checking measures every well’s ladder, signal and noise, the pull-up between dyes and the crosstalk between capillaries, and lists anything to look at.
+          {view.plate_label} was imported before quality checks existed. Checking measures every well’s ladder, signal and noise, the
+          pull-up between dyes and the crosstalk between capillaries, and lists anything to look at.
         </p>
         <Button size="sm" variant="primary" onClick={() => check([view.plate_id])} disabled={busy}>
           {busy ? <Spinner className="size-3" /> : <ShieldCheck size={12} />} Check quality
@@ -477,10 +572,23 @@ export function QualityPanel({
               <SlidersHorizontal size={12} /> Limits
             </Link>
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => check([view.plate_id])} disabled={busy} title="Measure this plate’s quality again">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => check([view.plate_id])}
+            disabled={busy}
+            title="Measure this plate’s quality again"
+          >
             {busy ? <Spinner className="size-3" /> : <RefreshCw size={12} />} Check again
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => void exp.run()} disabled={exp.busy} data-testid="export-quality" title="One row per well with its measures and the plate’s values">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => void exp.run()}
+            disabled={exp.busy}
+            data-testid="export-quality"
+            title="One row per well with its measures and the plate’s values"
+          >
             {exp.busy ? <Spinner className="size-3" /> : <Download size={12} />} Export quality CSV
           </Button>
         </div>
@@ -494,16 +602,24 @@ export function QualityPanel({
         {sorted.length ? (
           <IssueList issues={sorted} selected={selectedIssue} onSelect={onSelectIssue} onOpenWell={onOpenWell} />
         ) : (
-          <div className="flex items-start gap-2 rounded-md border border-line bg-ok-soft/50 px-2.5 py-2 text-xs" data-testid="quality-clean">
+          <div
+            className="flex items-start gap-2 rounded-md border border-line bg-ok-soft/50 px-2.5 py-2 text-xs"
+            data-testid="quality-clean"
+          >
             <CircleCheck size={15} className="mt-px shrink-0 text-ok" aria-hidden />
             <div>
               <div className="font-semibold text-fg">No issues found</div>
-              <p className="text-muted">Every well’s ladder, signal, noise and dye separation, and the plate’s pull-up and crosstalk, are within the usual range. The measurements are below.</p>
+              <p className="text-muted">
+                Every well’s ladder, signal, noise and dye separation, and the plate’s pull-up and crosstalk, are within the usual range.
+                The measurements are below.
+              </p>
             </div>
           </div>
         )}
         <Section title="Pull-up between dyes" testId="quality-pull-up">
-          <p className="text-2xs text-muted">Share of a dye’s signal that shows in another dye at the same point, over the plate. Negative values are dips.</p>
+          <p className="text-2xs text-muted">
+            Share of a dye’s signal that shows in another dye at the same point, over the plate. Negative values are dips.
+          </p>
           <div className="overflow-x-auto">
             <PullUpMatrix report={report} />
           </div>
@@ -520,7 +636,9 @@ export function QualityPanel({
         </Section>
         <Section title="Plate">
           <p className="text-2xs text-muted">
-            {countOf(report.wells.length, 'well')} measured; median ladder height {report.ladder_height == null ? '–' : `${fmtRfu(report.ladder_height)} RFU`}. Color the plate by a measure with the Quality view of the plate.
+            {countOf(report.wells.length, 'well')} measured; median ladder height{' '}
+            {report.ladder_height == null ? '–' : `${fmtRfu(report.ladder_height)} RFU`}. Color the plate by a measure with the Quality view
+            of the plate.
           </p>
         </Section>
       </div>
@@ -543,7 +661,11 @@ export function WellQualityBar({ report, well, onShowIssue }: { report: PlateQua
   )
   const flagged = (f: WellQuality['flags'][number]) => (w.flags.includes(f) ? 'text-danger font-semibold' : undefined)
   return (
-    <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-0.5 border-b border-line px-2 py-1 text-2xs" data-testid="well-quality" aria-label={`Quality of well ${well}`}>
+    <div
+      className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-0.5 border-b border-line px-2 py-1 text-2xs"
+      data-testid="well-quality"
+      aria-label={`Quality of well ${well}`}
+    >
       <span className="font-semibold text-muted">Quality</span>
       {w.capillary != null && fact('capillary', w.capillary)}
       {fact(
@@ -552,9 +674,26 @@ export function WellQualityBar({ report, well, onShowIssue }: { report: PlateQua
         `Median height of the ladder peaks${report.ladder_height != null ? `; plate median ${fmtRfu(report.ladder_height)} RFU` : ''}`,
         flagged('low_ladder'),
       )}
-      {w.ladder_fade != null && fact('fade', fmtPercent(w.ladder_fade), 'Height of the last third of the ladder peaks over the first third', flagged('ladder_fading'))}
-      {w.plate_error != null && fact('plate error', `${fmtNumber(w.plate_error, 2)} bp`, 'Largest disagreement of this ladder with the plate’s other wells', flagged('ladder_disagrees'))}
-      {fact('signal', w.signal == null ? '–' : `${fmtRfu(w.signal)} RFU`, 'Strongest sample-dye signal in the sized range', flagged('weak_injection'))}
+      {w.ladder_fade != null &&
+        fact(
+          'fade',
+          fmtPercent(w.ladder_fade),
+          'Height of the last third of the ladder peaks over the first third',
+          flagged('ladder_fading'),
+        )}
+      {w.plate_error != null &&
+        fact(
+          'plate error',
+          `${fmtNumber(w.plate_error, 2)} bp`,
+          'Largest disagreement of this ladder with the plate’s other wells',
+          flagged('ladder_disagrees'),
+        )}
+      {fact(
+        'signal',
+        w.signal == null ? '–' : `${fmtRfu(w.signal)} RFU`,
+        'Strongest sample-dye signal in the sized range',
+        flagged('weak_injection'),
+      )}
       <span className="inline-flex items-baseline gap-1 whitespace-nowrap" title="Noise (standard deviation of the baseline) per dye, RFU">
         <span className="text-faint">noise</span>
         {w.dyes.map((d) => (

@@ -150,9 +150,7 @@ export function TraceViewer(props: TraceViewerProps) {
   const boundsRaw = props.xBounds ?? computeBounds(series, mode)
   const boundsKey = `${boundsRaw[0]}|${boundsRaw[1]}`
   const bounds = useMemo<Domain>(() => boundsRaw, [boundsKey])
-  const dfltRaw = props.defaultXDomain
-    ? clampDomain(props.defaultXDomain, bounds)
-    : defaultDomain(bounds, mode, locusRange, primary)
+  const dfltRaw = props.defaultXDomain ? clampDomain(props.defaultXDomain, bounds) : defaultDomain(bounds, mode, locusRange, primary)
   const dfltKey = `${dfltRaw[0]}|${dfltRaw[1]}`
   const dflt = useMemo<Domain>(() => dfltRaw, [dfltKey])
   const minSpan = mode === 'bp' ? 2 : 20
@@ -495,10 +493,13 @@ export function TraceViewer(props: TraceViewerProps) {
     [drawBase, drawOverlay],
   )
   const overlayScheduler = useMemo(() => createFrameScheduler(drawOverlay), [drawOverlay])
-  useEffect(() => () => {
-    scheduler.cancel()
-    overlayScheduler.cancel()
-  }, [scheduler, overlayScheduler])
+  useEffect(
+    () => () => {
+      scheduler.cancel()
+      overlayScheduler.cancel()
+    },
+    [scheduler, overlayScheduler],
+  )
 
   // ------------------------------------------------------------ view updates
 
@@ -529,11 +530,7 @@ export function TraceViewer(props: TraceViewerProps) {
     else scheduler.request()
   }, [setX, setYLock, scheduler])
 
-  useImperativeHandle(
-    props.ref,
-    () => ({ resetView, setXDomain: (d) => setX(d), getXDomain: () => view.current.x }),
-    [resetView, setX],
-  )
+  useImperativeHandle(props.ref, () => ({ resetView, setXDomain: (d) => setX(d), getXDomain: () => view.current.x }), [resetView, setX])
 
   // Controlled x domain.
   useEffect(() => {
@@ -572,8 +569,7 @@ export function TraceViewer(props: TraceViewerProps) {
       const L = latest.current
       const { x } = geometry()
       const ax = x.invert(px)
-      const target =
-        (L.props.clickSeriesId ? L.props.series.find((s) => s.id === L.props.clickSeriesId) : undefined) ?? L.primary
+      const target = (L.props.clickSeriesId ? L.props.series.find((s) => s.id === L.props.clickSeriesId) : undefined) ?? L.primary
       const xs = target && L.mode === 'bp' ? (target.baseSizes ?? null) : null
       const n = target?.data.length ?? 0
       const index = nearestIndex(xs, n, ax)
@@ -852,14 +848,7 @@ function escapeHtml(s: string): string {
 }
 
 /** Peak marker glyphs. Shape carries the state so it survives color blindness. */
-export function drawPeakMarker(
-  ctx: CanvasRenderingContext2D,
-  t: PlotTheme,
-  state: PeakState,
-  px: number,
-  py: number,
-  color: string,
-) {
+export function drawPeakMarker(ctx: CanvasRenderingContext2D, t: PlotTheme, state: PeakState, px: number, py: number, color: string) {
   ctx.save()
   ctx.lineWidth = 1.5
   switch (state) {

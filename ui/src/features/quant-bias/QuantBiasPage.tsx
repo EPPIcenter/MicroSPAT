@@ -52,7 +52,15 @@ function Index() {
     [],
   )
   return (
-    <Page header={<PageHeader title="Quantification bias" icon={<Scale />} subtitle="Correct allele shares for PCR's preference for short fragments" />}>
+    <Page
+      header={
+        <PageHeader
+          title="Quantification bias"
+          icon={<Scale />}
+          subtitle="Correct allele shares for PCR's preference for short fragments"
+        />
+      }
+    >
       <ListDetailLayout
         id="quant-bias-projects"
         listWidth={760}
@@ -74,12 +82,12 @@ function Index() {
           ) : selected == null ? (
             <EmptyState icon={<Scale />} title="Select an estimator">
               <p>
-                In a mixed infection, peak heights stand in for how much of the sample each clone makes up. PCR amplifies shorter fragments more efficiently, so short alleles look
-                over-represented.
+                In a mixed infection, peak heights stand in for how much of the sample each clone makes up. PCR amplifies shorter fragments
+                more efficiently, so short alleles look over-represented.
               </p>
               <p className="mt-1.5">
-                A quantification-bias estimator measures that effect per locus from control mixtures (lab strains mixed in known proportions). Genotyping projects that link it correct
-                their allele shares. Double-click an estimator to open it.
+                A quantification-bias estimator measures that effect per locus from control mixtures (lab strains mixed in known
+                proportions). Genotyping projects that link it correct their allele shares. Double-click an estimator to open it.
               </p>
             </EmptyState>
           ) : !detail.data ? (
@@ -123,7 +131,11 @@ function Preview({ projectId, onOpen }: { projectId: number; onOpen: (query: str
           const est = qs.find((q) => q.data?.locus_id === l.locus_id)?.data?.estimate
           if (est === undefined) return null
           const bad = fitIssues(est).some((i) => i.level === 'danger')
-          return <span className={cn('num text-xs', bad ? 'font-semibold text-danger' : 'text-muted')}>{est ? `β ${fmtBeta(est.beta)}` : 'no β'}</span>
+          return (
+            <span className={cn('num text-xs', bad ? 'font-semibold text-danger' : 'text-muted')}>
+              {est ? `β ${fmtBeta(est.beta)}` : 'no β'}
+            </span>
+          )
         }}
       />
     </div>
@@ -172,7 +184,11 @@ function Workspace({ projectId }: { projectId: number }) {
   )
   if (project.isError || !project.data)
     return (
-      <NotFound what="quantification-bias estimator" error={project.error ?? undefined} back={{ to: PATH, label: 'All quantification-bias estimators' }} />
+      <NotFound
+        what="quantification-bias estimator"
+        error={project.error ?? undefined}
+        back={{ to: PATH, label: 'All quantification-bias estimators' }}
+      />
     )
   const detail = project.data
   if (detail.project.kind !== 'quant_bias_estimator') return <EmptyState title="Not a quantification-bias estimator" action={back} />
@@ -186,7 +202,13 @@ function Workspace({ projectId }: { projectId: number }) {
         detail={detail}
         selectedLocusIds={locusId != null ? [locusId] : undefined}
         leading={
-          <Button asChild size="icon-sm" variant="ghost" aria-label="All quantification-bias estimators" title="All quantification-bias estimators">
+          <Button
+            asChild
+            size="icon-sm"
+            variant="ghost"
+            aria-label="All quantification-bias estimators"
+            title="All quantification-bias estimators"
+          >
             <Link to={PATH}>
               <ChevronLeft size={15} />
             </Link>
@@ -199,7 +221,11 @@ function Workspace({ projectId }: { projectId: number }) {
             onClick={() => (notCurrent.length ? setConfirmExport(true) : void exp.run())}
             disabled={exp.busy || p.sample_count === 0}
             data-testid="export-peaks"
-            title={p.sample_count === 0 ? 'Assign control mixtures and analyze first' : "Every peak of each mixture's reference run, with its control, true share, observed and corrected share, and whether it entered the fit"}
+            title={
+              p.sample_count === 0
+                ? 'Assign control mixtures and analyze first'
+                : "Every peak of each mixture's reference run, with its control, true share, observed and corrected share, and whether it entered the fit"
+            }
           >
             {exp.busy ? <Spinner className="size-3" /> : <Download size={12} />} Export peak data CSV
           </Button>
@@ -213,8 +239,13 @@ function Workspace({ projectId }: { projectId: number }) {
         title="Export results that are not current?"
         description={
           <span data-testid="export-not-current">
-            {notCurrent.map((l) => `${l.label} is ${l.status.state === 'not_analyzed' ? 'not analyzed (no rows)' : 'stale (the file would hold the previous analysis)'}`).join('; ')}.
-            Re-analyze first for current numbers.
+            {notCurrent
+              .map(
+                (l) =>
+                  `${l.label} is ${l.status.state === 'not_analyzed' ? 'not analyzed (no rows)' : 'stale (the file would hold the previous analysis)'}`,
+              )
+              .join('; ')}
+            . Re-analyze first for current numbers.
           </span>
         }
         confirmLabel="Export anyway"
@@ -231,7 +262,13 @@ function Workspace({ projectId }: { projectId: number }) {
           ))}
         </TabsList>
         <TabsContent value="locus" className="flex min-h-0 flex-col" forceMount hidden={tab !== 'locus'}>
-          <LocusTab detail={detail} locusId={locusId} onSelectLocus={onSelectLocus} onOpenMixtures={() => select({ tab: 'mixtures' })} active={tab === 'locus'} />
+          <LocusTab
+            detail={detail}
+            locusId={locusId}
+            onSelectLocus={onSelectLocus}
+            onOpenMixtures={() => select({ tab: 'mixtures' })}
+            active={tab === 'locus'}
+          />
         </TabsContent>
         <TabsContent value="overview" className="flex min-h-0 flex-col">
           <OverviewTab detail={detail} onOpenLocus={(l) => select({ tab: 'locus', locus: l })} />

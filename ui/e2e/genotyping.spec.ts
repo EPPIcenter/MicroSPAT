@@ -54,7 +54,10 @@ test('marks a call reviewed, clears it, bulk-marks what the filter shows, and sh
   const shown = Number(/^(\d+) of/.exec(await page.getByTestId('calls-count').innerText())![1])
   expect(shown).toBeGreaterThan(0)
   await page.getByTestId('bulk-review').click()
-  await page.getByRole('alertdialog').getByRole('button', { name: `Mark ${shown} reviewed` }).click()
+  await page
+    .getByRole('alertdialog')
+    .getByRole('button', { name: `Mark ${shown} reviewed` })
+    .click()
   await expect(page.getByTestId('calls-count')).toContainText(/^0 of /)
   await page.locator('[data-filter=unreviewed]').click()
   await expect(page.locator('[data-testid=locus-strip] [aria-selected=true] [data-testid=locus-review-progress]')).toHaveText('✓ all')

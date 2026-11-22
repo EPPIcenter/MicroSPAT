@@ -9,7 +9,13 @@ describe('previewLociCsv', () => {
     const p = previewLociCsv('color,LABEL,nucleotide repeat length,max base length,min base length\nBlue,PfX,3,150,100\n', [])
     expect(p.headerError).toBeNull()
     expect(p.valid).toBe(1)
-    expect(p.rows[0]!.locus).toEqual({ label: 'PfX', color: 'blue', min_base_length: 100, max_base_length: 150, nucleotide_repeat_length: 3 })
+    expect(p.rows[0]!.locus).toEqual({
+      label: 'PfX',
+      color: 'blue',
+      min_base_length: 100,
+      max_base_length: 150,
+      nucleotide_repeat_length: 3,
+    })
   })
   it('reports a missing header column', () => {
     const p = previewLociCsv('Label,Min,Max\nA,1,2', [])

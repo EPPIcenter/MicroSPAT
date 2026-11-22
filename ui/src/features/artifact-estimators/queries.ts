@@ -15,7 +15,10 @@ export const artifactKeys = {
 }
 
 function locusQuery(pid: number, locusId: number) {
-  return { ...apiQuery(artifactKeys.locus(pid, locusId), 'get_locus_artifact_estimators', { project_id: pid, locus_id: locusId }), meta: { silent: true } }
+  return {
+    ...apiQuery(artifactKeys.locus(pid, locusId), 'get_locus_artifact_estimators', { project_id: pid, locus_id: locusId }),
+    meta: { silent: true },
+  }
 }
 
 export function useLocusArtifacts(pid: number, locusId: number | null) {
@@ -66,7 +69,12 @@ export function useArtifactEdit(pid: number, locusId: number, id: number) {
     },
     onSuccess: (view) => {
       qc.setQueryData<LocusArtifacts>(artifactKeys.locus(pid, locusId), (old) =>
-        old ? { ...old, estimators: view ? old.estimators.map((x) => (x.id === view.id ? view : x)) : old.estimators.filter((x) => x.id !== id) } : old,
+        old
+          ? {
+              ...old,
+              estimators: view ? old.estimators.map((x) => (x.id === view.id ? view : x)) : old.estimators.filter((x) => x.id !== id),
+            }
+          : old,
       )
     },
     onError: (err: Error, e) => toast.error(ERROR_TITLE[e.type], err.message),

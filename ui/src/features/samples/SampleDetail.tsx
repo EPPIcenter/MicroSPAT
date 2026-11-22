@@ -111,7 +111,12 @@ export function SampleDetail({ id, onDeleted }: { id: number; onDeleted: () => v
           second={run ? <RunTrace run={run} locus={locus} /> : <div />}
         />
       )}
-      <DeleteSamplesDialog open={deleting} onOpenChange={setDeleting} samples={[{ id: s.id, barcode: s.barcode, run_count: runs.length }]} onDeleted={() => onDeleted()} />
+      <DeleteSamplesDialog
+        open={deleting}
+        onOpenChange={setDeleting}
+        samples={[{ id: s.id, barcode: s.barcode, run_count: runs.length }]}
+        onDeleted={() => onDeleted()}
+      />
     </div>
   )
 }
@@ -180,7 +185,18 @@ function RunTrace({ run, locus }: { run: SampleRun; locus: Locus | undefined }) 
   const trace = useQuery(apiQuery(['plates', 'channels', run.channel_id, 'trace'], 'get_channel_trace', { id: run.channel_id }))
   const t = trace.data
   const series = useMemo(
-    () => (t ? [{ id: `ch-${t.channel_id}`, color: t.color, data: t.trace, baseSizes: t.base_sizes, label: `${run.locus_label} · ${run.plate_label} ${run.well_label}` }] : []),
+    () =>
+      t
+        ? [
+            {
+              id: `ch-${t.channel_id}`,
+              color: t.color,
+              data: t.trace,
+              baseSizes: t.base_sizes,
+              label: `${run.locus_label} · ${run.plate_label} ${run.well_label}`,
+            },
+          ]
+        : [],
     [t, run.locus_label, run.plate_label, run.well_label],
   )
   const range: [number, number] | undefined = locus && t?.base_sizes ? [locus.min_base_length, locus.max_base_length] : undefined
@@ -189,7 +205,11 @@ function RunTrace({ run, locus }: { run: SampleRun; locus: Locus | undefined }) 
       <div className="flex h-9 shrink-0 items-center gap-2 border-b border-line bg-surface px-3 text-xs">
         <span className="font-medium">{run.locus_label}</span>
         <DyeChip color={run.color} />
-        {locus && <span className="num text-muted">{locus.min_base_length}–{locus.max_base_length} bp</span>}
+        {locus && (
+          <span className="num text-muted">
+            {locus.min_base_length}–{locus.max_base_length} bp
+          </span>
+        )}
         <span className="text-faint">·</span>
         <span className="text-muted">
           {run.plate_label} {run.well_label}

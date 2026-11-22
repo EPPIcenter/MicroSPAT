@@ -83,7 +83,14 @@ export function LocusTab({ detail, locusId, onSelectLocus, onOpenMixtures, activ
           className="min-w-0 flex-1"
           trailing={(l) => <BetaChip est={betaOf.get(l.locus_id)} loading={!all.find((q) => q.data?.locus_id === l.locus_id)} />}
         />
-        <Button size="sm" variant={showParams ? 'secondary' : 'ghost'} onClick={() => setShowParams((v) => !v)} title="Parameters (P)" aria-pressed={showParams} data-testid="toggle-params">
+        <Button
+          size="sm"
+          variant={showParams ? 'secondary' : 'ghost'}
+          onClick={() => setShowParams((v) => !v)}
+          title="Parameters (P)"
+          aria-pressed={showParams}
+          data-testid="toggle-params"
+        >
           <SlidersHorizontal size={12} /> Parameters
         </Button>
       </div>
@@ -136,8 +143,15 @@ function LocusResults({ detail, locus, onOpenMixtures }: { detail: ProjectDetail
   }, [focusKey, byKey, rows])
 
   const reanalyze = (
-    <Button size="sm" variant="primary" disabled={running} onClick={() => analyze.mutate({ locus_ids: [lid] })} data-testid="reanalyze-locus">
-      {running ? <Spinner className="size-3" /> : <Play size={11} />} {locus.status.state === 'not_analyzed' ? 'Analyze' : 'Re-analyze'} {locus.label}
+    <Button
+      size="sm"
+      variant="primary"
+      disabled={running}
+      onClick={() => analyze.mutate({ locus_ids: [lid] })}
+      data-testid="reanalyze-locus"
+    >
+      {running ? <Spinner className="size-3" /> : <Play size={11} />} {locus.status.state === 'not_analyzed' ? 'Analyze' : 'Re-analyze'}{' '}
+      {locus.label}
     </Button>
   )
 
@@ -170,15 +184,38 @@ function LocusResults({ detail, locus, onOpenMixtures }: { detail: ProjectDetail
           <div className="grid min-h-0 flex-[3] grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-px border-b border-line bg-line">
             <section className="flex min-h-0 flex-col bg-surface" aria-label="Regression">
               <PlotHeader title="Log-ratio error by size offset">
-                <Legend items={[['used', 'used in the fit'], ['outlier', `|residual| > ${OUTLIER_Z} SD`], ['excluded', 'left out']]} />
+                <Legend
+                  items={[
+                    ['used', 'used in the fit'],
+                    ['outlier', `|residual| > ${OUTLIER_Z} SD`],
+                    ['excluded', 'left out'],
+                  ]}
+                />
               </PlotHeader>
-              <RegressionPlot rows={rows} est={est} selected={selected} onSelect={setSelected} onHover={setHover} linked={linked} byKey={byKey} />
+              <RegressionPlot
+                rows={rows}
+                est={est}
+                selected={selected}
+                onSelect={setSelected}
+                onHover={setHover}
+                linked={linked}
+                byKey={byKey}
+              />
             </section>
             <section className="flex min-h-0 flex-col bg-surface" aria-label="Correction check">
               <PlotHeader title="Does the correction work?">
-                <Legend items={[['before', 'observed'], ['after', 'corrected']]} />
+                <Legend
+                  items={[
+                    ['before', 'observed'],
+                    ['after', 'corrected'],
+                  ]}
+                />
                 {acc && (
-                  <span className="num text-2xs text-muted" data-testid="correction-accuracy" title={`Mean absolute difference from the true share over ${acc.n} control peaks`}>
+                  <span
+                    className="num text-2xs text-muted"
+                    data-testid="correction-accuracy"
+                    title={`Mean absolute difference from the true share over ${acc.n} control peaks`}
+                  >
                     error {pct1(acc.before)} → <b className={acc.after <= acc.before ? 'text-ok' : 'text-danger'}>{pct1(acc.after)}</b>
                   </span>
                 )}
@@ -218,10 +255,19 @@ function Summary({
           <Tooltip
             content={
               <div className="max-w-xs space-y-1">
-                <p>β is how much an allele's observed share drifts from its true share per bp of size above its mixture's center. For two strains:</p>
+                <p>
+                  β is how much an allele's observed share drifts from its true share per bp of size above its mixture's center. For two
+                  strains:
+                </p>
                 <p className="font-mono">logit(observed) = logit(true) + β·(size − center)</p>
-                <p>For any number of strains, 2·(clr(observed) − clr(true)) = β·(size − center), where clr is a share's log minus the mean log share of the mixture's peaks.</p>
-                <p>Negative β: shorter alleles look larger than they are, as PCR favours short fragments. Genotyping projects that link this estimator invert it.</p>
+                <p>
+                  For any number of strains, 2·(clr(observed) − clr(true)) = β·(size − center), where clr is a share's log minus the mean
+                  log share of the mixture's peaks.
+                </p>
+                <p>
+                  Negative β: shorter alleles look larger than they are, as PCR favours short fragments. Genotyping projects that link this
+                  estimator invert it.
+                </p>
               </div>
             }
           >
@@ -239,8 +285,8 @@ function Summary({
       </div>
       {data.params_recomputed && (
         <p className="mt-1 text-xs text-warn" data-testid="stale-mix-note">
-          This β was estimated before MicroSPAT recorded the parameters of a fit, so which peaks are marked used or left out below follows the current parameters and may
-          not match it. Re-analyze {locus.label} to bring them together.
+          This β was estimated before MicroSPAT recorded the parameters of a fit, so which peaks are marked used or left out below follows
+          the current parameters and may not match it. Re-analyze {locus.label} to bring them together.
         </p>
       )}
       <MixtureNotes data={data} locus={locus} />
@@ -267,16 +313,32 @@ function MixtureNotes({ data, locus }: { data: LocusQuantBias; locus: ProjectLoc
   const mixtures = data.mixtures ?? []
   const left = mixtures.filter((m) => !m.used)
   if (!mixtures.length || !left.length) return null
-  const names = (ms: typeof left) => (ms.length <= 3 ? ms.map((m) => m.barcode).join(', ') : `${ms.slice(0, 3).map((m) => m.barcode).join(', ')} and ${ms.length - 3} more`)
+  const names = (ms: typeof left) =>
+    ms.length <= 3
+      ? ms.map((m) => m.barcode).join(', ')
+      : `${ms
+          .slice(0, 3)
+          .map((m) => m.barcode)
+          .join(', ')} and ${ms.length - 3} more`
   const noRun = left.filter((m) => m.reference_run_id == null)
   const missing = left.filter((m) => m.reference_run_id != null && m.components.some((c) => c.missing))
   const byPeaks = left.filter((m) => m.reference_run_id != null && !m.components.some((c) => c.missing))
   const parts: ReactNode[] = []
-  if (noRun.length) parts.push(<span key="run" title={noRun.map((m) => m.barcode).join('\n')}>{names(noRun)}: no usable run at {locus.label}</span>)
+  if (noRun.length)
+    parts.push(
+      <span key="run" title={noRun.map((m) => m.barcode).join('\n')}>
+        {names(noRun)}: no usable run at {locus.label}
+      </span>,
+    )
   for (const m of missing)
     parts.push(
       <span key={m.sample_id} data-barcode={m.barcode}>
-        {m.barcode} ({m.components.filter((c) => c.missing).map((c) => `${c.control_label}: ${missingText(c.missing!)}`).join('; ')})
+        {m.barcode} (
+        {m.components
+          .filter((c) => c.missing)
+          .map((c) => `${c.control_label}: ${missingText(c.missing!)}`)
+          .join('; ')}
+        )
       </span>,
     )
   if (byPeaks.length)
@@ -376,7 +438,15 @@ interface PlotProps {
 }
 
 function RegressionPlot({ rows, est, selected, onSelect, onHover, linked, byKey }: PlotProps & { est: BiasEstimate | null }) {
-  const doms = useMemo(() => regressionDomains(rows.map((r) => r.point), est?.beta ?? null, est?.sd ?? null), [rows, est])
+  const doms = useMemo(
+    () =>
+      regressionDomains(
+        rows.map((r) => r.point),
+        est?.beta ?? null,
+        est?.sd ?? null,
+      ),
+    [rows, est],
+  )
   const pts = useMemo<ScatterDatum[]>(
     () =>
       rows.map((r) => ({
@@ -528,7 +598,15 @@ function PointsTable({ rows, selected, onSelect }: { rows: PointRow[]; selected:
     () => [
       { id: 'sample', header: 'Mixture', value: (r) => r.point.barcode, width: 170 },
       { id: 'allele', header: 'Allele', value: (r) => r.allele ?? '', width: 62 },
-      { id: 'size', header: 'Size', value: (r) => r.point.size, cell: (r) => <span className="num">{r.point.size.toFixed(2)}</span>, align: 'right', width: 68, searchable: false },
+      {
+        id: 'size',
+        header: 'Size',
+        value: (r) => r.point.size,
+        cell: (r) => <span className="num">{r.point.size.toFixed(2)}</span>,
+        align: 'right',
+        width: 68,
+        searchable: false,
+      },
       {
         id: 'offset',
         header: 'Offset',
@@ -539,8 +617,24 @@ function PointsTable({ rows, selected, onSelect }: { rows: PointRow[]; selected:
         width: 62,
         searchable: false,
       },
-      { id: 'true', header: 'True', value: (r) => r.point.true_proportion, cell: (r) => <span className="num">{pct1(r.point.true_proportion)}</span>, align: 'right', width: 60, searchable: false },
-      { id: 'obs', header: 'Observed', value: (r) => r.point.observed_proportion, cell: (r) => <span className="num">{pct1(r.point.observed_proportion)}</span>, align: 'right', width: 74, searchable: false },
+      {
+        id: 'true',
+        header: 'True',
+        value: (r) => r.point.true_proportion,
+        cell: (r) => <span className="num">{pct1(r.point.true_proportion)}</span>,
+        align: 'right',
+        width: 60,
+        searchable: false,
+      },
+      {
+        id: 'obs',
+        header: 'Observed',
+        value: (r) => r.point.observed_proportion,
+        cell: (r) => <span className="num">{pct1(r.point.observed_proportion)}</span>,
+        align: 'right',
+        width: 74,
+        searchable: false,
+      },
       {
         id: 'corr',
         header: 'Corrected',
@@ -566,7 +660,12 @@ function PointsTable({ rows, selected, onSelect }: { rows: PointRow[]; selected:
         header: 'Resid.',
         description: 'Residual from the fit in SDs (used peaks)',
         value: (r) => (r.z == null ? null : Math.abs(r.z)),
-        cell: (r) => (r.z == null ? <span className="text-faint">–</span> : <span className={cn('num', Math.abs(r.z) > OUTLIER_Z && 'font-semibold text-danger')}>{r.z.toFixed(1)}</span>),
+        cell: (r) =>
+          r.z == null ? (
+            <span className="text-faint">–</span>
+          ) : (
+            <span className={cn('num', Math.abs(r.z) > OUTLIER_Z && 'font-semibold text-danger')}>{r.z.toFixed(1)}</span>
+          ),
         align: 'right',
         width: 58,
         searchable: false,

@@ -11,7 +11,15 @@ describe('csv', () => {
     expect(csvField(1.5)).toBe('1.5')
   })
   it('builds a document', () => {
-    expect(toCsv(['a', 'b'], [[1, 'x,y'], [null, true]])).toBe('a,b\n1,"x,y"\n,true\n')
+    expect(
+      toCsv(
+        ['a', 'b'],
+        [
+          [1, 'x,y'],
+          [null, true],
+        ],
+      ),
+    ).toBe('a,b\n1,"x,y"\n,true\n')
   })
 })
 

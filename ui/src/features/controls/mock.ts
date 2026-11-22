@@ -69,7 +69,10 @@ export function seedControls(): Promise<void> {
   return seeded
 }
 
-export async function controlView(c: StoredControl, cache?: Map<number, { be: ProjectDetail; bins: Map<number, Bin[]> }>): Promise<Control> {
+export async function controlView(
+  c: StoredControl,
+  cache?: Map<number, { be: ProjectDetail; bins: Map<number, Bin[]> }>,
+): Promise<Control> {
   let hit = cache?.get(c.bin_estimator_id)
   if (!hit) {
     const be = await binEstimator(c.bin_estimator_id)
@@ -90,10 +93,23 @@ export async function controlView(c: StoredControl, cache?: Map<number, { be: Pr
     const found = bins.find((b) => b.id === bin)
     // A bin that is gone reads as the engine reports it: unset, with the deleted bin named.
     if (bin != null && !found && bins.length)
-      alleles.push({ locus_id: l.locus_id, locus_label: l.label, bin_id: null, bin_label: null, deleted_bin: { label: `#${bin}`, base_size: 0 } })
+      alleles.push({
+        locus_id: l.locus_id,
+        locus_label: l.label,
+        bin_id: null,
+        bin_label: null,
+        deleted_bin: { label: `#${bin}`, base_size: 0 },
+      })
     else alleles.push({ locus_id: l.locus_id, locus_label: l.label, bin_id: bin, bin_label: found?.label ?? null })
   }
-  return { id: c.id, label: c.label, bin_estimator_id: c.bin_estimator_id, bin_estimator_title: be.project.title, alleles, mixture_count: controlUse.count(c.id) }
+  return {
+    id: c.id,
+    label: c.label,
+    bin_estimator_id: c.bin_estimator_id,
+    bin_estimator_title: be.project.title,
+    alleles,
+    mixture_count: controlUse.count(c.id),
+  }
 }
 
 function get(id: number): StoredControl {
@@ -131,7 +147,12 @@ const handlers: Record<string, MockHandler> = {
     const p = params as CreateControlParams
     const be = await binEstimator(p.bin_estimator_id)
     if (be.project.kind !== 'bin_estimator') throw new RpcError('invalid', `${be.project.title} is not a bin estimator.`)
-    const c: StoredControl = { id: nextId, label: checkLabel(p.label, p.bin_estimator_id, 0), bin_estimator_id: p.bin_estimator_id, alleles: new Map() }
+    const c: StoredControl = {
+      id: nextId,
+      label: checkLabel(p.label, p.bin_estimator_id, 0),
+      bin_estimator_id: p.bin_estimator_id,
+      alleles: new Map(),
+    }
     await setAlleles(c, p.alleles)
     nextId++
     mockControls.set(c.id, c)
@@ -153,7 +174,11 @@ const handlers: Record<string, MockHandler> = {
   delete_control: (params, ctx) => {
     const c = get((params as IdParams).id)
     const n = controlUse.count(c.id)
-    if (n > 0) throw new RpcError('in_use', `Control ${c.label} is in ${n} control mixture(s) of ${controlUse.titles(c.id).join(', ')}. Remove those samples first.`)
+    if (n > 0)
+      throw new RpcError(
+        'in_use',
+        `Control ${c.label} is in ${n} control mixture(s) of ${controlUse.titles(c.id).join(', ')}. Remove those samples first.`,
+      )
     mockControls.delete(c.id)
     ctx.changed('controls', [c.id])
     return null

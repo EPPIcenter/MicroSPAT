@@ -32,7 +32,10 @@ export function MixturesTab({ detail }: { detail: ProjectDetail }) {
   const [csv, setCsv] = useState(false)
   const [editing, setEditing] = useState<ProjectSampleRow[] | null | 'new'>(null)
   const [removing, setRemoving] = useState(false)
-  const own = useMemo(() => (controls.data ?? []).filter((c) => c.bin_estimator_id === p.bin_estimator?.id), [controls.data, p.bin_estimator])
+  const own = useMemo(
+    () => (controls.data ?? []).filter((c) => c.bin_estimator_id === p.bin_estimator?.id),
+    [controls.data, p.bin_estimator],
+  )
   const colorOf = useMemo(() => new Map(own.map((c, i) => [c.id, STRAIN_COLORS[i % STRAIN_COLORS.length]!])), [own])
   const data = useMemo(() => rows.data ?? [], [rows.data])
   const sel = data.filter((r) => selected.includes(String(r.sample_id)))
@@ -48,7 +51,13 @@ export function MixturesTab({ detail }: { detail: ProjectDetail }) {
 
   const columns = useMemo<DataColumn<ProjectSampleRow>[]>(
     () => [
-      { id: 'barcode', header: 'Sample', value: (r) => r.barcode, cell: (r) => <span className="font-medium">{r.barcode}</span>, width: 190 },
+      {
+        id: 'barcode',
+        header: 'Sample',
+        value: (r) => r.barcode,
+        cell: (r) => <span className="font-medium">{r.barcode}</span>,
+        width: 190,
+      },
       {
         id: 'mixture',
         header: 'Mixture',
@@ -58,7 +67,10 @@ export function MixturesTab({ detail }: { detail: ProjectDetail }) {
             <span className="flex min-w-0 items-center gap-2">
               <span className="flex h-2 w-16 shrink-0 overflow-hidden rounded-full bg-surface-3" aria-hidden>
                 {r.controls.map((c) => (
-                  <span key={c.control_id} style={{ width: `${c.proportion * 100}%`, background: `var(--dye-${colorOf.get(c.control_id) ?? 'blue'})` }} />
+                  <span
+                    key={c.control_id}
+                    style={{ width: `${c.proportion * 100}%`, background: `var(--dye-${colorOf.get(c.control_id) ?? 'blue'})` }}
+                  />
                 ))}
               </span>
               <span className="truncate">
@@ -130,8 +142,9 @@ export function MixturesTab({ detail }: { detail: ProjectDetail }) {
           </div>
         }
       >
-        A control mixture is a sample made by mixing known strains (controls of {p.bin_estimator?.title ?? 'the bin estimator'}) in known proportions, for example 3D7 70% and DD2 30%.
-        Mixtures of two strains at several ratios, run on the same plates as your samples, work best.
+        A control mixture is a sample made by mixing known strains (controls of {p.bin_estimator?.title ?? 'the bin estimator'}) in known
+        proportions, for example 3D7 70% and DD2 30%. Mixtures of two strains at several ratios, run on the same plates as your samples,
+        work best.
       </EmptyState>
     )
   else
@@ -154,9 +167,11 @@ export function MixturesTab({ detail }: { detail: ProjectDetail }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-surface" data-testid="mixtures-tab">
       <p className="shrink-0 border-b border-line px-3 py-1.5 text-xs text-muted">
-        Each sample here is a mixture of control strains in known proportions. Their peaks at each locus give observed shares to compare with the true ones. Double-click a
-        mixture to edit it.
-        {data.some((r) => r.run_count === 0) && <span className="text-warn"> Samples with 0 runs have no data at these loci and add nothing.</span>}
+        Each sample here is a mixture of control strains in known proportions. Their peaks at each locus give observed shares to compare
+        with the true ones. Double-click a mixture to edit it.
+        {data.some((r) => r.run_count === 0) && (
+          <span className="text-warn"> Samples with 0 runs have no data at these loci and add nothing.</span>
+        )}
       </p>
       {body}
       <MixtureCsvDialog detail={detail} rows={data} controls={controls.data ?? []} open={csv} onOpenChange={setCsv} />

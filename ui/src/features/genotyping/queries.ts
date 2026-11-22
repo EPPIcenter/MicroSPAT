@@ -34,7 +34,11 @@ function locusIdsQueries(pid: number, ids: readonly number[]) {
 
 export function sampleLocusQuery(pid: number, sampleId: number, locusId: number) {
   return queryOptions({
-    ...apiQuery(genoKeys.call(pid, sampleId, locusId), 'get_sample_locus_call', { project_id: pid, sample_id: sampleId, locus_id: locusId }),
+    ...apiQuery(genoKeys.call(pid, sampleId, locusId), 'get_sample_locus_call', {
+      project_id: pid,
+      sample_id: sampleId,
+      locus_id: locusId,
+    }),
     meta: { silent: true },
     // Traces are big; keep a window of recent ones only.
     gcTime: 60_000,
@@ -67,7 +71,9 @@ export function useSummary(pid: number) {
  * mutation. `f` may also build an optimistic row from the cached one.
  */
 export function patchCallRow(qc: QueryClient, pid: number, sampleId: number, locusId: number, f: (r: CallRow) => CallRow) {
-  qc.setQueryData<LocusCalls>(genoKeys.calls(pid, locusId), (old) => (old ? { ...old, rows: old.rows.map((r) => (r.sample_id === sampleId ? f(r) : r)) } : old))
+  qc.setQueryData<LocusCalls>(genoKeys.calls(pid, locusId), (old) =>
+    old ? { ...old, rows: old.rows.map((r) => (r.sample_id === sampleId ? f(r) : r)) } : old,
+  )
   qc.setQueryData<SampleLocusCallView>(genoKeys.call(pid, sampleId, locusId), (old) => (old ? { ...old, row: f(old.row) } : old))
   qc.setQueryData<SampleCalls>(genoKeys.sample(pid, sampleId), (old) =>
     old ? { ...old, loci: old.loci.map((l) => (l.locus_id === locusId && l.row ? { ...l, row: f(l.row) } : l)) } : old,

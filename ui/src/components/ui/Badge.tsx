@@ -3,22 +3,19 @@ import type { ComponentProps } from 'react'
 import { cn } from '@/lib/cn'
 import type { Color } from '@/api/bindings'
 
-export const badgeVariants = cva(
-  'inline-flex items-center gap-1 rounded-[4px] px-1.5 h-[18px] text-2xs font-medium whitespace-nowrap',
-  {
-    variants: {
-      tone: {
-        neutral: 'bg-surface-3 text-muted',
-        accent: 'bg-accent-soft text-accent',
-        ok: 'bg-ok-soft text-ok',
-        warn: 'bg-warn-soft text-warn',
-        danger: 'bg-danger-soft text-danger',
-        outline: 'border border-line-strong text-muted',
-      },
+export const badgeVariants = cva('inline-flex items-center gap-1 rounded-[4px] px-1.5 h-[18px] text-2xs font-medium whitespace-nowrap', {
+  variants: {
+    tone: {
+      neutral: 'bg-surface-3 text-muted',
+      accent: 'bg-accent-soft text-accent',
+      ok: 'bg-ok-soft text-ok',
+      warn: 'bg-warn-soft text-warn',
+      danger: 'bg-danger-soft text-danger',
+      outline: 'border border-line-strong text-muted',
     },
-    defaultVariants: { tone: 'neutral' },
   },
-)
+  defaultVariants: { tone: 'neutral' },
+})
 
 export function Badge({ className, tone, ...props }: ComponentProps<'span'> & VariantProps<typeof badgeVariants>) {
   return <span className={cn(badgeVariants({ tone }), className)} {...props} />
@@ -41,10 +38,7 @@ export function StatusChip({ status, label, className }: { status: Status; label
   const s = STATUS[status]
   return (
     <Badge tone={s.tone} className={className}>
-      <span
-        aria-hidden
-        className={cn('size-1.5 rounded-full bg-current', status === 'running' && 'animate-pulse')}
-      />
+      <span aria-hidden className={cn('size-1.5 rounded-full bg-current', status === 'running' && 'animate-pulse')} />
       {label ?? s.label}
     </Badge>
   )

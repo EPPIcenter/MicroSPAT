@@ -92,7 +92,11 @@ test('a switch the engine refuses brings the page back', async ({ page }) => {
   await page.goto(`/projects/${project.id}?tab=review`)
   await expect(page.getByTestId('project-title')).toHaveText(project.title)
   await page.route('**/api/rpc/new_workspace', (route) =>
-    route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: { code: 'io', message: 'E2E: disk full' } }) }),
+    route.fulfill({
+      status: 500,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: { code: 'io', message: 'E2E: disk full' } }),
+    }),
   )
 
   await newWorkspace(page)

@@ -57,12 +57,19 @@ function peakNoun(c: ClassName): string {
  * "At 200 bp, a 10,000 RFU parent is expected to produce a stutter peak at
  * 197.0 bp of 850 ± 120 RFU."
  */
-export function expectedSentence(c: ClassName, distance: number | null, fit: Pick<LinearFit, 'slope' | 'intercept' | 'sd'>, parentSize: number, parentHeight: number): string {
+export function expectedSentence(
+  c: ClassName,
+  distance: number | null,
+  fit: Pick<LinearFit, 'slope' | 'intercept' | 'sd'>,
+  parentSize: number,
+  parentHeight: number,
+): string {
   const e = expectation(fit, parentSize, parentHeight)
   const at = `At ${parentSize.toFixed(0)} bp, a ${rfu(parentHeight)} RFU`
   const amount = `${rfu(e.expected)} ± ${rfu(e.sd)} RFU`
   const below = e.clamped ? ' (the fitted line is below zero at this size, so the expectation is 0)' : ''
-  if (c.global || distance == null) return `${at} main peak is expected to add ${amount} of background to every other peak of the run${below}.`
+  if (c.global || distance == null)
+    return `${at} main peak is expected to add ${amount} of background to every other peak of the run${below}.`
   return `${at} parent is expected to produce a ${peakNoun(c)} at ${(parentSize + distance).toFixed(1)} bp of ${amount}${below}.`
 }
 
@@ -103,10 +110,14 @@ export function fitWarnings(eq: ArtifactEquation): FitWarning[] {
   const at = (x: number) => slope * x + intercept
   const mid = at((s.start_size + s.end_size) / 2)
   if (sd > 0 && sd > Math.abs(mid)) {
-    const hint = s.method !== 'least_squares' && s.error !== 'mad' ? ' A few high points (minor alleles in runs taken as single-clone) inflate an RMS SD; robust MAD ignores them.' : ''
+    const hint =
+      s.method !== 'least_squares' && s.error !== 'mad'
+        ? ' A few high points (minor alleles in runs taken as single-clone) inflate an RMS SD; robust MAD ignores them.'
+        : ''
     out.push({ text: `Noisy: the SD (${pct(sd)}) is larger than the expected height (${pct(Math.max(0, mid))}).${hint}` })
   }
-  if (s.method !== 'no_slope' && r_squared < 0) out.push({ text: `R² is ${r_squared.toFixed(2)}: the line explains less than a flat mean would.` })
+  if (s.method !== 'no_slope' && r_squared < 0)
+    out.push({ text: `R² is ${r_squared.toFixed(2)}: the line explains less than a flat mean would.` })
   const a = at(s.start_size)
   const b = at(s.end_size)
   if (a < 0 || b < 0) {

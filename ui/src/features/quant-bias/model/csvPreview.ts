@@ -101,7 +101,8 @@ export function previewMixtureCsv(text: string, report: MixturesReport | null, c
       const ok = parts[1] !== '' && Number.isFinite(v)
       if (!ok || v <= 0 || v > 1) cellBad = true
       if (!ok) problems.push(`“${cell.trim()}”: proportion “${parts[1]}” is not a number`)
-      else if (v <= 0 || v > 1) problems.push(`${parts[0]}: proportion ${parts[1]} must be above 0 and at most 1${v > 1 && v <= 100 ? ' (write 0.7, not 70)' : ''}`)
+      else if (v <= 0 || v > 1)
+        problems.push(`${parts[0]}: proportion ${parts[1]} must be above 0 and at most 1${v > 1 && v <= 100 ? ' (write 0.7, not 70)' : ''}`)
       components.push({ raw: cell.trim(), label: parts[0], proportion: ok ? v : null })
       const k = parts[0].toLowerCase()
       if (!own.has(k)) {
@@ -123,8 +124,7 @@ export function previewMixtureCsv(text: string, report: MixturesReport | null, c
     if (barcode && components.length === 0) problems.push('no controls listed')
     const sum = components.reduce((s, c) => s + (c.proportion ?? 0), 0)
     // A bad cell already explains a wrong sum.
-    if (components.length && !cellBad && Math.abs(sum - 1) > SUM_EPS)
-      problems.push(`proportions sum to ${fmt(sum)}, not 1`)
+    if (components.length && !cellBad && Math.abs(sum - 1) > SUM_EPS) problems.push(`proportions sum to ${fmt(sum)}, not 1`)
     const k = barcode.toLowerCase()
     if (barcode && seen.has(k)) problems.push(`listed twice (also line ${seen.get(k)})`)
     else if (barcode) seen.set(k, line)
@@ -170,7 +170,10 @@ export function previewMixtureCsv(text: string, report: MixturesReport | null, c
  * A CSV to start from: the project's current mixtures when it has some (so
  * the file round-trips), otherwise an example with two of its controls.
  */
-export function mixtureTemplate(current: readonly { barcode: string; controls: readonly { label?: string; proportion: number }[] }[], controlLabels: readonly string[]): string {
+export function mixtureTemplate(
+  current: readonly { barcode: string; controls: readonly { label?: string; proportion: number }[] }[],
+  controlLabels: readonly string[],
+): string {
   const withMix = current.filter((r) => r.controls.length > 0)
   const width = Math.max(2, ...withMix.map((r) => r.controls.length))
   const head = ['Barcode', ...Array.from({ length: width }, (_, i) => `Control ${i + 1}`)]

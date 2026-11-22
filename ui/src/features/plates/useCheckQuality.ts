@@ -10,7 +10,8 @@ export function useCheckQuality() {
   const m = useMutation({
     mutationFn: (ids?: number[]) => api.compute_plate_quality(ids ? { ids } : {}),
     meta: { errorTitle: 'Could not check plate quality' },
-    onSuccess: (r) => toast.success('Quality checked', r.plate_ids.length ? countOf(r.plate_ids.length, 'plate') : 'Every plate was already checked'),
+    onSuccess: (r) =>
+      toast.success('Quality checked', r.plate_ids.length ? countOf(r.plate_ids.length, 'plate') : 'Every plate was already checked'),
   })
   return { check: (ids?: number[]) => m.mutate(ids), busy: m.isPending || running }
 }

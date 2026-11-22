@@ -29,7 +29,14 @@ const LABEL: Record<AnalysisState, string> = {
 /** Presentation of one result's status. */
 export function statusView(s: AnalysisStatus | null | undefined, what = 'These results'): StatusView {
   if (!s) {
-    return { state: 'not_analyzed', tone: 'neutral', label: LABEL.not_analyzed, sentence: `${what} have not been computed.`, reasons: [], suspect: true }
+    return {
+      state: 'not_analyzed',
+      tone: 'neutral',
+      label: LABEL.not_analyzed,
+      sentence: `${what} have not been computed.`,
+      reasons: [],
+      suspect: true,
+    }
   }
   switch (s.state) {
     case 'current':
@@ -51,7 +58,14 @@ export function statusView(s: AnalysisStatus | null | undefined, what = 'These r
         suspect: true,
       }
     case 'not_analyzed':
-      return { state: 'not_analyzed', tone: 'neutral', label: LABEL.not_analyzed, sentence: `${what} have not been computed yet.`, reasons: [], suspect: true }
+      return {
+        state: 'not_analyzed',
+        tone: 'neutral',
+        label: LABEL.not_analyzed,
+        sentence: `${what} have not been computed yet.`,
+        reasons: [],
+        suspect: true,
+      }
   }
 }
 
@@ -76,11 +90,18 @@ export interface ProjectOverall {
 }
 
 /** Overall status of a project from its locus counts (and probabilities, for genotyping). */
-export function projectOverall(p: Pick<ProjectSummary, 'locus_count' | 'current_loci' | 'stale_loci' | 'unanalyzed_loci' | 'probabilities' | 'kind'>): ProjectOverall {
+export function projectOverall(
+  p: Pick<ProjectSummary, 'locus_count' | 'current_loci' | 'stale_loci' | 'unanalyzed_loci' | 'probabilities' | 'kind'>,
+): ProjectOverall {
   const needs = p.stale_loci + p.unanalyzed_loci
   if (p.locus_count === 0) return { tone: 'neutral', label: 'No loci', sentence: 'The locus set has no loci.', needsAnalysis: 0 }
   if (p.current_loci === 0 && p.stale_loci === 0) {
-    return { tone: 'neutral', label: 'Not analyzed', sentence: `None of the ${p.locus_count} loci has been analyzed.`, needsAnalysis: needs }
+    return {
+      tone: 'neutral',
+      label: 'Not analyzed',
+      sentence: `None of the ${p.locus_count} loci has been analyzed.`,
+      needsAnalysis: needs,
+    }
   }
   const parts: string[] = []
   if (p.stale_loci) parts.push(`${p.stale_loci} stale`)

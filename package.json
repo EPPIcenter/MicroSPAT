@@ -10,7 +10,7 @@
     "build": "tauri build",
     "build:server": "pnpm --dir ui build --sourcemap false && cargo build --release -p microspat-server --features embed-ui",
     "serve": "pnpm --dir ui build --sourcemap false && cargo run --release -p microspat-server --features embed-ui -- --open",
-    "check": "cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace && pnpm --dir ui typecheck && pnpm --dir ui lint && pnpm --dir ui test",
+    "check": "cargo fmt --all --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace && pnpm --dir ui fmt:check && pnpm --dir ui typecheck && pnpm --dir ui lint && pnpm --dir ui test",
     "icons": "node scripts/icons.mjs",
     "tauri": "tauri"
   },

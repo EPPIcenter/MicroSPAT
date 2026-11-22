@@ -111,7 +111,15 @@ export function ArtifactThumb({ estimator, color = 'blue', xDomain, yMax, warn, 
   }, [estimator, size, theme, color, dom, top])
 
   return (
-    <div ref={ref} className={cn('relative overflow-hidden rounded-[4px] border bg-[var(--plot-bg)]', warn ? 'border-warn/60' : 'border-line', className)} aria-hidden>
+    <div
+      ref={ref}
+      className={cn(
+        'relative overflow-hidden rounded-[4px] border bg-[var(--plot-bg)]',
+        warn ? 'border-warn/60' : 'border-line',
+        className,
+      )}
+      aria-hidden
+    >
       <canvas ref={canvas} className="absolute inset-0 h-full w-full" />
     </div>
   )

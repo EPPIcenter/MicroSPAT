@@ -36,7 +36,8 @@ const EXPORTS: { kind: Kind; title: string; text: string; columns: string }[] = 
     kind: 'peaks',
     title: 'Peak data',
     text: 'Every peak of every reference run (failed calls are left out), called or not, with artifact expectation, flags, bin and probability: the columns of the old MicroSPAT peak export. Proportion and Corrected Proportion are shares of the called signal, the same numbers as in the long alleles export, and NA for peaks that are not called. The old meaning, height over every peak of the run, is the column Height Share of All Peaks; the last two give the deepest other-dye dip under the peak relative to its signal and whether it was rejected for a spectral breakdown.',
-    columns: 'Sample, Locus, Peak Height, Relative Peak Height, Proportion, Corrected Proportion, … Probability, Well, Artifact Flag, …, Crosstalk Flag, Height Share of All Peaks, Spectral Dip Ratio, Spectral Flag',
+    columns:
+      'Sample, Locus, Peak Height, Relative Peak Height, Proportion, Corrected Proportion, … Probability, Well, Artifact Flag, …, Crosstalk Flag, Height Share of All Peaks, Spectral Dip Ratio, Spectral Flag',
   },
 ]
 
@@ -51,7 +52,12 @@ export function ExportTab({ detail }: { detail: ProjectDetail }) {
   const run = useMutation({
     mutationFn: async (k: Kind): Promise<TextFile | null> => {
       const params = { id: p.id, ...(allowStale ? { allow_stale: true } : {}) }
-      const f = k === 'wide' ? await api.export_alleles_wide(params) : k === 'long' ? await api.export_alleles_long(params) : await api.export_peak_data(params)
+      const f =
+        k === 'wide'
+          ? await api.export_alleles_wide(params)
+          : k === 'long'
+            ? await api.export_alleles_long(params)
+            : await api.export_peak_data(params)
       return (await saveTextFile(f.filename, f.content)) ? f : null
     },
     meta: { silent: true },
@@ -70,7 +76,10 @@ export function ExportTab({ detail }: { detail: ProjectDetail }) {
             <ul className="mt-1 list-disc space-y-0.5 pl-5 text-muted">
               {needs.map((l) => (
                 <li key={l.locus_id}>
-                  {l.label}: {l.status.state === 'not_analyzed' ? 'not analyzed — its column will be empty' : `stale (${l.status.reasons.join('; ') || 'inputs changed'}) — the file would hold the previous calls`}
+                  {l.label}:{' '}
+                  {l.status.state === 'not_analyzed'
+                    ? 'not analyzed — its column will be empty'
+                    : `stale (${l.status.reasons.join('; ') || 'inputs changed'}) — the file would hold the previous calls`}
                 </li>
               ))}
               {probStale && <li>Peak probabilities and MOI are stale — probabilities and MOI in the file would be the previous ones.</li>}
@@ -85,7 +94,8 @@ export function ExportTab({ detail }: { detail: ProjectDetail }) {
           </div>
         ) : (
           <p className="flex items-center gap-1.5 text-xs text-muted">
-            <StatusIcon view={{ state: 'current' }} size={13} /> Every locus and the probabilities are current. Curated calls are exported as curated.
+            <StatusIcon view={{ state: 'current' }} size={13} /> Every locus and the probabilities are current. Curated calls are exported
+            as curated.
           </p>
         )}
         {EXPORTS.map((e) => (
@@ -95,7 +105,12 @@ export function ExportTab({ detail }: { detail: ProjectDetail }) {
               <p className="mt-0.5 text-xs leading-relaxed text-muted">{e.text}</p>
               <p className="mt-1 font-mono text-2xs text-faint">{e.columns}</p>
             </div>
-            <Button variant="primary" disabled={run.isPending || (blocked && !allowStale)} onClick={() => run.mutate(e.kind)} data-testid={`export-${e.kind}`}>
+            <Button
+              variant="primary"
+              disabled={run.isPending || (blocked && !allowStale)}
+              onClick={() => run.mutate(e.kind)}
+              data-testid={`export-${e.kind}`}
+            >
               {run.isPending && run.variables === e.kind ? <Spinner className="size-3" /> : <Download size={12} />} Export CSV
             </Button>
           </section>

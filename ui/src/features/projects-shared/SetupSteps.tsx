@@ -31,9 +31,25 @@ export function SetupSteps({ current }: { current?: ProjectKind }) {
     { label: 'Group them into a locus set', to: '/locus-sets', done: c.locus_sets > 0 },
     { label: 'Apply a plate map to each plate', to: '/plates', done: samples.data.some((s) => s.run_count > 0) },
     { label: 'Create and analyze a bin estimator', to: '/bin-estimators', done: has('bin_estimator'), kind: 'bin_estimator' },
-    { label: 'Create and analyze an artifact estimator', to: '/artifact-estimators', done: has('artifact_estimator'), kind: 'artifact_estimator' },
-    { label: 'Estimate quantification bias from control mixtures', to: '/quant-bias', done: has('quant_bias_estimator'), optional: true, kind: 'quant_bias_estimator' },
-    { label: 'Create a genotyping project, analyze it, calculate probabilities, review and export', to: '/projects', done: has('genotyping'), kind: 'genotyping' },
+    {
+      label: 'Create and analyze an artifact estimator',
+      to: '/artifact-estimators',
+      done: has('artifact_estimator'),
+      kind: 'artifact_estimator',
+    },
+    {
+      label: 'Estimate quantification bias from control mixtures',
+      to: '/quant-bias',
+      done: has('quant_bias_estimator'),
+      optional: true,
+      kind: 'quant_bias_estimator',
+    },
+    {
+      label: 'Create a genotyping project, analyze it, calculate probabilities, review and export',
+      to: '/projects',
+      done: has('genotyping'),
+      kind: 'genotyping',
+    },
   ]
   const next = steps.find((s) => !s.done && !s.optional)
   return (
@@ -43,8 +59,16 @@ export function SetupSteps({ current }: { current?: ProjectKind }) {
         <p className="mt-0.5 text-xs text-muted">Each step needs the ones before it.</p>
         <ol className="mt-3 space-y-1.5 text-xs">
           {steps.map((s, i) => (
-            <li key={i} className={cn('flex items-start gap-2', s === next ? 'font-medium text-fg' : s.done ? 'text-muted' : 'text-faint')} data-done={s.done || undefined}>
-              {s.done ? <Check size={13} className="mt-px shrink-0 text-ok" /> : <Circle size={13} className={cn('mt-px shrink-0', s === next && 'text-accent')} />}
+            <li
+              key={i}
+              className={cn('flex items-start gap-2', s === next ? 'font-medium text-fg' : s.done ? 'text-muted' : 'text-faint')}
+              data-done={s.done || undefined}
+            >
+              {s.done ? (
+                <Check size={13} className="mt-px shrink-0 text-ok" />
+              ) : (
+                <Circle size={13} className={cn('mt-px shrink-0', s === next && 'text-accent')} />
+              )}
               <span>
                 {s.kind === current || s.done ? (
                   s.label

@@ -11,7 +11,7 @@ export type XAxisMode = 'index' | 'bp'
 export interface TraceSeries {
   id: string
   /** Dye name (themed) or any CSS color. */
-  color: Color | string
+  color: Color | (string & {})
   /** Signal in RFU, one value per data point. */
   data: NumArray
   /** Base size (bp) of every data point, from the well's ladder. Needed for `xMode: 'bp'`. */
@@ -162,12 +162,7 @@ export function peakX(p: TracePeak, mode: XAxisMode): number {
  * Top of the y axis for auto mode: the tallest visible signal plus headroom.
  * Overlays count, so a faded comparison trace is never clipped.
  */
-export function autoYMax(
-  series: readonly TraceSeries[],
-  mode: XAxisMode,
-  domain: Domain,
-  extra: readonly number[] = [],
-): number {
+export function autoYMax(series: readonly TraceSeries[], mode: XAxisMode, domain: Domain, extra: readonly number[] = []): number {
   let m = 0
   for (const s of series) {
     if (s.hidden) continue
@@ -229,10 +224,13 @@ export function toTracePeaks(
   return peaks.map((p) => {
     const detail: string[] = []
     detail.push(`rel. height ${(p.relative_height * 100).toFixed(1)}%`)
-    if (p.artifact_contribution > 0)
-      detail.push(`artifact ${Math.round(p.artifact_contribution)} ± ${Math.round(p.artifact_error)} RFU`)
+    if (p.artifact_contribution > 0) detail.push(`artifact ${Math.round(p.artifact_contribution)} ± ${Math.round(p.artifact_error)} RFU`)
     if (p.probability != null) detail.push(`P(allele) ${p.probability.toFixed(3)}`)
-    if (p.pullup_contribution != null && p.pullup_error != null && (Math.abs(p.pullup_contribution) >= 10 || p.pullup_error >= 10 || p.flags.bleedthrough))
+    if (
+      p.pullup_contribution != null &&
+      p.pullup_error != null &&
+      (Math.abs(p.pullup_contribution) >= 10 || p.pullup_error >= 10 || p.flags.bleedthrough)
+    )
       detail.push(`expected pull-up ${Math.round(p.pullup_contribution)} ± ${Math.round(p.pullup_error)} RFU`)
     else if (p.bleedthrough_ratio > 0.5) detail.push(`bleedthrough ×${p.bleedthrough_ratio.toFixed(2)}`)
     if (p.crosstalk_ratio > 0.5) detail.push(`crosstalk ×${p.crosstalk_ratio.toFixed(2)}`)

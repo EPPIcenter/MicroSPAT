@@ -58,12 +58,25 @@ test.beforeAll(async ({ browser }) => {
   created.push(artifacts.project.id)
   const pfb1 = bins.loci.find((l) => l.label === 'PfB1')!.locus_id
   // A small genotyping project on the duplicated bins, analyzed at PfB1.
-  const geno = await rpc<Detail>(page, 'create_project', { kind: 'genotyping', title: `E2E geno ${stamp}`, locus_set_id: bins.project.locus_set_id, bin_estimator_id: bins.project.id })
+  const geno = await rpc<Detail>(page, 'create_project', {
+    kind: 'genotyping',
+    title: `E2E geno ${stamp}`,
+    locus_set_id: bins.project.locus_set_id,
+    bin_estimator_id: bins.project.id,
+  })
   created.push(geno.project.id)
   const samples = await rpc<{ sample_id: number }[]>(page, 'list_project_samples', { id: genoDemo })
   await rpc(page, 'add_project_samples', { id: geno.project.id, sample_ids: samples.slice(0, 3).map((s) => s.sample_id) })
   await rpc(page, 'analyze_project', { id: geno.project.id, locus_ids: [pfb1] })
-  ids = { demoBins, demoArtifacts, bins: bins.project.id, artifacts: artifacts.project.id, geno: geno.project.id, pfb1, locusSet: bins.project.locus_set_id }
+  ids = {
+    demoBins,
+    demoArtifacts,
+    bins: bins.project.id,
+    artifacts: artifacts.project.id,
+    geno: geno.project.id,
+    pfb1,
+    locusSet: bins.project.locus_set_id,
+  }
   await page.close()
 })
 
@@ -73,7 +86,8 @@ test.afterAll(async ({ browser }) => {
   const all = await rpc<{ id: number; title: string; kind: string }[]>(page, 'list_projects', {})
   const mine = all.filter((p) => created.includes(p.id) || p.title.endsWith(String(stamp)))
   const order = ['genotyping', 'artifact_estimator', 'bin_estimator']
-  for (const k of order) for (const p of mine.filter((x) => x.kind === k)) await page.request.post('/api/rpc/delete_project', { data: { id: p.id } })
+  for (const k of order)
+    for (const p of mine.filter((x) => x.kind === k)) await page.request.post('/api/rpc/delete_project', { data: { id: p.id } })
   await page.close()
 })
 
@@ -288,7 +302,13 @@ test('creates an artifact estimator on the demo bins, analyzes it, deletes a cla
   for (const e of left.estimators) await rpc(page, 'delete_artifact_estimator', { id: e.id })
   await page.reload()
   await expect(page.getByTestId('locus-strip').getByTestId('locus-warning')).toHaveCount(1)
-  const geno = await rpc<Detail>(page, 'create_project', { kind: 'genotyping', title: `E2E no model ${stamp}`, locus_set_id: ids.locusSet, bin_estimator_id: ids.demoBins, artifact_estimator_id: pid })
+  const geno = await rpc<Detail>(page, 'create_project', {
+    kind: 'genotyping',
+    title: `E2E no model ${stamp}`,
+    locus_set_id: ids.locusSet,
+    bin_estimator_id: ids.demoBins,
+    artifact_estimator_id: pid,
+  })
   created.push(geno.project.id)
   await page.goto(`/projects/${geno.project.id}`)
   await expect(page.getByTestId('upstream-warnings')).toContainText('No artifact model')

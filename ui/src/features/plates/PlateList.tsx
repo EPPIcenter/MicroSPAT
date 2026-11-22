@@ -39,7 +39,13 @@ export function PlateList({
         cell: (p) => <span className="font-medium">{p.label}</span>,
         width: 104,
       },
-      { id: 'run_date', header: 'Run date', value: (p) => p.run_date ?? '', cell: (p) => <span className="num text-muted">{fmtRunDate(p.run_date).slice(0, 10)}</span>, width: 92 },
+      {
+        id: 'run_date',
+        header: 'Run date',
+        value: (p) => p.run_date ?? '',
+        cell: (p) => <span className="num text-muted">{fmtRunDate(p.run_date).slice(0, 10)}</span>,
+        width: 92,
+      },
       {
         id: 'sizing',
         header: 'Sizing',
@@ -52,7 +58,8 @@ export function PlateList({
       {
         id: 'quality',
         header: 'Quality',
-        description: 'Issues the quality check found: problems, warnings and notes. Sorts by the worst; "Not checked" for plates imported before quality checks.',
+        description:
+          'Issues the quality check found: problems, warnings and notes. Sorts by the worst; "Not checked" for plates imported before quality checks.',
         value: (p) => qualityLabel(p.quality),
         sortValue: (p) => qualityRank(p.quality),
         cell: (p) => <QualityIndicator summary={p.quality} compact />,
@@ -69,7 +76,9 @@ export function PlateList({
           p.has_plate_map ? (
             <Check size={13} className="inline text-ok" aria-label="Plate map applied" />
           ) : (
-            <span className="text-faint" aria-label="No plate map">–</span>
+            <span className="text-faint" aria-label="No plate map">
+              –
+            </span>
           ),
         width: 48,
       },
@@ -95,7 +104,13 @@ export function PlateList({
       { id: 'wells', header: 'Wells', value: (p) => p.well_count, align: 'right', width: 56 },
       { id: 'ladder', header: 'Ladder', value: (p) => p.ladder_label, width: 120 },
       { id: 'instrument', header: 'Instrument', value: (p) => p.instrument ?? '', width: 110 },
-      { id: 'imported', header: 'Imported', value: (p) => p.imported_at, cell: (p) => <span className="num text-muted">{p.imported_at.slice(0, 10)}</span>, width: 90 },
+      {
+        id: 'imported',
+        header: 'Imported',
+        value: (p) => p.imported_at,
+        cell: (p) => <span className="num text-muted">{p.imported_at.slice(0, 10)}</span>,
+        width: 90,
+      },
     ],
     [],
   )
@@ -172,4 +187,3 @@ export function PlateList({
     </div>
   )
 }
-

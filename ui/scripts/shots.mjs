@@ -21,7 +21,10 @@ for (const theme of ['light', 'dark']) {
   await page.goto(`${base}/projects/12?mock=1`)
   await page.waitForTimeout(300)
   await page.screenshot({ path: `${out}/shell-projects-detail-${theme}.png` })
-  await page.getByRole('button', { name: /workspace/i }).first().click()
+  await page
+    .getByRole('button', { name: /workspace/i })
+    .first()
+    .click()
   await page.waitForTimeout(200)
   await page.screenshot({ path: `${out}/shell-workspace-menu-${theme}.png` })
   await page.keyboard.press('Escape')

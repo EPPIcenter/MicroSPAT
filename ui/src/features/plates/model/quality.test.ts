@@ -84,12 +84,23 @@ describe('summaries', () => {
   })
 
   it('summarizes issues', () => {
-    expect(summarize([issue({ severity: 'warning' }), issue({ severity: 'info' })])).toEqual({ problems: 0, warnings: 1, infos: 1, worst: 'warning', outdated: false })
+    expect(summarize([issue({ severity: 'warning' }), issue({ severity: 'info' })])).toEqual({
+      problems: 0,
+      warnings: 1,
+      infos: 1,
+      worst: 'warning',
+      outdated: false,
+    })
     expect(summarize([]).worst).toBeNull()
   })
 
   it('sorts issues worst first, keeping the order within a severity', () => {
-    const list = [issue({ title: 'a' }), issue({ title: 'b', severity: 'problem' }), issue({ title: 'c' }), issue({ title: 'd', severity: 'warning' })]
+    const list = [
+      issue({ title: 'a' }),
+      issue({ title: 'b', severity: 'problem' }),
+      issue({ title: 'c' }),
+      issue({ title: 'd', severity: 'warning' }),
+    ]
     expect(sortIssues(list).map((i) => i.title)).toEqual(['b', 'd', 'a', 'c'])
   })
 })
@@ -107,7 +118,14 @@ describe('numbers', () => {
   })
 
   it('finds the issues of a well and groups values by well', () => {
-    const a = issue({ wells: ['F06'], severity: 'problem', values: [{ label: 'x', value: 1, unit: 'count', well: 'F06' }, { label: 'y', value: 2, unit: 'count' }] })
+    const a = issue({
+      wells: ['F06'],
+      severity: 'problem',
+      values: [
+        { label: 'x', value: 1, unit: 'count', well: 'F06' },
+        { label: 'y', value: 2, unit: 'count' },
+      ],
+    })
     const b = issue({ wells: ['A01'] })
     expect(issuesForWell([b, a], 'F06')).toEqual([a])
     expect(groupValues(a).map((g) => g.well)).toEqual([null, 'F06'])
@@ -159,7 +177,9 @@ describe('pull-up and crosstalk', () => {
     expect(limitsSentence(LIMITS)).toContain('measured pull-up automatically')
     expect(limitsSentence(LIMITS)).toContain('above 8%')
     expect(limitsSentence(LIMITS)).toContain('above 20%')
-    expect(limitsSentence(LIMITS)).toContain('crosstalk uses the fixed limit up to 3.3% (10% next to off-scale peaks; warning above 2.75%)'.replace('crosstalk', 'Crosstalk'))
+    expect(limitsSentence(LIMITS)).toContain(
+      'crosstalk uses the fixed limit up to 3.3% (10% next to off-scale peaks; warning above 2.75%)'.replace('crosstalk', 'Crosstalk'),
+    )
   })
 })
 
@@ -186,7 +206,15 @@ describe('grid measures', () => {
   })
 
   it('builds grid data with "!" on flagged wells', () => {
-    const report = { ladder_height: 4000, limits: LIMITS, wells: [well('A01'), well('F06', { breakdowns: 6, flags: ['unseparated_dyes'] }), well('H01', { ladder_height: null, flags: ['low_ladder', 'weak_injection'] })] }
+    const report = {
+      ladder_height: 4000,
+      limits: LIMITS,
+      wells: [
+        well('A01'),
+        well('F06', { breakdowns: 6, flags: ['unseparated_dyes'] }),
+        well('H01', { ladder_height: null, flags: ['low_ladder', 'weak_injection'] }),
+      ],
+    }
     const sep = qualityWells(report, measureScale('separation', report))
     expect(sep.F06?.glyph).toBe('!')
     expect(sep.A01?.glyph).toBeNull()

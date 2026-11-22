@@ -48,7 +48,9 @@ export function linkCandidates(
       return {
         project: p,
         ok: true,
-        note: notCurrent ? `${notCurrent} of its loci ${notCurrent === 1 ? 'is' : 'are'} not current; results built on it will be flagged.` : null,
+        note: notCurrent
+          ? `${notCurrent} of its loci ${notCurrent === 1 ? 'is' : 'are'} not current; results built on it will be flagged.`
+          : null,
       }
     })
   return out.sort((a, b) => Number(b.ok) - Number(a.ok) || a.project.title.localeCompare(b.project.title))

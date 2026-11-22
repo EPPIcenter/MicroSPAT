@@ -91,7 +91,15 @@ function plate(id: number, label: string, failed = 0): PlateSummary {
 }
 
 function project(over: Partial<ProjectSummary>): ProjectSummary {
-  return { id: 1, kind: 'genotyping', title: 'Demo genotyping', bin_estimator: null, artifact_estimator: null, quant_bias_estimator: null, ...over } as ProjectSummary
+  return {
+    id: 1,
+    kind: 'genotyping',
+    title: 'Demo genotyping',
+    bin_estimator: null,
+    artifact_estimator: null,
+    quant_bias_estimator: null,
+    ...over,
+  } as ProjectSummary
 }
 
 const ref = (id: number, kind: ProjectSummary['kind'], title: string) => ({ id, kind, title })
@@ -122,13 +130,32 @@ describe('findDemo', () => {
 
 describe('firstFailedWell', () => {
   it('is the first failed well in plate order, or null when every well sized', () => {
-    expect(firstFailedWell([{ label: 'A01', sizing: 'good' }, { label: 'A06', sizing: 'failed' }, { label: 'B02', sizing: 'failed' }])).toBe('A06')
-    expect(firstFailedWell([{ label: 'A01', sizing: 'good' }, { label: 'A02', sizing: 'flagged' }])).toBeNull()
+    expect(
+      firstFailedWell([
+        { label: 'A01', sizing: 'good' },
+        { label: 'A06', sizing: 'failed' },
+        { label: 'B02', sizing: 'failed' },
+      ]),
+    ).toBe('A06')
+    expect(
+      firstFailedWell([
+        { label: 'A01', sizing: 'good' },
+        { label: 'A02', sizing: 'flagged' },
+      ]),
+    ).toBeNull()
   })
 })
 
 describe('tour steps', () => {
-  const context = { plateId: 3, failedWell: 'A06', binEstimatorId: 1, artifactEstimatorId: 2, quantBiasId: 3, genotypingId: 4, showcaseSampleId: 93 }
+  const context = {
+    plateId: 3,
+    failedWell: 'A06',
+    binEstimatorId: 1,
+    artifactEstimatorId: 2,
+    quantBiasId: 3,
+    genotypingId: 4,
+    showcaseSampleId: 93,
+  }
 
   it('have unique ids, and end on a card of its own', () => {
     expect(new Set(TOUR_STEPS.map((s) => s.id)).size).toBe(TOUR_STEPS.length)

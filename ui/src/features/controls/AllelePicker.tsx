@@ -142,7 +142,9 @@ export function AllelePicker({ bins, value, onChange, onAdvance, label, invalid,
             )}
           />
           {current && !typed && (
-            <span className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-2xs text-faint tabular-nums">{current.base_size.toFixed(2)} bp</span>
+            <span className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-2xs text-faint tabular-nums">
+              {current.base_size.toFixed(2)} bp
+            </span>
           )}
         </div>
       </Popover.Anchor>
@@ -170,7 +172,11 @@ export function AllelePicker({ bins, value, onChange, onAdvance, label, invalid,
                     commit(o)
                   }}
                   onMouseMove={() => setHi(i)}
-                  className={cn('flex h-7 cursor-default items-center gap-2 rounded-[4px] px-2', i === hi && 'bg-accent-soft', selected && 'font-semibold')}
+                  className={cn(
+                    'flex h-7 cursor-default items-center gap-2 rounded-[4px] px-2',
+                    i === hi && 'bg-accent-soft',
+                    selected && 'font-semibold',
+                  )}
                 >
                   {o.kind === 'none' ? (
                     <span className="text-muted italic">none</span>

@@ -99,7 +99,12 @@ export function PlateMapDialog({ plate, open, onOpenChange }: { plate: PlateSumm
   const ntc = preview?.created.filter((c) => c.designation === 'negative_control').length ?? 0
 
   const apply = useMutation({
-    mutationFn: () => api.apply_plate_map({ plate_id: plate.id, ...(choice?.path ? { path: choice.path } : { content: choice?.text ?? '' }), create_samples: create }),
+    mutationFn: () =>
+      api.apply_plate_map({
+        plate_id: plate.id,
+        ...(choice?.path ? { path: choice.path } : { content: choice?.text ?? '' }),
+        create_samples: create,
+      }),
     meta: { errorTitle: 'Plate map not applied' },
     onSuccess: (r) => {
       toast.success(
@@ -124,11 +129,20 @@ export function PlateMapDialog({ plate, open, onOpenChange }: { plate: PlateSumm
       open={open}
       onOpenChange={close}
       title={`Apply plate map to ${plate.label}`}
-      description={plate.has_plate_map ? 'Replaces the current map. Runs whose well, locus and sample stay the same are kept.' : 'Assigns each well’s dyes to samples and loci.'}
+      description={
+        plate.has_plate_map
+          ? 'Replaces the current map. Runs whose well, locus and sample stay the same are kept.'
+          : 'Assigns each well’s dyes to samples and loci.'
+      }
       width="xl"
       footer={
         <>
-          <Button variant="ghost" className="mr-auto" onClick={() => void exportCurrent()} title="Download this plate’s current map (or an empty template with every well)">
+          <Button
+            variant="ghost"
+            className="mr-auto"
+            onClick={() => void exportCurrent()}
+            title="Download this plate’s current map (or an empty template with every well)"
+          >
             <Download size={13} /> {plate.has_plate_map ? 'Export current map' : 'Download template'}
           </Button>
           <Button variant="secondary" onClick={() => close(false)}>
@@ -149,10 +163,15 @@ export function PlateMapDialog({ plate, open, onOpenChange }: { plate: PlateSumm
       <div className="grid min-h-0 grid-cols-[minmax(0,1fr)_16rem] gap-4">
         <div className="flex min-w-0 flex-col gap-3">
           {loci.data?.length === 0 && (
-            <p className="flex items-start gap-2 rounded-[5px] border border-warn/30 bg-warn-soft px-2.5 py-2 text-xs" role="status" data-testid="map-needs-loci">
+            <p
+              className="flex items-start gap-2 rounded-[5px] border border-warn/30 bg-warn-soft px-2.5 py-2 text-xs"
+              role="status"
+              data-testid="map-needs-loci"
+            >
               <TriangleAlert size={13} className="mt-px shrink-0 text-warn" />
               <span>
-                There are no loci yet. A plate map's columns are locus labels, so create the loci first (one by one, or import a CSV of them) on the{' '}
+                There are no loci yet. A plate map's columns are locus labels, so create the loci first (one by one, or import a CSV of
+                them) on the{' '}
                 <Link to="/loci" className="font-medium text-accent hover:underline">
                   Loci page
                 </Link>
@@ -184,7 +203,9 @@ export function PlateMapDialog({ plate, open, onOpenChange }: { plate: PlateSumm
               {choice ? (
                 <>
                   <div className="truncate font-medium text-fg">{choice.name}</div>
-                  <div className="truncate text-2xs text-muted">{choice.path ?? 'Checked by the engine. Fix problems in the file and choose it again.'}</div>
+                  <div className="truncate text-2xs text-muted">
+                    {choice.path ?? 'Checked by the engine. Fix problems in the file and choose it again.'}
+                  </div>
                 </>
               ) : (
                 <>
@@ -216,21 +237,39 @@ export function PlateMapDialog({ plate, open, onOpenChange }: { plate: PlateSumm
           )}
 
           {preview && (
-            <div className={cn('flex flex-col gap-2', dry.isFetching && 'opacity-60')} data-testid="map-preview" data-status={preview.status}>
+            <div
+              className={cn('flex flex-col gap-2', dry.isFetching && 'opacity-60')}
+              data-testid="map-preview"
+              data-status={preview.status}
+            >
               <div
                 className={cn(
                   'flex items-start gap-2 rounded-md px-2.5 py-2 text-xs font-medium',
-                  preview.status === 'ready' ? 'bg-ok-soft text-ok' : preview.status === 'samples' ? 'bg-warn-soft text-warn' : 'bg-danger-soft text-danger',
+                  preview.status === 'ready'
+                    ? 'bg-ok-soft text-ok'
+                    : preview.status === 'samples'
+                      ? 'bg-warn-soft text-warn'
+                      : 'bg-danger-soft text-danger',
                 )}
               >
-                {preview.status === 'ready' ? <CircleCheck size={14} className="mt-px shrink-0" /> : preview.status === 'samples' ? <TriangleAlert size={14} className="mt-px shrink-0" /> : <CircleAlert size={14} className="mt-px shrink-0" />}
+                {preview.status === 'ready' ? (
+                  <CircleCheck size={14} className="mt-px shrink-0" />
+                ) : preview.status === 'samples' ? (
+                  <TriangleAlert size={14} className="mt-px shrink-0" />
+                ) : (
+                  <CircleAlert size={14} className="mt-px shrink-0" />
+                )}
                 <span>{preview.headline}</span>
               </div>
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
                 {preview.facts.map((f) => (
                   <span key={f.label} className="inline-flex items-baseline gap-1">
                     <span className="text-muted">{f.label}</span>
-                    <span className={cn('num font-medium', f.tone === 'danger' ? 'text-danger' : f.tone === 'warn' ? 'text-warn' : 'text-fg')}>{f.value}</span>
+                    <span
+                      className={cn('num font-medium', f.tone === 'danger' ? 'text-danger' : f.tone === 'warn' ? 'text-warn' : 'text-fg')}
+                    >
+                      {f.value}
+                    </span>
                   </span>
                 ))}
               </div>
@@ -264,14 +303,20 @@ export function PlateMapDialog({ plate, open, onOpenChange }: { plate: PlateSumm
                   </summary>
                   <div className="mt-1 flex max-h-24 flex-wrap gap-1 overflow-auto">
                     {preview.created.map((c) => (
-                      <span key={c.barcode} className={cn('rounded-[3px] bg-surface-3 px-1 text-2xs', c.designation !== 'sample' && 'text-accent')} title={DESIGNATION_LABEL[c.designation]}>
+                      <span
+                        key={c.barcode}
+                        className={cn('rounded-[3px] bg-surface-3 px-1 text-2xs', c.designation !== 'sample' && 'text-accent')}
+                        title={DESIGNATION_LABEL[c.designation]}
+                      >
                         {c.barcode}
                       </span>
                     ))}
                   </div>
                 </details>
               )}
-              {preview.table && preview.table.rows.length > 0 && <AssignmentTable key={choice?.name} table={preview.table} hasMap={plate.has_plate_map} />}
+              {preview.table && preview.table.rows.length > 0 && (
+                <AssignmentTable key={choice?.name} table={preview.table} hasMap={plate.has_plate_map} />
+              )}
             </div>
           )}
         </div>
@@ -279,10 +324,15 @@ export function PlateMapDialog({ plate, open, onOpenChange }: { plate: PlateSumm
         <aside className="flex flex-col gap-2 border-l border-line pl-4 text-xs text-muted">
           <h3 className="text-2xs font-semibold tracking-wide text-faint uppercase">CSV format</h3>
           <p>
-            One row per well: a <b className="text-fg">Well</b> column, then one column per <b className="text-fg">locus label</b>. Each cell is the sample barcode run in that well for that locus; leave it empty for none.
+            One row per well: a <b className="text-fg">Well</b> column, then one column per <b className="text-fg">locus label</b>. Each
+            cell is the sample barcode run in that well for that locus; leave it empty for none.
           </p>
-          <pre className="overflow-x-auto rounded-[5px] bg-surface-2 px-2 py-1.5 font-mono text-2xs leading-4 text-fg">{PLATE_MAP_EXAMPLE}</pre>
-          <p>Wells can be written A01 or A1. Loci must already exist. Loci of the same dye in one well need size ranges that do not overlap.</p>
+          <pre className="overflow-x-auto rounded-[5px] bg-surface-2 px-2 py-1.5 font-mono text-2xs leading-4 text-fg">
+            {PLATE_MAP_EXAMPLE}
+          </pre>
+          <p>
+            Wells can be written A01 or A1. Loci must already exist. Loci of the same dye in one well need size ranges that do not overlap.
+          </p>
         </aside>
       </div>
     </Dialog>
@@ -325,7 +375,9 @@ function AssignmentTable({ table, hasMap }: { table: NonNullable<MapPreview['tab
     <div className="flex flex-col gap-1">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-2xs text-muted">
         <span>
-          {hasMap ? `${table.changedRows.toLocaleString('en-US')} of ${table.rows.length.toLocaleString('en-US')} wells change` : `${table.rows.length.toLocaleString('en-US')} wells`}
+          {hasMap
+            ? `${table.changedRows.toLocaleString('en-US')} of ${table.rows.length.toLocaleString('en-US')} wells change`
+            : `${table.rows.length.toLocaleString('en-US')} wells`}
         </span>
         <span className="inline-flex items-center gap-1">
           <span className="text-accent">S1</span> new
@@ -343,7 +395,12 @@ function AssignmentTable({ table, hasMap }: { table: NonNullable<MapPreview['tab
         )}
         {hasMap && table.changedRows > 0 && (
           <label className="ml-auto inline-flex cursor-pointer items-center gap-1">
-            <input type="checkbox" checked={onlyChanges} onChange={(e) => setOnlyChanges(e.target.checked)} className="accent-[var(--c-accent)]" />
+            <input
+              type="checkbox"
+              checked={onlyChanges}
+              onChange={(e) => setOnlyChanges(e.target.checked)}
+              className="accent-[var(--c-accent)]"
+            />
             Only wells that change
           </label>
         )}

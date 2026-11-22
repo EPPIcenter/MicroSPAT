@@ -8,26 +8,8 @@ import type { Color } from '@/api/bindings'
 import { useElementSize } from '@/plot/canvas'
 import { fmtRfu } from '@/lib/format'
 import { clickSelect, selectGroup, type SelectionMode, type SelectionState } from '@/lib/selection'
-import {
-  allWells,
-  colWells,
-  moveWell,
-  parseWell,
-  PLATE_DIMS,
-  rowLetter,
-  rowWells,
-  wellLabel,
-  wellRect,
-  type PlateFormat,
-} from './layout'
-import {
-  DEFAULT_SIGNAL_SCALE,
-  signalColor,
-  STATUS_COLOR,
-  STATUS_LABEL,
-  type SignalScale,
-  type WellStatus,
-} from './colors'
+import { allWells, colWells, moveWell, parseWell, PLATE_DIMS, rowLetter, rowWells, wellLabel, wellRect, type PlateFormat } from './layout'
+import { DEFAULT_SIGNAL_SCALE, signalColor, STATUS_COLOR, STATUS_LABEL, type SignalScale, type WellStatus } from './colors'
 
 export interface WellDatum {
   /** Ladder sizing result (status mode). */
@@ -247,15 +229,15 @@ export function PlateGrid({
           </div>
           {!hoverDatum && <div className="text-muted">No data</div>}
           {hoverDatum?.status && mode === 'status' && <div className="text-muted">{STATUS_LABEL[hoverDatum.status]}</div>}
-          {mode === 'signal' && hoverDatum?.value !== undefined && (
-            <div className="text-muted">signal {fmtRfu(hoverDatum.value)} RFU</div>
-          )}
+          {mode === 'signal' && hoverDatum?.value !== undefined && <div className="text-muted">signal {fmtRfu(hoverDatum.value)} RFU</div>}
           {mode === 'signal' &&
             hoverDatum?.dyes?.map((d) => (
               <div key={d.color} className="flex items-center gap-1.5 text-muted">
                 <span className="size-2 rounded-[2px]" style={{ background: `var(--dye-${d.color})` }} />
                 {d.color}{' '}
-                <span className="num ml-auto pl-2 text-fg">{d.value === undefined ? 'no data' : d.value === null ? 'none' : fmtRfu(d.value)}</span>
+                <span className="num ml-auto pl-2 text-fg">
+                  {d.value === undefined ? 'no data' : d.value === null ? 'none' : fmtRfu(d.value)}
+                </span>
               </div>
             ))}
           {hoverDatum?.marker?.label && (
@@ -370,12 +352,9 @@ const Well = memo(function Well({
       </div>
     )
   } else {
-    const bg = datum?.color ?? (
-      mode === 'signal'
-        ? signalColor(datum?.value, scale)
-        : datum?.status
-          ? STATUS_COLOR[datum.status]
-          : 'var(--c-surface-3)')
+    const bg =
+      datum?.color ??
+      (mode === 'signal' ? signalColor(datum?.value, scale) : datum?.status ? STATUS_COLOR[datum.status] : 'var(--c-surface-3)')
     const defaultGlyph = datum?.status === 'failed' ? '×' : datum?.status === 'flagged' ? '!' : null
     const glyph = mode === 'status' && size >= 16 ? (datum?.glyph !== undefined ? datum.glyph : defaultGlyph) : null
     body = (

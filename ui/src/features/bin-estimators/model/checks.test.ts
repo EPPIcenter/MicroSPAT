@@ -1,8 +1,26 @@
 import { describe, expect, it } from 'vitest'
 import type { Bin } from '@/api/bindings'
-import { binIssues, binsBelow, blockingIssues, fitRepeatGrid, gridLines, gridPosition, liveCounts, overlappingPairs, setAllBuffers, snapToGrid, sortedSizes } from './checks'
+import {
+  binIssues,
+  binsBelow,
+  blockingIssues,
+  fitRepeatGrid,
+  gridLines,
+  gridPosition,
+  liveCounts,
+  overlappingPairs,
+  setAllBuffers,
+  snapToGrid,
+  sortedSizes,
+} from './checks'
 
-const b = (id: number, size: number, count = 40, buffer = 0.75, label = String(Math.round(size))): Bin => ({ id, label, base_size: size, bin_buffer: buffer, peak_count: count })
+const b = (id: number, size: number, count = 40, buffer = 0.75, label = String(Math.round(size))): Bin => ({
+  id,
+  label,
+  base_size: size,
+  bin_buffer: buffer,
+  peak_count: count,
+})
 
 describe('repeat grid', () => {
   it('fits the grid of a 3 bp locus and flags a stutter bin off it', () => {
@@ -54,7 +72,11 @@ describe('bin issues', () => {
     const bins = [b(1, 100, 40, 0.75, '100'), b(2, 100.5, 40, 0.75, '100 '), b(3, 110, 40, 0, '110'), b(4, 120, 40, 0.75, ' ')]
     const issues = binIssues(bins, null)
     expect(issues.get(1)!.map((i) => i.kind)).toEqual(['duplicate_label', 'overlap'])
-    expect(blockingIssues(issues).map((i) => i.kind).sort()).toEqual(['duplicate_label', 'duplicate_label', 'invalid', 'invalid'])
+    expect(
+      blockingIssues(issues)
+        .map((i) => i.kind)
+        .sort(),
+    ).toEqual(['duplicate_label', 'duplicate_label', 'invalid', 'invalid'])
   })
 })
 

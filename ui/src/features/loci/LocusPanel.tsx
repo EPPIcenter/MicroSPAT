@@ -86,7 +86,13 @@ export function LocusPanel({
             max_base_length: dirty.max ? d.max! : undefined,
             nucleotide_repeat_length: dirty.repeat ? d.repeat! : undefined,
           })
-        : api.create_locus({ label: d.label.trim(), color: d.color, min_base_length: d.min!, max_base_length: d.max!, nucleotide_repeat_length: d.repeat! }),
+        : api.create_locus({
+            label: d.label.trim(),
+            color: d.color,
+            min_base_length: d.min!,
+            max_base_length: d.max!,
+            nucleotide_repeat_length: d.repeat!,
+          }),
     onMutate: () => setErr(null),
     onSuccess: (l) => {
       qc.setQueryData<Locus[]>(['loci'], (old) => (old ? (locus ? old.map((x) => (x.id === l.id ? l : x)) : [...old, l]) : old))
@@ -125,7 +131,14 @@ export function LocusPanel({
     >
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto p-3">
         <fieldset className="flex flex-col gap-3" disabled={busy}>
-          <TextField label="Label" value={d.label} onChange={(v) => set({ label: v })} error={fieldErr('label')} dirty={!!locus && dirty.label} help="Unique name of the locus (case-insensitive)." />
+          <TextField
+            label="Label"
+            value={d.label}
+            onChange={(v) => set({ label: v })}
+            error={fieldErr('label')}
+            dirty={!!locus && dirty.label}
+            help="Unique name of the locus (case-insensitive)."
+          />
           <SelectField
             label="Dye"
             value={d.color}
@@ -147,7 +160,15 @@ export function LocusPanel({
               step={1}
               help="Smallest allele size to look for. With Max size, this is the window where peaks are assigned to this locus."
             />
-            <NumberField label="Max size" unit="bp" value={d.max} onChange={(v) => set({ max: v })} dirty={!!locus && dirty.max} step={1} help="Largest allele size to look for." />
+            <NumberField
+              label="Max size"
+              unit="bp"
+              value={d.max}
+              onChange={(v) => set({ max: v })}
+              dirty={!!locus && dirty.max}
+              step={1}
+              help="Largest allele size to look for."
+            />
           </div>
           {fieldErr('range') && (
             <p role="alert" className="-mt-2 text-2xs text-danger">

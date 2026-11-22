@@ -221,7 +221,8 @@ export function DataTable<T extends RowData>({
       e.preventDefault()
       setFocusId(id)
       virtualizer.scrollToIndex(order.indexOf(id), { align: 'auto' })
-      if (selectionMode !== 'none' && !(clickToggles && !e.shiftKey)) apply(clickSelect(state(), id, { shift: e.shiftKey }, selectionMode, range))
+      if (selectionMode !== 'none' && !(clickToggles && !e.shiftKey))
+        apply(clickSelect(state(), id, { shift: e.shiftKey }, selectionMode, range))
     }
     switch (e.key) {
       case 'ArrowDown':
@@ -392,7 +393,13 @@ export function DataTable<T extends RowData>({
                       setFocusId(row.id)
                       if (selectionMode !== 'none')
                         apply(
-                          clickSelect(state(), row.id, { shift: e.shiftKey, toggle: clickToggles || e.metaKey || e.ctrlKey }, selectionMode, range),
+                          clickSelect(
+                            state(),
+                            row.id,
+                            { shift: e.shiftKey, toggle: clickToggles || e.metaKey || e.ctrlKey },
+                            selectionMode,
+                            range,
+                          ),
                         )
                     }}
                     onDoubleClick={() => onRowActivate?.(row.original)}

@@ -132,7 +132,12 @@ export function buildBatch(
   let fresh = Math.min(0, ...d.created.map((b) => b.id))
   const bins = [
     ...d.changed.map((b) => ({ ...b, label: b.label.trim() })),
-    ...d.created.map((b) => ({ ...b, id: b.id <= 0 ? b.id : --fresh, label: b.label.trim(), peak_count: counts?.get(b.id) ?? b.peak_count })),
+    ...d.created.map((b) => ({
+      ...b,
+      id: b.id <= 0 ? b.id : --fresh,
+      label: b.label.trim(),
+      peak_count: counts?.get(b.id) ?? b.peak_count,
+    })),
   ]
   const out: UpdateLocusBinsParams = { project_id: projectId, locus_id: locusId, bins }
   if (d.deleted.length) out.delete_ids = d.deleted.map((b) => b.id)

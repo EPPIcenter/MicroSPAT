@@ -34,7 +34,20 @@ import { useLocusParams, useProjectTask } from '@/features/projects-shared/queri
 import { StaleFrame, StaleNotice } from '@/features/projects-shared/StatusBits'
 import { BinsTable } from './BinsTable'
 import { binIssues, blockingIssues, fitRepeatGrid, gridLines, liveCounts, sortedSizes } from './model/checks'
-import { applyEdit, baseChanged, buildBatch, describeDiff, diffBins, discard, initEdits, isDirty, receive, redo, undo, type BinEdits } from './model/edits'
+import {
+  applyEdit,
+  baseChanged,
+  buildBatch,
+  describeDiff,
+  diffBins,
+  discard,
+  initEdits,
+  isDirty,
+  receive,
+  redo,
+  undo,
+  type BinEdits,
+} from './model/edits'
 import { binKeys, useBinScatter, useLocusBins } from './queries'
 import { kbd } from '@/lib/platform'
 
@@ -59,7 +72,11 @@ export function BinsTab({ detail, locusId, onSelectLocus, edits, setEdits, activ
   }, [active, locus, locusId, onSelectLocus])
 
   if (!locus || lid == null) return <EmptyState title="This project has no loci" />
-  const dirtyLoci = new Set(Object.entries(edits).filter(([, s]) => isDirty(s)).map(([k]) => Number(k)))
+  const dirtyLoci = new Set(
+    Object.entries(edits)
+      .filter(([, s]) => isDirty(s))
+      .map(([k]) => Number(k)),
+  )
 
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-testid="bins-tab">
@@ -70,11 +87,25 @@ export function BinsTab({ detail, locusId, onSelectLocus, edits, setEdits, activ
           selected={lid}
           onSelect={(id) => onSelectLocus(id)}
           trailing={(l) =>
-            dirtyLoci.has(l.locus_id) ? <span className="size-1.5 rounded-full bg-accent" title="Unsaved bin edits" aria-label="unsaved bin edits" data-testid="locus-unsaved" /> : null
+            dirtyLoci.has(l.locus_id) ? (
+              <span
+                className="size-1.5 rounded-full bg-accent"
+                title="Unsaved bin edits"
+                aria-label="unsaved bin edits"
+                data-testid="locus-unsaved"
+              />
+            ) : null
           }
           className="min-w-0 flex-1"
         />
-        <Button size="sm" variant={showParams ? 'secondary' : 'ghost'} aria-pressed={showParams} onClick={() => setShowParams((v) => !v)} data-testid="toggle-params" title="Parameters of this locus (P)">
+        <Button
+          size="sm"
+          variant={showParams ? 'secondary' : 'ghost'}
+          aria-pressed={showParams}
+          onClick={() => setShowParams((v) => !v)}
+          data-testid="toggle-params"
+          title="Parameters of this locus (P)"
+        >
           <SlidersHorizontal size={12} /> Parameters <Kbd>P</Kbd>
         </Button>
       </div>
@@ -147,12 +178,19 @@ function LocusBinsView({
   const counts = useMemo(() => liveCounts(sorted, present), [sorted, present])
   // The frequent alleles define the grid: weight by peaks in the window now.
   const grid = useMemo(
-    () => fitRepeatGrid(present.map((b) => ({ ...b, peak_count: counts.get(b.id) ?? b.peak_count })), locus.nucleotide_repeat_length),
+    () =>
+      fitRepeatGrid(
+        present.map((b) => ({ ...b, peak_count: counts.get(b.id) ?? b.peak_count })),
+        locus.nucleotide_repeat_length,
+      ),
     [present, counts, locus.nucleotide_repeat_length],
   )
   const issues = useMemo(() => binIssues(present, grid), [present, grid])
   const blocking = blockingIssues(issues)
-  const guides = useMemo(() => (showGrid ? gridLines(grid, locus.min_base_length - 10, locus.max_base_length + 10) : undefined), [showGrid, grid, locus])
+  const guides = useMemo(
+    () => (showGrid ? gridLines(grid, locus.min_base_length - 10, locus.max_base_length + 10) : undefined),
+    [showGrid, grid, locus],
+  )
   const binStyle = useCallback(
     (b: Bin): BinStyle | undefined => {
       const is = issues.get(b.id)
@@ -164,8 +202,15 @@ function LocusBinsView({
   )
   const defaultBuffer = params.data?.params.bins?.default_bin_buffer || 0.75
 
-  const edit = useCallback((next: Bin[], key: string | null = null) => setState((s) => applyEdit(s ?? initEdits(saved?.bins ?? []), next, key)), [setState, saved])
-  const onPlotChange = useCallback((next: Bin[], change: BinChange) => edit(next, change.type === 'add' || change.type === 'delete' ? null : `${change.type}:${change.bin.id}`), [edit])
+  const edit = useCallback(
+    (next: Bin[], key: string | null = null) => setState((s) => applyEdit(s ?? initEdits(saved?.bins ?? []), next, key)),
+    [setState, saved],
+  )
+  const onPlotChange = useCallback(
+    (next: Bin[], change: BinChange) =>
+      edit(next, change.type === 'add' || change.type === 'delete' ? null : `${change.type}:${change.bin.id}`),
+    [edit],
+  )
 
   const save = useMutation({
     mutationFn: (batch: UpdateLocusBinsParams) => api.update_locus_bins(batch),
@@ -176,7 +221,9 @@ function LocusBinsView({
       const deps = detail.dependents
       toast.success(
         `Saved the bins of ${locus.label}`,
-        deps.length ? `${deps.map((d) => d.title).join(', ')} ${deps.length === 1 ? 'is' : 'are'} now stale at ${locus.label} until re-analyzed.` : undefined,
+        deps.length
+          ? `${deps.map((d) => d.title).join(', ')} ${deps.length === 1 ? 'is' : 'are'} now stale at ${locus.label} until re-analyzed.`
+          : undefined,
       )
     },
   })
@@ -251,14 +298,26 @@ function LocusBinsView({
           </Button>
         }
       >
-        Analyzing scans every run at this locus, filters the peaks, and clusters their sizes into bins (mean shift, half a repeat wide). Clusters with at
-        least the minimum peak frequency become bins. It runs in the background.
+        Analyzing scans every run at this locus, filters the peaks, and clusters their sizes into bins (mean shift, half a repeat wide).
+        Clusters with at least the minimum peak frequency become bins. It runs in the background.
       </EmptyState>
     )
-  else if ((bins.isLoading && !saved) || (scatter.isLoading && !scatterData)) main = <div className="grid flex-1 place-items-center text-muted"><Spinner /></div>
+  else if ((bins.isLoading && !saved) || (scatter.isLoading && !scatterData))
+    main = (
+      <div className="grid flex-1 place-items-center text-muted">
+        <Spinner />
+      </div>
+    )
   else if (bins.isError && !saved)
     main = (
-      <EmptyState title="Could not load the bins" action={<Button size="sm" onClick={() => void bins.refetch()}>Try again</Button>}>
+      <EmptyState
+        title="Could not load the bins"
+        action={
+          <Button size="sm" onClick={() => void bins.refetch()}>
+            Try again
+          </Button>
+        }
+      >
         {(bins.error as Error).message}
       </EmptyState>
     )
@@ -273,11 +332,33 @@ function LocusBinsView({
         first={
           <StaleFrame status={status}>
             <div className="flex min-h-0 flex-1 flex-col" data-testid="bin-workspace" data-dirty={dirty || undefined}>
-              <div className={cn('flex h-9 shrink-0 items-center gap-1 border-b px-2', dirty ? 'border-accent/40 bg-accent-soft' : 'border-line bg-surface')} data-testid="bin-edit-bar">
-                <Button size="icon-sm" variant="ghost" disabled={!edits?.past.length} onClick={() => setState((s) => undo(s!))} aria-label={kbd('Undo (⌘Z)')} title={kbd('Undo (⌘Z)')} data-testid="bins-undo">
+              <div
+                className={cn(
+                  'flex h-9 shrink-0 items-center gap-1 border-b px-2',
+                  dirty ? 'border-accent/40 bg-accent-soft' : 'border-line bg-surface',
+                )}
+                data-testid="bin-edit-bar"
+              >
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  disabled={!edits?.past.length}
+                  onClick={() => setState((s) => undo(s!))}
+                  aria-label={kbd('Undo (⌘Z)')}
+                  title={kbd('Undo (⌘Z)')}
+                  data-testid="bins-undo"
+                >
                   <Undo2 size={13} />
                 </Button>
-                <Button size="icon-sm" variant="ghost" disabled={!edits?.future.length} onClick={() => setState((s) => redo(s!))} aria-label={kbd('Redo (⇧⌘Z)')} title={kbd('Redo (⇧⌘Z)')} data-testid="bins-redo">
+                <Button
+                  size="icon-sm"
+                  variant="ghost"
+                  disabled={!edits?.future.length}
+                  onClick={() => setState((s) => redo(s!))}
+                  aria-label={kbd('Redo (⇧⌘Z)')}
+                  title={kbd('Redo (⇧⌘Z)')}
+                  data-testid="bins-redo"
+                >
                   <Redo2 size={13} />
                 </Button>
                 <span className="ml-1 min-w-0 flex-1 truncate text-xs" aria-live="polite" data-testid="bin-edit-status">
@@ -293,15 +374,36 @@ function LocusBinsView({
                     </span>
                   )}
                 </span>
-                <Button size="icon-sm" variant={showGrid ? 'secondary' : 'ghost'} aria-pressed={showGrid} onClick={() => setShowGrid((v) => !v)} title="Repeat grid (G)" aria-label="Show the repeat grid">
+                <Button
+                  size="icon-sm"
+                  variant={showGrid ? 'secondary' : 'ghost'}
+                  aria-pressed={showGrid}
+                  onClick={() => setShowGrid((v) => !v)}
+                  title="Repeat grid (G)"
+                  aria-label="Show the repeat grid"
+                >
                   <Grid3x3 size={12} />
                 </Button>
                 {dirty && (
                   <>
-                    <Button size="sm" variant="ghost" onClick={() => setState((s) => discard(s!))} disabled={save.isPending} data-testid="bins-discard" title="Drop every unsaved edit at this locus">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setState((s) => discard(s!))}
+                      disabled={save.isPending}
+                      data-testid="bins-discard"
+                      title="Drop every unsaved edit at this locus"
+                    >
                       <X size={12} /> Discard
                     </Button>
-                    <Button size="sm" variant="primary" onClick={doSave} disabled={save.isPending} data-testid="bins-save" title={kbd('Save the bins of this locus (⌘S)')}>
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      onClick={doSave}
+                      disabled={save.isPending}
+                      data-testid="bins-save"
+                      title={kbd('Save the bins of this locus (⌘S)')}
+                    >
                       {save.isPending ? <Spinner className="size-3" /> : <Save size={12} />} Save
                     </Button>
                   </>
@@ -323,7 +425,9 @@ function LocusBinsView({
                   followSelection
                 />
                 {points.length === 0 && scatterData && (
-                  <p className="pointer-events-none absolute inset-x-0 top-1/2 text-center text-xs text-muted">No peaks passed the filters at this locus.</p>
+                  <p className="pointer-events-none absolute inset-x-0 top-1/2 text-center text-xs text-muted">
+                    No peaks passed the filters at this locus.
+                  </p>
                 )}
               </div>
               <PlotLegend repeat={locus.nucleotide_repeat_length} grid={showGrid && !!grid} dense={points.length > 2500} />
@@ -362,8 +466,8 @@ function LocusBinsView({
           <span data-testid="save-dependents">
             {diff && `${describeDiff(diff)}. `}
             {countOf(detail.dependents.length, 'project')} {detail.dependents.length === 1 ? 'uses' : 'use'} these bins:{' '}
-            {detail.dependents.map((d) => `${d.title} (${KINDS[d.kind].noun.toLowerCase()})`).join(', ')}. Their results at {locus.label} become stale and
-            stay so until they are re-analyzed.
+            {detail.dependents.map((d) => `${d.title} (${KINDS[d.kind].noun.toLowerCase()})`).join(', ')}. Their results at {locus.label}{' '}
+            become stale and stay so until they are re-analyzed.
           </span>
         }
         confirmLabel="Save bins"
@@ -376,7 +480,9 @@ function LocusBinsView({
 function PlotLegend({ repeat, grid, dense }: { repeat: number; grid: boolean; dense: boolean }) {
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-0.5 border-t border-line bg-surface px-2 py-1 text-2xs text-muted">
-      <span>Each dot is a peak in one run: size against height relative to the run’s tallest peak.{dense && ' Darker means more peaks.'}</span>
+      <span>
+        Each dot is a peak in one run: size against height relative to the run’s tallest peak.{dense && ' Darker means more peaks.'}
+      </span>
       {grid && <span>Dotted lines: repeat grid ({repeat} bp).</span>}
       <span>Dashed bins are unsaved, amber ones flagged.</span>
       <span className="text-faint">Drag a bin to move it, an edge to resize · double-click to add · Del deletes · {kbd('⌘Z')} undo</span>
