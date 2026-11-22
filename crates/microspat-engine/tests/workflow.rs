@@ -1,61 +1,16 @@
 //! The whole stage-one workflow, driven through `Engine::dispatch` exactly as
 //! an adapter does, asserting results and the events emitted.
 
+mod common;
+
+use common::{set, Harness};
 use microspat_core::ladder::{fit_ladder, LadderSpec, HD400_SIZES};
 use microspat_core::synth::{generate_plate, SynthSpec, SynthWell, WellKind};
 use microspat_engine::api::demo::{write_dir, write_zip};
 use microspat_engine::{AppEvent, Engine, EngineConfig, ErrorCode, TaskStatus};
 use serde_json::{json, Value};
 use std::collections::{BTreeSet, HashMap};
-use std::path::Path;
-use std::sync::mpsc::Receiver;
-
-struct Harness {
-    engine: Engine,
-    events: Receiver<AppEvent>,
-}
-
-impl Harness {
-    fn new(state: &Path) -> Harness {
-        let engine = Engine::new(EngineConfig {
-            state_dir: Some(state.to_path_buf()),
-        });
-        let events = engine.subscribe();
-        Harness { engine, events }
-    }
-
-    fn call(&self, method: &str, params: Value) -> Value {
-        self.engine
-            .dispatch(method, params)
-            .unwrap_or_else(|e| panic!("{method} failed: {:?} {}", e.code, e.message))
-    }
-
-    fn fail(&self, method: &str, params: Value) -> microspat_engine::RpcError {
-        match self.engine.dispatch(method, params) {
-            Ok(v) => panic!("{method} should have failed, returned {v}"),
-            Err(e) => e,
-        }
-    }
-
-    fn drain(&self) -> Vec<AppEvent> {
-        self.events.try_iter().collect()
-    }
-
-    /// Entities of `changed` events since the last drain.
-    fn changed(&self) -> BTreeSet<String> {
-        self.drain()
-            .into_iter()
-            .filter_map(|e| match e {
-                AppEvent::Changed { entity, .. } => Some(entity),
-                _ => None,
-            })
-            .collect()
-    }
-}
-
-fn set(items: &[&str]) -> BTreeSet<String> {
-    items.iter().map(|s| s.to_string()).collect()
-}
+use std::path::PathBuf;
 
 fn ids(v: &Value) -> Vec<i64> {
     v.as_array()
@@ -787,7 +742,31 @@ fn full_workflow_through_dispatch() {
     let saved = h.call("save_workspace_as", json!({ "path": copy.to_str() }));
     assert_eq!(saved["name"], "copy");
     assert_eq!(saved["counts"], snapshot_info["counts"]);
+    let untitled_dir = std::env::temp_dir().join("microspat-untitled");
+    let untitled_files = || -> std::collections::BTreeSet<_> {
+        std::fs::read_dir(&untitled_dir)
+            .map(|d| {
+                d.map(|e| e.unwrap().path())
+                    .filter(|p| p.extension().is_some_and(|x| x == "microspat"))
+                    .collect()
+            })
+            .unwrap_or_default()
+    };
+    let before = untitled_files();
     h.call("new_workspace", json!({ "path": null }));
+    let untitled: Vec<_> = untitled_files().difference(&before).cloned().collect();
+    assert_eq!(untitled.len(), 1, "{untitled:?}");
+    let untitled = untitled[0].clone();
+    let untitled_and_sidecars: Vec<PathBuf> = ["", "-wal", "-shm"]
+        .iter()
+        .map(|side| {
+            let mut p = untitled.clone().into_os_string();
+            p.push(side);
+            PathBuf::from(p)
+        })
+        .collect();
+    // Removes them even if an assertion below fails first.
+    let _cleanup = RemoveOnDrop(untitled_and_sidecars.clone());
     assert_eq!(
         h.call("get_workspace_info", Value::Null)["path"],
         Value::Null
@@ -799,6 +778,13 @@ fn full_workflow_through_dispatch() {
         "study.microspat-shm",
     ] {
         assert!(!dir.path().join(side).exists(), "{side} left behind");
+    }
+    // Saving the untitled workspace removes its temp file.
+    let scratch = dir.path().join("scratch.microspat");
+    h.call("save_workspace_as", json!({ "path": scratch.to_str() }));
+    assert!(scratch.is_file());
+    for p in &untitled_and_sidecars {
+        assert!(!p.exists(), "{} left behind", p.display());
     }
     let elsewhere = tempfile::tempdir().unwrap();
     let moved = elsewhere.path().join("emailed.microspat");
@@ -929,7 +915,7 @@ fn reads_are_not_blocked_by_an_import() {
 fn demo_data_fills_every_screen() {
     let dir = tempfile::tempdir().unwrap();
     let h = Harness::new(&dir.path().join("state"));
-    h.call("new_workspace", json!({ "path": null }));
+    h.new_scratch_workspace(dir.path());
     h.drain();
     let r = h.call("load_demo_data", Value::Null);
     let plates = r["plates"].as_array().unwrap();
@@ -1093,7 +1079,7 @@ fn demo_data_fills_every_screen() {
 fn manual_ladder_peaks_are_assigned_with_the_plates_prior_and_judged_complete() {
     let dir = tempfile::tempdir().unwrap();
     let h = Harness::new(&dir.path().join("state"));
-    h.call("new_workspace", json!({ "path": null }));
+    h.new_scratch_workspace(dir.path());
     h.call("load_demo_data", Value::Null);
     let plate = &h.call("list_plates", Value::Null)[0];
     let plate_id = plate["id"].as_i64().unwrap();
@@ -1240,7 +1226,7 @@ fn manual_ladder_peaks_are_assigned_with_the_plates_prior_and_judged_complete() 
 fn sample_rows_and_batches() {
     let dir = tempfile::tempdir().unwrap();
     let h = Harness::new(&dir.path().join("state"));
-    h.call("new_workspace", json!({ "path": null }));
+    h.new_scratch_workspace(dir.path());
     h.call("load_demo_data", Value::Null);
     let samples = h.call("list_samples", Value::Null);
     let run = samples
@@ -1354,4 +1340,15 @@ fn sample_rows_and_batches() {
         h.call("get_sample", json!({ "id": fresh[2] }))["barcode"],
         "FRESH-2"
     );
+}
+
+/// Deletes its files when dropped, also when the test panics.
+struct RemoveOnDrop(Vec<PathBuf>);
+
+impl Drop for RemoveOnDrop {
+    fn drop(&mut self) {
+        for p in &self.0 {
+            let _ = std::fs::remove_file(p);
+        }
+    }
 }

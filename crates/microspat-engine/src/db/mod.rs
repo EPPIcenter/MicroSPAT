@@ -17,6 +17,7 @@
 pub mod schema;
 
 use crate::error::{io_err, Result, RpcError};
+use crate::files;
 use rusqlite::{Connection, OpenFlags, OptionalExtension, Transaction, TransactionBehavior};
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, MutexGuard};
@@ -203,6 +204,8 @@ impl Workspace {
         let mut conn = lock(&self.writer);
         let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
         let out = f(&tx)?;
+        #[cfg(debug_assertions)]
+        crash_before_commit();
         tx.commit()?;
         // Keep the main file current so it is usable even while open.
         let _ = conn.query_row("PRAGMA wal_checkpoint(PASSIVE)", [], |_| Ok(()));
@@ -216,10 +219,7 @@ impl Workspace {
                 "Choose a different path: this file is already the open workspace.",
             ));
         }
-        let dir = dest
-            .parent()
-            .filter(|d| !d.as_os_str().is_empty())
-            .unwrap_or(Path::new("."));
+        let dir = files::parent_dir(dest);
         std::fs::create_dir_all(dir).map_err(|e| io_err(dir, e))?;
         let tmp = tempfile::Builder::new()
             .prefix(".microspat-save-")
@@ -240,9 +240,13 @@ impl Workspace {
             let copy = Connection::open(&tmp).map_err(|e| sqlite_err(&tmp, e))?;
             copy.query_row("PRAGMA journal_mode = DELETE", [], |_| Ok(()))?;
         }
-        rename_with_retry(&tmp, dest).map_err(|e| io_err(dest, e))?;
+        // VACUUM INTO does not flush its output. Flush before the rename, so a
+        // power cut cannot leave a renamed but incomplete file at `dest`.
+        files::sync_file(&tmp).map_err(|e| io_err(dest, e))?;
+        files::rename_with_retry(&tmp, dest).map_err(|e| io_err(dest, e))?;
         // The rename consumed the file; keep TempPath from deleting dest's old name.
         let _ = tmp.keep();
+        files::sync_dir(dir);
         // Remove any stale sidecars left by an earlier file at `dest` after the
         // replacement is in place, so they cannot be replayed into the new file.
         for suffix in ["-wal", "-shm", "-journal"] {
@@ -269,6 +273,35 @@ impl Drop for Workspace {
         let _ = conn.query_row("PRAGMA journal_mode = DELETE", [], |_| Ok(()));
     }
 }
+
+/// Environment variable of the debug-build crash hook (`crash_before_commit`).
+pub const CRASH_BEFORE_COMMIT_ENV: &str = "MICROSPAT_CRASH_BEFORE_COMMIT";
+
+/// Test hook, compiled into debug builds only (release builds ignore the
+/// variable): with
+/// `MICROSPAT_CRASH_BEFORE_COMMIT=n`, the process exits inside its n-th
+/// write transaction, after the work and before the commit, without closing
+/// anything, as a crash there would (`tests/crash.rs`).
+#[cfg(debug_assertions)]
+fn crash_before_commit() {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    use std::sync::OnceLock;
+    static AT: OnceLock<Option<u64>> = OnceLock::new();
+    static WRITES: AtomicU64 = AtomicU64::new(0);
+    let at = AT.get_or_init(|| {
+        std::env::var(CRASH_BEFORE_COMMIT_ENV)
+            .ok()
+            .and_then(|v| v.parse().ok())
+    });
+    if let Some(at) = *at {
+        if WRITES.fetch_add(1, Ordering::Relaxed) + 1 == at {
+            std::process::exit(CRASH_EXIT_CODE);
+        }
+    }
+}
+
+/// Exit status of the debug-build crash hook.
+pub const CRASH_EXIT_CODE: i32 = 86;
 
 fn migrate(conn: &mut Connection, from: i64) -> Result<()> {
     if from >= schema::SCHEMA_VERSION {
@@ -322,21 +355,4 @@ pub fn quality_limits(conn: &Connection) -> Result<microspat_core::quality::Qual
 /// Current schema version of an open connection.
 pub fn schema_version(conn: &Connection) -> Result<i64> {
     Ok(conn.query_row("PRAGMA user_version", [], |r| r.get(0))?)
-}
-
-/// Renames, retrying briefly when the file is locked. On Windows a virus
-/// scanner or a sync client (OneDrive) often holds a just-closed file for a
-/// moment, and `rename` then fails with a sharing violation.
-fn rename_with_retry(from: &Path, to: &Path) -> std::io::Result<()> {
-    let mut wait = std::time::Duration::from_millis(40);
-    for _ in 0..6 {
-        match std::fs::rename(from, to) {
-            Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
-                std::thread::sleep(wait);
-                wait *= 2;
-            }
-            other => return other,
-        }
-    }
-    std::fs::rename(from, to)
 }

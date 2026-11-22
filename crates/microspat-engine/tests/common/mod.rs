@@ -34,6 +34,16 @@ impl Harness {
             .unwrap_or_else(|e| panic!("{method} failed: {:?} {}", e.code, e.message))
     }
 
+    /// Creates and opens `dir/scratch.microspat`: a throwaway workspace that
+    /// goes away with the test's temp dir (an untitled one would stay in the
+    /// system temp folder).
+    pub fn new_scratch_workspace(&self, dir: &Path) -> Value {
+        self.call(
+            "new_workspace",
+            json!({ "path": dir.join("scratch.microspat").to_str() }),
+        )
+    }
+
     pub fn fail(&self, method: &str, params: Value) -> microspat_engine::RpcError {
         match self.engine.dispatch(method, params) {
             Ok(v) => panic!("{method} should have failed, returned {v}"),
@@ -43,6 +53,14 @@ impl Harness {
 
     pub fn drain(&self) -> Vec<AppEvent> {
         self.events.try_iter().collect()
+    }
+
+    /// `changed: plates` events since the last drain.
+    pub fn changed_plates(&self) -> usize {
+        self.drain()
+            .into_iter()
+            .filter(|e| matches!(e, AppEvent::Changed { entity, .. } if entity == "plates"))
+            .count()
     }
 
     /// Entities of `changed` events since the last drain.

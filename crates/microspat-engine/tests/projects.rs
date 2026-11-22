@@ -384,7 +384,7 @@ fn full_chain_and_exports() {
     // Save as, reopen: everything intact and still current.
     let copy = s.dir.join("copy.microspat");
     h.call("save_workspace_as", json!({ "path": copy.to_str() }));
-    h.call("new_workspace", json!({ "path": null }));
+    h.new_scratch_workspace(&s.dir);
     assert_eq!(
         h.call("list_projects", Value::Null)
             .as_array()
@@ -1095,7 +1095,7 @@ fn control_mixture_csv_validation() {
     let tmp = tempfile::tempdir().unwrap();
     let h = Harness::new(&tmp.path().join("state"));
     let st = study(tmp.path(), 1, 9100);
-    h.call("new_workspace", json!({ "path": null }));
+    h.new_scratch_workspace(tmp.path());
     let (set_id, loci) = load_study(&h, &st);
     let be = id(&h.call(
         "create_project",
