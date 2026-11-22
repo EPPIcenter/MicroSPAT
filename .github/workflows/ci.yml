@@ -116,8 +116,9 @@ jobs:
             os: macos-latest
     runs-on: ${{ matrix.os }}
     env:
-      # Skip LTO on PR verification builds; release.yml keeps full lto = "thin".
+      # Skip LTO and full optimization on PR verification builds; release.yml keeps opt-level = 3 and lto = "thin".
       CARGO_PROFILE_RELEASE_LTO: 'off'
+      CARGO_PROFILE_RELEASE_OPT_LEVEL: '1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 

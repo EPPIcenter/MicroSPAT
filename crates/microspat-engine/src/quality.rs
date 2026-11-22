@@ -34,9 +34,25 @@ use microspat_core::quality::{
 use microspat_core::Color;
 use rayon::prelude::*;
 use rusqlite::{params, Connection, OptionalExtension};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use ts_rs::TS;
+
+/// Slim deserialization of a stored `PlateQuality` report for pull-up lookups
+/// and staleness checks, skipping per-well numeric metrics, crosstalk, controls
+/// and issues.
+#[derive(Deserialize)]
+struct WellFlagsSlice {
+    well: String,
+    flags: Vec<WellFlag>,
+}
+
+#[derive(Deserialize)]
+struct PullUpReportSlice {
+    version: u32,
+    pull_up: Vec<LeakEstimate>,
+    wells: Vec<WellFlagsSlice>,
+}
 
 /// Parsed per-plate pull-up data and unseparated capillary wells cached for
 /// peak annotation, staleness fingerprints, and run-view annotations.
@@ -49,7 +65,7 @@ pub(crate) struct PlatePullUpData {
 }
 
 impl PlatePullUpData {
-    pub fn from_report(q: PlateQuality) -> Self {
+    fn from_slice(q: PullUpReportSlice) -> Self {
         let mut by_target: HashMap<Color, DyePullUp> = HashMap::new();
         let mut raw_by_target: HashMap<Color, Vec<LeakEstimate>> = HashMap::new();
         for l in q.pull_up {
@@ -92,16 +108,16 @@ pub(crate) fn load_pull_up_for_plates(
         return Ok(HashMap::new());
     }
     let mut st = c.prepare(&format!(
-        "SELECT plate_id, version, report FROM plate_quality WHERE version >= ?1 AND plate_id IN ({})",
+        "SELECT plate_id, report FROM plate_quality WHERE version >= ?1 AND plate_id IN ({})",
         id_list(plate_ids)
     ))?;
     let rows = st.query_map([QUALITY_VERSION], |r| {
-        Ok((r.get::<_, i64>(0)?, json_col::<PlateQuality>(r, 2)?))
+        Ok((r.get::<_, i64>(0)?, json_col::<PullUpReportSlice>(r, 1)?))
     })?;
     let mut out = HashMap::new();
     for row in rows {
         let (pid, report) = row?;
-        out.insert(pid, PlatePullUpData::from_report(report));
+        out.insert(pid, PlatePullUpData::from_slice(report));
     }
     Ok(out)
 }
@@ -111,12 +127,12 @@ pub(crate) fn load_all_pull_up(c: &Connection) -> Result<HashMap<i64, PlatePullU
     let mut st =
         c.prepare_cached("SELECT plate_id, report FROM plate_quality WHERE version >= ?1")?;
     let rows = st.query_map([QUALITY_VERSION], |r| {
-        Ok((r.get::<_, i64>(0)?, json_col::<PlateQuality>(r, 1)?))
+        Ok((r.get::<_, i64>(0)?, json_col::<PullUpReportSlice>(r, 1)?))
     })?;
     let mut out = HashMap::new();
     for row in rows {
         let (pid, report) = row?;
-        out.insert(pid, PlatePullUpData::from_report(report));
+        out.insert(pid, PlatePullUpData::from_slice(report));
     }
     Ok(out)
 }
